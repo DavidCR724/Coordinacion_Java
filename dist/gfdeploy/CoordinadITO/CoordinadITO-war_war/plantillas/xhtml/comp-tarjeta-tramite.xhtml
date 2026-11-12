@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  COMPONENTE: tarjeta de un trámite del catálogo (parte de app/dashboard/procedures/page.tsx).
+  Parámetros (ui:param):
+      idTramite  -> identificador para el enlace (course-drop, schedule-change, ...)
+      codigo     -> siglas (BM, CH, ...)
+      nombre, descripcion, periodo (texto ya formateado)
+      disponible -> true | false
+      etiqueta   -> Disponible | Próximamente | Periodo cerrado | No disponible
+      requisito1, requisito2 -> los dos primeros requisitos
+      textoBoton -> Iniciar solicitud | Consultar disponibilidad
+-->
+<ui:composition xmlns="http://www.w3.org/1999/xhtml"
+                xmlns:h="jakarta.faces.html"
+                xmlns:f="jakarta.faces.core"
+                xmlns:ui="jakarta.faces.facelets">
+    <article class="procedure-card #{disponible ? '' : 'procedure-unavailable'}">
+        <div class="procedure-card-top">
+            <span class="procedure-symbol">#{codigo}</span>
+            <span class="availability-badge #{disponible ? 'available' : ''}"><span></span>#{etiqueta}</span>
+        </div>
+        <h2>#{nombre}</h2>
+        <p class="procedure-description">#{descripcion}</p>
+        <div class="procedure-period">
+            <svg class="icono" width="16" height="16" aria-hidden="true"><use href="#i-calendar"/></svg>
+            <span>#{periodo}</span>
+        </div>
+        <div class="requirements-preview">
+            <h3>Antes de solicitarlo</h3>
+            <ul>
+                <li><svg class="icono" width="14" height="14" aria-hidden="true"><use href="#i-check"/></svg>#{requisito1}</li>
+                <li><svg class="icono" width="14" height="14" aria-hidden="true"><use href="#i-check"/></svg>#{requisito2}</li>
+            </ul>
+        </div>
+        <div class="procedure-card-footer">
+            <h:link outcome="/vista/tramite-detalle" styleClass="button #{disponible ? 'button-primary' : 'button-secondary'}">
+                <f:param name="id" value="#{idTramite}"/>
+                <f:param name="rol" value="#{param.rol}" disable="#{empty param.rol}"/>
+                #{textoBoton}
+                <svg class="icono" width="16" height="16" aria-hidden="true"><use href="#i-arrow"/></svg>
+            </h:link>
+        </div>
+    </article>
+</ui:composition>

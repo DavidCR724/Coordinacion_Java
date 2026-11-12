@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  COMPONENTE: una fila "etiqueta / valor" de una lista de definición (<dl class="review-values">).
+  Se usa en la revisión del formulario y en el detalle de una solicitud.
+  Parámetros (ui:param):
+      etiqueta -> el <dt>
+      valor    -> el <dd>; si llega vacío se muestra "Sin información"
+-->
+<ui:composition xmlns="http://www.w3.org/1999/xhtml"
+                xmlns:ui="jakarta.faces.facelets">
+    <div>
+        <dt>#{etiqueta}</dt>
+        <dd>#{empty valor ? 'Sin información' : valor}</dd>
+    </div>
+</ui:composition>

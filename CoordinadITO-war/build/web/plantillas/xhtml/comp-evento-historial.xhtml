@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  COMPONENTE: un evento de la línea de tiempo de una solicitud (<li> de ol.timeline).
+  Parámetros (ui:param):
+      ultimo       -> true para el evento más reciente (punto resaltado)
+      codigoEstado -> received | in-review | completed | rejected
+      fechaIso     -> valor del atributo datetime
+      fecha        -> fecha ya formateada, p. ej. "27 oct 2026, 9:15 a.m."
+      comentario   -> texto del evento
+      actor        -> quién lo registró
+      transicion   -> (opcional) "Recibida → En revisión"
+-->
+<ui:composition xmlns="http://www.w3.org/1999/xhtml"
+                xmlns:ui="jakarta.faces.facelets">
+    <li class="#{ultimo ? 'latest' : ''}">
+        <span class="timeline-dot"><ui:fragment rendered="#{ultimo}"><span></span></ui:fragment></span>
+        <div>
+            <ui:include src="/plantillas/xhtml/comp-insignia-estado.xhtml"/>
+            <time datetime="#{fechaIso}">#{fecha}</time>
+            <p>#{comentario}</p>
+            <strong>#{actor}</strong>
+            <ui:fragment rendered="#{not empty transicion}"><small>#{transicion}</small></ui:fragment>
+        </div>
+    </li>
+</ui:composition>

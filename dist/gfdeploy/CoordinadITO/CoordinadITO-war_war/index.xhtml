@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  PUNTO DE ENTRADA: http://localhost:8080/CoordinadITO-war/
+  No muestra nada: en cuanto se carga, f:viewAction ejecuta la navegación
+  y redirige a /vista/login.xhtml (faces-redirect=true cambia la URL del navegador).
+-->
+<html xmlns="http://www.w3.org/1999/xhtml"
+      xmlns:h="jakarta.faces.html"
+      xmlns:f="jakarta.faces.core">
+    <f:metadata>
+        <f:viewAction action="/vista/login?faces-redirect=true"/>
+    </f:metadata>
+    <h:head>
+        <title>CoordinadITO</title>
+    </h:head>
+    <h:body>
+        Redirigiendo…
+    </h:body>
+</html>

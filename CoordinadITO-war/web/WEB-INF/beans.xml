@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Activa CDI en el módulo web. Jakarta Faces 4.x lo necesita para arrancar.
+     "annotated": solo son beans las clases con anotación de alcance
+     (como @RequestScoped o @SessionScoped en los managed beans que se agreguen después). -->
+<beans xmlns="https://jakarta.ee/xml/ns/jakartaee"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xsi:schemaLocation="https://jakarta.ee/xml/ns/jakartaee https://jakarta.ee/xml/ns/jakartaee/beans_4_1.xsd"
+       version="4.1" bean-discovery-mode="annotated">
+</beans>

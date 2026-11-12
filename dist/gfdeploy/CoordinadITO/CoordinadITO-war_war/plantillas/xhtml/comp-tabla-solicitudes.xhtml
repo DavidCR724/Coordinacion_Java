@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  COMPONENTE: tabla de solicitudes con barra de búsqueda (equivale a components/requests/request-table.tsx).
+  Parámetros (ui:param):
+      conEstudiante -> true muestra la columna "Estudiante" (vista de coordinación)
+      conFiltros    -> true muestra la barra de búsqueda y el filtro por estado
+      totalFilas    -> número de filas, para el pie de la tabla
+  Hueco (ui:define): filas -> los <tr>, normalmente con comp-fila-solicitud.xhtml
+  Nota: la búsqueda y el filtro son solo visuales en esta versión.
+-->
+<ui:composition xmlns="http://www.w3.org/1999/xhtml"
+                xmlns:ui="jakarta.faces.facelets">
+    <section class="panel request-list-panel">
+        <ui:fragment rendered="#{conFiltros}">
+            <div class="table-toolbar">
+                <label class="search-field">
+                    <svg class="icono" width="18" height="18" aria-hidden="true"><use href="#i-search"/></svg>
+                    <input aria-label="Buscar solicitudes"
+                           placeholder="#{conEstudiante ? 'Buscar por folio, trámite o estudiante' : 'Buscar por folio o trámite'}"/>
+                </label>
+                <select aria-label="Filtrar por estado" class="filter-select">
+                    <option value="all">Todos los estados</option>
+                    <option value="received">Recibida</option>
+                    <option value="in-review">En revisión</option>
+                    <option value="completed">Finalizada</option>
+                    <option value="rejected">Rechazada</option>
+                </select>
+            </div>
+        </ui:fragment>
+        <div class="table-scroll">
+            <table class="request-table">
+                <thead>
+                    <tr>
+                        <th>Folio / trámite</th>
+                        <ui:fragment rendered="#{conEstudiante}"><th>Estudiante</th></ui:fragment>
+                        <th>Registro</th>
+                        <th>Estado</th>
+                        <th>Última actualización</th>
+                        <th><span class="sr-only">Acción</span></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <ui:insert name="filas"/>
+                </tbody>
+            </table>
+        </div>
+        <div class="table-footer">#{totalFilas} #{totalFilas eq 1 ? 'solicitud' : 'solicitudes'}#{conFiltros ? ' en esta vista' : ''}</div>
+    </section>
+</ui:composition>

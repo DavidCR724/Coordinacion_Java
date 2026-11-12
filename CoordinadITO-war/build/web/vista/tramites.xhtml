@@ -1,0 +1,118 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  VISTA: catálogo de trámites. Equivale a app/dashboard/procedures/page.tsx.
+  Solo para estudiantes; coordinación y administración ven un aviso.
+  Disponibilidad calculada al 5 de noviembre de 2026 (en el front salía de la fecha del sistema;
+  aquí es fija porque todavía no hay lógica en Java):
+      BM  Baja de materia          17 ago – 13 nov 2026  -> Disponible
+      CH  Cambio de horario        17 ago –  6 nov 2026  -> Disponible
+      IM  Inscripción de materia   25 ene –  5 feb 2027  -> Próximamente
+      BT  Baja temporal            17 ago – 25 sep 2026  -> Periodo cerrado
+  La búsqueda y el filtro son solo visuales en esta versión.
+-->
+<ui:composition template="/plantillas/xhtml/plantilla-panel.xhtml"
+                xmlns="http://www.w3.org/1999/xhtml"
+                xmlns:h="jakarta.faces.html"
+                xmlns:f="jakarta.faces.core"
+                xmlns:ui="jakarta.faces.facelets"
+                xmlns:c="jakarta.tags.core">
+
+    <ui:param name="seccion" value="tramites"/>
+    <ui:param name="rotulo" value="Trámites"/>
+
+    <ui:define name="titulo">Trámites</ui:define>
+
+    <ui:define name="contenido">
+        <c:set var="rol" value="#{param.rol eq 'coordinator' or param.rol eq 'administrator' ? param.rol : 'student'}"/>
+
+        <!-- Quien no es estudiante no puede solicitar trámites. -->
+        <ui:fragment rendered="#{rol ne 'student'}">
+            <ui:include src="/plantillas/xhtml/comp-estado-vacio.xhtml">
+                <ui:param name="icono" value="folder"/>
+                <ui:param name="tituloVacio" value="Catálogo para estudiantes"/>
+                <ui:param name="descripcion" value="La solicitud de trámites se realiza desde una cuenta de estudiante."/>
+                <ui:param name="destino" value="/vista/inicio"/>
+                <ui:param name="accion" value="Volver al inicio"/>
+            </ui:include>
+        </ui:fragment>
+
+        <ui:fragment rendered="#{rol eq 'student'}">
+            <ui:include src="/plantillas/xhtml/comp-encabezado.xhtml">
+                <ui:param name="eyebrow" value="COORDINACIÓN A TU ALCANCE"/>
+                <ui:param name="tituloPagina" value="¿Qué trámite necesitas?"/>
+                <ui:param name="descripcion" value="Conoce los requisitos, revisa las fechas y comienza tu solicitud."/>
+            </ui:include>
+
+            <div class="catalog-toolbar">
+                <label class="search-field">
+                    <svg class="icono" width="19" height="19" aria-hidden="true"><use href="#i-search"/></svg>
+                    <input aria-label="Buscar trámites" placeholder="Buscar un trámite..."/>
+                </label>
+                <div class="segmented-control" aria-label="Disponibilidad">
+                    <button type="button" aria-pressed="true" class="active">Todos los trámites</button>
+                    <button type="button" aria-pressed="false">Disponibles</button>
+                </div>
+            </div>
+            <p class="catalog-result-count">4 trámites en el catálogo</p>
+
+            <div class="procedure-grid">
+                <ui:include src="/plantillas/xhtml/comp-tarjeta-tramite.xhtml">
+                    <ui:param name="idTramite" value="course-drop"/>
+                    <ui:param name="codigo" value="BM"/>
+                    <ui:param name="nombre" value="Baja de materia"/>
+                    <ui:param name="descripcion" value="Solicita la baja de una asignatura de tu carga académica actual."/>
+                    <ui:param name="periodo" value="17 ago 2026 — 13 nov 2026"/>
+                    <ui:param name="disponible" value="true"/>
+                    <ui:param name="etiqueta" value="Disponible"/>
+                    <ui:param name="requisito1" value="Identificar la materia y el grupo de tu carga actual."/>
+                    <ui:param name="requisito2" value="Indicar el motivo de la baja."/>
+                    <ui:param name="textoBoton" value="Iniciar solicitud"/>
+                </ui:include>
+                <ui:include src="/plantillas/xhtml/comp-tarjeta-tramite.xhtml">
+                    <ui:param name="idTramite" value="schedule-change"/>
+                    <ui:param name="codigo" value="CH"/>
+                    <ui:param name="nombre" value="Cambio de horario"/>
+                    <ui:param name="descripcion" value="Solicita un cambio de grupo u horario para una materia inscrita."/>
+                    <ui:param name="periodo" value="17 ago 2026 — 6 nov 2026"/>
+                    <ui:param name="disponible" value="true"/>
+                    <ui:param name="etiqueta" value="Disponible"/>
+                    <ui:param name="requisito1" value="Estar inscrito en la materia que deseas cambiar."/>
+                    <ui:param name="requisito2" value="Conocer el grupo y el horario al que deseas ingresar."/>
+                    <ui:param name="textoBoton" value="Iniciar solicitud"/>
+                </ui:include>
+                <ui:include src="/plantillas/xhtml/comp-tarjeta-tramite.xhtml">
+                    <ui:param name="idTramite" value="course-enrollment"/>
+                    <ui:param name="codigo" value="IM"/>
+                    <ui:param name="nombre" value="Inscripción de materia"/>
+                    <ui:param name="descripcion" value="Solicita agregar una asignatura a tu carga durante el periodo de ajustes."/>
+                    <ui:param name="periodo" value="25 ene 2027 — 5 feb 2027"/>
+                    <ui:param name="disponible" value="false"/>
+                    <ui:param name="etiqueta" value="Próximamente"/>
+                    <ui:param name="requisito1" value="Indicar la clave y el grupo de la materia."/>
+                    <ui:param name="requisito2" value="Revisar los prerrequisitos de tu plan de estudios."/>
+                    <ui:param name="textoBoton" value="Consultar disponibilidad"/>
+                </ui:include>
+                <ui:include src="/plantillas/xhtml/comp-tarjeta-tramite.xhtml">
+                    <ui:param name="idTramite" value="program-withdrawal"/>
+                    <ui:param name="codigo" value="BT"/>
+                    <ui:param name="nombre" value="Baja temporal"/>
+                    <ui:param name="descripcion" value="Solicita una pausa temporal de tus estudios y conoce los pasos para continuar después."/>
+                    <ui:param name="periodo" value="17 ago 2026 — 25 sep 2026"/>
+                    <ui:param name="disponible" value="false"/>
+                    <ui:param name="etiqueta" value="Periodo cerrado"/>
+                    <ui:param name="requisito1" value="Indicar el periodo para el que solicitas la baja."/>
+                    <ui:param name="requisito2" value="Explicar el motivo de la pausa académica."/>
+                    <ui:param name="textoBoton" value="Consultar disponibilidad"/>
+                </ui:include>
+            </div>
+
+            <div class="info-note">
+                <svg class="icono" width="19" height="19" aria-hidden="true"><use href="#i-info"/></svg>
+                <p>
+                    Los formatos, requisitos y fechas de esta vista son ejemplos para revisión. Confirma las
+                    condiciones oficiales con tu coordinación antes de realizar un trámite real.
+                </p>
+            </div>
+        </ui:fragment>
+    </ui:define>
+</ui:composition>

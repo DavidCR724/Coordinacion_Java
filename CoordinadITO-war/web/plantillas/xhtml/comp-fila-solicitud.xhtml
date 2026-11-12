@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  COMPONENTE: una fila de la tabla de solicitudes.
+  Parámetros (ui:param):
+      folio         -> número del folio (1042); se muestra como ITO-1042
+      tramite       -> nombre del trámite
+      estudiante    -> (solo coordinación) nombre del estudiante
+      control       -> (solo coordinación) número de control
+      registro      -> fecha de registro, ya formateada
+      codigoEstado  -> received | in-review | completed | rejected
+      actualizacion -> fecha de última actualización, ya formateada
+      conEstudiante -> true si la tabla muestra la columna de estudiante
+-->
+<ui:composition xmlns="http://www.w3.org/1999/xhtml"
+                xmlns:h="jakarta.faces.html"
+                xmlns:f="jakarta.faces.core"
+                xmlns:ui="jakarta.faces.facelets"
+                xmlns:pt="jakarta.faces.passthrough">
+    <tr>
+        <td>
+            <h:link outcome="/vista/solicitud-detalle" styleClass="table-request-link">
+                <f:param name="folio" value="#{folio}"/>
+                <f:param name="rol" value="#{param.rol}" disable="#{empty param.rol}"/>
+                #{tramite}<span>ITO-#{folio}</span>
+            </h:link>
+        </td>
+        <ui:fragment rendered="#{conEstudiante}">
+            <td>#{estudiante}<span class="table-subtext">#{control}</span></td>
+        </ui:fragment>
+        <td>#{registro}</td>
+        <td><ui:include src="/plantillas/xhtml/comp-insignia-estado.xhtml"/></td>
+        <td>#{actualizacion}</td>
+        <td>
+            <h:link outcome="/vista/solicitud-detalle" styleClass="icon-button"
+                    pt:aria-label="Ver solicitud ITO-#{folio}">
+                <f:param name="folio" value="#{folio}"/>
+                <f:param name="rol" value="#{param.rol}" disable="#{empty param.rol}"/>
+                <svg class="icono" width="18" height="18" aria-hidden="true"><use href="#i-chevron"/></svg>
+            </h:link>
+        </td>
+    </tr>
+</ui:composition>

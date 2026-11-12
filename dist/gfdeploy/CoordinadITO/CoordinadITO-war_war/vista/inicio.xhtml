@@ -1,0 +1,359 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  VISTA: inicio del panel. Equivale a app/dashboard/page.tsx.
+  Muestra contenido distinto según el rol (?rol=student | coordinator | administrator).
+  Datos de la demostración (iguales a lib/demo-data.ts del front):
+      Estudiante   -> 1 solicitud en curso, 2 actualizaciones sin leer, 1 finalizada
+      Coordinación -> 2 solicitudes en curso, 1 por comenzar, 1 finalizada
+      Administración -> 4 trámites en catálogo, 4 periodos habilitados
+-->
+<ui:composition template="/plantillas/xhtml/plantilla-panel.xhtml"
+                xmlns="http://www.w3.org/1999/xhtml"
+                xmlns:h="jakarta.faces.html"
+                xmlns:f="jakarta.faces.core"
+                xmlns:ui="jakarta.faces.facelets"
+                xmlns:c="jakarta.tags.core">
+
+    <ui:param name="seccion" value="inicio"/>
+    <ui:param name="rotulo" value="Inicio"/>
+
+    <ui:define name="titulo">Inicio</ui:define>
+
+    <ui:define name="contenido">
+        <c:set var="rol" value="#{param.rol eq 'coordinator' or param.rol eq 'administrator' ? param.rol : 'student'}"/>
+
+        <!-- Encabezado con botón de acción (cambia según el rol). -->
+        <ui:decorate template="/plantillas/xhtml/comp-encabezado.xhtml">
+            <ui:param name="eyebrow" value="#{rol eq 'student' ? 'TU ESPACIO ACADÉMICO' : 'COORDINACIÓN ACADÉMICA'}"/>
+            <ui:param name="tituloPagina" value="Hola, #{rol eq 'coordinator' ? 'Elena' : (rol eq 'administrator' ? 'Administración' : 'Sofía')}."/>
+            <ui:param name="descripcion" value="#{rol eq 'student' ? 'Qué gusto verte. Aquí puedes seguir cada paso de tus trámites.' : (rol eq 'coordinator' ? 'Revisa las solicitudes de tu carrera y acompaña su seguimiento.' : 'Mantén al día los periodos de atención del catálogo.')}"/>
+            <ui:param name="conAccion" value="true"/>
+            <ui:define name="accion">
+                <h:link outcome="#{rol eq 'student' ? '/vista/tramites' : (rol eq 'coordinator' ? '/vista/bandeja' : '/vista/periodos')}"
+                        styleClass="button button-primary">
+                    <f:param name="rol" value="#{param.rol}" disable="#{empty param.rol}"/>
+                    <svg class="icono" width="18" height="18" aria-hidden="true"><use href="#{rol eq 'student' ? '#i-plus' : '#i-arrow'}"/></svg>
+                    #{rol eq 'student' ? 'Solicitar un trámite' : (rol eq 'coordinator' ? 'Ir a la bandeja' : 'Configurar periodos')}
+                </h:link>
+            </ui:define>
+        </ui:decorate>
+
+        <!-- ============ MÉTRICAS ============ -->
+        <ui:fragment rendered="#{rol ne 'administrator'}">
+            <div class="metric-grid">
+                <article class="metric-card">
+                    <div>
+                        <p>Solicitudes en curso</p>
+                        <strong>#{rol eq 'student' ? '01' : '02'}</strong>
+                        <small>Recibidas o en revisión</small>
+                    </div>
+                    <span class="metric-icon tone-blue">
+                        <svg class="icono" width="22" height="22" aria-hidden="true"><use href="#i-file"/></svg>
+                    </span>
+                </article>
+                <article class="metric-card">
+                    <div>
+                        <p>#{rol eq 'student' ? 'Actualizaciones sin leer' : 'Por comenzar'}</p>
+                        <strong>#{rol eq 'student' ? '02' : '01'}</strong>
+                        <small>#{rol eq 'student' ? 'Novedades en tu bandeja' : 'Solicitudes recién recibidas'}</small>
+                    </div>
+                    <span class="metric-icon tone-orange">
+                        <svg class="icono" width="22" height="22" aria-hidden="true"><use href="#i-inbox"/></svg>
+                    </span>
+                </article>
+                <article class="metric-card">
+                    <div>
+                        <p>Trámites finalizados</p>
+                        <strong>01</strong>
+                        <small>Con resolución disponible</small>
+                    </div>
+                    <span class="metric-icon tone-navy">
+                        <svg class="icono" width="22" height="22" aria-hidden="true"><use href="#i-check"/></svg>
+                    </span>
+                </article>
+            </div>
+        </ui:fragment>
+        <ui:fragment rendered="#{rol eq 'administrator'}">
+            <div class="metric-grid two-metrics">
+                <article class="metric-card">
+                    <div>
+                        <p>Trámites en catálogo</p>
+                        <strong>04</strong>
+                        <small>Formatos de esta vista</small>
+                    </div>
+                    <span class="metric-icon tone-blue">
+                        <svg class="icono" width="22" height="22" aria-hidden="true"><use href="#i-folder"/></svg>
+                    </span>
+                </article>
+                <article class="metric-card">
+                    <div>
+                        <p>Periodos habilitados</p>
+                        <strong>04</strong>
+                        <small>Consulta sus fechas de atención</small>
+                    </div>
+                    <span class="metric-icon tone-orange">
+                        <svg class="icono" width="22" height="22" aria-hidden="true"><use href="#i-calendar"/></svg>
+                    </span>
+                </article>
+            </div>
+        </ui:fragment>
+
+        <!-- ============ ESTUDIANTE ============ -->
+        <ui:fragment rendered="#{rol eq 'student'}">
+            <div class="home-grid">
+                <div class="home-main">
+                    <section class="panel inbox-panel">
+                        <div class="section-heading">
+                            <div class="section-title">
+                                <span class="section-icon">
+                                    <svg class="icono" width="20" height="20" aria-hidden="true"><use href="#i-inbox"/></svg>
+                                </span>
+                                <h2>Bandeja de entrada</h2>
+                                <span class="count-pill">2 nuevas</span>
+                            </div>
+                            <button type="button" class="text-button mark-read-button">
+                                <svg class="icono" width="15" height="15" aria-hidden="true"><use href="#i-check"/></svg> Marcar todo como leído
+                            </button>
+                        </div>
+                        <div class="tabs" role="group" aria-label="Filtrar actualizaciones">
+                            <button type="button" aria-pressed="true" class="active">Todas las actualizaciones</button>
+                            <button type="button" aria-pressed="false">Sin leer <span>2</span></button>
+                        </div>
+                        <div role="region" aria-label="Todas las actualizaciones">
+                            <!-- Cada actualización es un enlace a la solicitud. "unread" marca las no leídas. -->
+                            <h:link outcome="/vista/solicitud-detalle" styleClass="inbox-item unread">
+                                <f:param name="folio" value="1042"/>
+                                <f:param name="rol" value="#{param.rol}" disable="#{empty param.rol}"/>
+                                <span class="message-icon">
+                                    <svg class="icono" width="19" height="19" aria-hidden="true"><use href="#i-clock"/></svg>
+                                </span>
+                                <div class="message-content">
+                                    <div class="message-meta">
+                                        <span>ITO-1042 · Cambio de horario</span>
+                                        <span class="unread-dot" aria-label="Sin leer"></span>
+                                    </div>
+                                    <h3>Tu solicitud está en revisión</h3>
+                                    <p>Estamos revisando la disponibilidad del grupo solicitado. Podrás consultar el resultado en este espacio.</p>
+                                    <time datetime="2026-10-27T15:15:00Z">27 oct 2026, 9:15 a.m. · Elena Ramírez Ruiz</time>
+                                </div>
+                                <svg class="icono message-chevron" width="17" height="17" aria-hidden="true"><use href="#i-chevron"/></svg>
+                            </h:link>
+                            <h:link outcome="/vista/solicitud-detalle" styleClass="inbox-item unread">
+                                <f:param name="folio" value="1031"/>
+                                <f:param name="rol" value="#{param.rol}" disable="#{empty param.rol}"/>
+                                <span class="message-icon resolved">
+                                    <svg class="icono" width="19" height="19" aria-hidden="true"><use href="#i-check"/></svg>
+                                </span>
+                                <div class="message-content">
+                                    <div class="message-meta">
+                                        <span>ITO-1031 · Baja de materia</span>
+                                        <span class="unread-dot" aria-label="Sin leer"></span>
+                                    </div>
+                                    <h3>Tu solicitud tiene una resolución</h3>
+                                    <p>Se autorizó la solicitud de baja. Consulta con el área correspondiente la actualización de tu carga académica.</p>
+                                    <time datetime="2026-10-26T18:40:00Z">26 oct 2026, 12:40 p.m. · Elena Ramírez Ruiz</time>
+                                </div>
+                                <svg class="icono message-chevron" width="17" height="17" aria-hidden="true"><use href="#i-chevron"/></svg>
+                            </h:link>
+                            <h:link outcome="/vista/solicitud-detalle" styleClass="inbox-item">
+                                <f:param name="folio" value="1042"/>
+                                <f:param name="rol" value="#{param.rol}" disable="#{empty param.rol}"/>
+                                <span class="message-icon">
+                                    <svg class="icono" width="19" height="19" aria-hidden="true"><use href="#i-file"/></svg>
+                                </span>
+                                <div class="message-content">
+                                    <div class="message-meta">
+                                        <span>ITO-1042 · Cambio de horario</span>
+                                    </div>
+                                    <h3>Recibimos tu solicitud</h3>
+                                    <p>Tu solicitud fue recibida por la coordinación de tu carrera.</p>
+                                    <time datetime="2026-10-23T16:30:00Z">23 oct 2026, 10:30 a.m. · Sofía Hernández López</time>
+                                </div>
+                                <svg class="icono message-chevron" width="17" height="17" aria-hidden="true"><use href="#i-chevron"/></svg>
+                            </h:link>
+                            <h:link outcome="/vista/solicitud-detalle" styleClass="inbox-item">
+                                <f:param name="folio" value="1031"/>
+                                <f:param name="rol" value="#{param.rol}" disable="#{empty param.rol}"/>
+                                <span class="message-icon">
+                                    <svg class="icono" width="19" height="19" aria-hidden="true"><use href="#i-clock"/></svg>
+                                </span>
+                                <div class="message-content">
+                                    <div class="message-meta">
+                                        <span>ITO-1031 · Baja de materia</span>
+                                    </div>
+                                    <h3>Tu solicitud está en revisión</h3>
+                                    <p>Los datos fueron recibidos para revisión.</p>
+                                    <time datetime="2026-10-21T17:00:00Z">21 oct 2026, 11:00 a.m. · Elena Ramírez Ruiz</time>
+                                </div>
+                                <svg class="icono message-chevron" width="17" height="17" aria-hidden="true"><use href="#i-chevron"/></svg>
+                            </h:link>
+                            <h:link outcome="/vista/solicitud-detalle" styleClass="inbox-item">
+                                <f:param name="folio" value="1031"/>
+                                <f:param name="rol" value="#{param.rol}" disable="#{empty param.rol}"/>
+                                <span class="message-icon">
+                                    <svg class="icono" width="19" height="19" aria-hidden="true"><use href="#i-file"/></svg>
+                                </span>
+                                <div class="message-content">
+                                    <div class="message-meta">
+                                        <span>ITO-1031 · Baja de materia</span>
+                                    </div>
+                                    <h3>Recibimos tu solicitud</h3>
+                                    <p>Solicitud registrada y enviada a coordinación.</p>
+                                    <time datetime="2026-10-20T17:00:00Z">20 oct 2026, 11:00 a.m. · Sofía Hernández López</time>
+                                </div>
+                                <svg class="icono message-chevron" width="17" height="17" aria-hidden="true"><use href="#i-chevron"/></svg>
+                            </h:link>
+                        </div>
+                    </section>
+
+                    <section class="recent-section">
+                        <div class="section-heading unboxed">
+                            <h2>Mis solicitudes recientes</h2>
+                            <h:link outcome="/vista/solicitudes" styleClass="text-link">
+                                <f:param name="rol" value="#{param.rol}" disable="#{empty param.rol}"/>
+                                Ver todas
+                                <svg class="icono" width="16" height="16" aria-hidden="true"><use href="#i-arrow"/></svg>
+                            </h:link>
+                        </div>
+                        <ui:decorate template="/plantillas/xhtml/comp-tabla-solicitudes.xhtml">
+                            <ui:param name="conEstudiante" value="false"/>
+                            <ui:param name="conFiltros" value="false"/>
+                            <ui:param name="totalFilas" value="2"/>
+                            <ui:define name="filas">
+                                <ui:include src="/plantillas/xhtml/comp-fila-solicitud.xhtml">
+                                    <ui:param name="folio" value="1042"/>
+                                    <ui:param name="tramite" value="Cambio de horario"/>
+                                    <ui:param name="registro" value="23 oct 2026"/>
+                                    <ui:param name="codigoEstado" value="in-review"/>
+                                    <ui:param name="actualizacion" value="27 oct 2026"/>
+                                    <ui:param name="conEstudiante" value="false"/>
+                                </ui:include>
+                                <ui:include src="/plantillas/xhtml/comp-fila-solicitud.xhtml">
+                                    <ui:param name="folio" value="1031"/>
+                                    <ui:param name="tramite" value="Baja de materia"/>
+                                    <ui:param name="registro" value="20 oct 2026"/>
+                                    <ui:param name="codigoEstado" value="completed"/>
+                                    <ui:param name="actualizacion" value="26 oct 2026"/>
+                                    <ui:param name="conEstudiante" value="false"/>
+                                </ui:include>
+                            </ui:define>
+                        </ui:decorate>
+                    </section>
+                </div>
+
+                <aside class="home-aside">
+                    <section class="profile-summary">
+                        <div class="section-heading unboxed">
+                            <h2>Mi expediente</h2>
+                            <svg class="icono" width="18" height="18" aria-hidden="true"><use href="#i-user"/></svg>
+                        </div>
+                        <span class="avatar avatar-large">SH</span>
+                        <h3>Sofía Hernández López</h3>
+                        <p>Ingeniería en Sistemas Computacionales</p>
+                        <dl>
+                            <div>
+                                <dt>Número de control</dt>
+                                <dd>00000001</dd>
+                            </div>
+                            <div>
+                                <dt>Semestre</dt>
+                                <dd>7.º semestre</dd>
+                            </div>
+                        </dl>
+                        <h:link outcome="/vista/perfil" styleClass="button button-secondary">
+                            <f:param name="rol" value="#{param.rol}" disable="#{empty param.rol}"/>
+                            Ver mi perfil
+                            <svg class="icono" width="16" height="16" aria-hidden="true"><use href="#i-arrow"/></svg>
+                        </h:link>
+                    </section>
+                    <section class="quick-guide">
+                        <span class="guide-label">
+                            <svg class="icono" width="17" height="17" aria-hidden="true"><use href="#i-info"/></svg> ANTES DE COMENZAR
+                        </span>
+                        <h3>Un trámite bien preparado, un proceso más claro.</h3>
+                        <ol>
+                            <li><span>01</span>Revisa los requisitos y las fechas.</li>
+                            <li><span>02</span>Completa el formulario de tu trámite.</li>
+                            <li><span>03</span>Sigue las novedades en tu bandeja.</li>
+                        </ol>
+                        <h:link outcome="/vista/tramites" styleClass="text-link">
+                            <f:param name="rol" value="#{param.rol}" disable="#{empty param.rol}"/>
+                            Explorar el catálogo
+                            <svg class="icono" width="16" height="16" aria-hidden="true"><use href="#i-arrow"/></svg>
+                        </h:link>
+                    </section>
+                </aside>
+            </div>
+        </ui:fragment>
+
+        <!-- ============ COORDINACIÓN ============ -->
+        <ui:fragment rendered="#{rol eq 'coordinator'}">
+            <div class="section-heading unboxed">
+                <h2>Solicitudes de tu carrera</h2>
+                <span class="helper-text">Ingeniería en Sistemas Computacionales</span>
+            </div>
+            <ui:decorate template="/plantillas/xhtml/comp-tabla-solicitudes.xhtml">
+                <ui:param name="conEstudiante" value="true"/>
+                <ui:param name="conFiltros" value="true"/>
+                <ui:param name="totalFilas" value="3"/>
+                <ui:define name="filas">
+                    <ui:include src="/plantillas/xhtml/comp-fila-solicitud.xhtml">
+                        <ui:param name="folio" value="1043"/>
+                        <ui:param name="tramite" value="Baja de materia"/>
+                        <ui:param name="estudiante" value="Daniel Pérez García"/>
+                        <ui:param name="control" value="00000002"/>
+                        <ui:param name="registro" value="27 oct 2026"/>
+                        <ui:param name="codigoEstado" value="received"/>
+                        <ui:param name="actualizacion" value="27 oct 2026"/>
+                        <ui:param name="conEstudiante" value="true"/>
+                    </ui:include>
+                    <ui:include src="/plantillas/xhtml/comp-fila-solicitud.xhtml">
+                        <ui:param name="folio" value="1042"/>
+                        <ui:param name="tramite" value="Cambio de horario"/>
+                        <ui:param name="estudiante" value="Sofía Hernández López"/>
+                        <ui:param name="control" value="00000001"/>
+                        <ui:param name="registro" value="23 oct 2026"/>
+                        <ui:param name="codigoEstado" value="in-review"/>
+                        <ui:param name="actualizacion" value="27 oct 2026"/>
+                        <ui:param name="conEstudiante" value="true"/>
+                    </ui:include>
+                    <ui:include src="/plantillas/xhtml/comp-fila-solicitud.xhtml">
+                        <ui:param name="folio" value="1031"/>
+                        <ui:param name="tramite" value="Baja de materia"/>
+                        <ui:param name="estudiante" value="Sofía Hernández López"/>
+                        <ui:param name="control" value="00000001"/>
+                        <ui:param name="registro" value="20 oct 2026"/>
+                        <ui:param name="codigoEstado" value="completed"/>
+                        <ui:param name="actualizacion" value="26 oct 2026"/>
+                        <ui:param name="conEstudiante" value="true"/>
+                    </ui:include>
+                </ui:define>
+            </ui:decorate>
+            <p class="helper-text section-note">
+                Las solicitudes finalizadas o rechazadas conservan su historial y no admiten nuevos
+                cambios de estado.
+            </p>
+        </ui:fragment>
+
+        <!-- ============ ADMINISTRACIÓN ============ -->
+        <ui:fragment rendered="#{rol eq 'administrator'}">
+            <section class="panel admin-overview">
+                <span class="empty-icon">
+                    <svg class="icono" width="28" height="28" aria-hidden="true"><use href="#i-calendar"/></svg>
+                </span>
+                <div>
+                    <h2>Un calendario claro para cada trámite</h2>
+                    <p>
+                        Define la apertura y el cierre. El catálogo mostrará de inmediato si cada trámite está
+                        disponible, próximo a abrir o cerrado.
+                    </p>
+                    <h:link outcome="/vista/periodos" styleClass="text-link">
+                        <f:param name="rol" value="#{param.rol}" disable="#{empty param.rol}"/>
+                        Administrar periodos
+                        <svg class="icono" width="16" height="16" aria-hidden="true"><use href="#i-arrow"/></svg>
+                    </h:link>
+                </div>
+            </section>
+        </ui:fragment>
+    </ui:define>
+</ui:composition>

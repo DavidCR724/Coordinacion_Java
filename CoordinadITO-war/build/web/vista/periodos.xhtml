@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  VISTA: periodos de atención (solo administración). Equivale a app/dashboard/periods/page.tsx.
+  Un formulario por trámite (componente comp-periodo.xhtml). Disponibilidad al 5 nov 2026.
+  Guardar está deshabilitado hasta que exista un bean que reciba el formulario.
+-->
+<ui:composition template="/plantillas/xhtml/plantilla-panel.xhtml"
+                xmlns="http://www.w3.org/1999/xhtml"
+                xmlns:h="jakarta.faces.html"
+                xmlns:f="jakarta.faces.core"
+                xmlns:ui="jakarta.faces.facelets"
+                xmlns:c="jakarta.tags.core">
+
+    <ui:param name="seccion" value="periodos"/>
+    <ui:param name="rotulo" value="Periodos de atención"/>
+
+    <ui:define name="titulo">Periodos de atención</ui:define>
+
+    <ui:define name="contenido">
+        <c:set var="rol" value="#{param.rol eq 'coordinator' or param.rol eq 'administrator' ? param.rol : 'student'}"/>
+
+        <ui:fragment rendered="#{rol ne 'administrator'}">
+            <ui:include src="/plantillas/xhtml/comp-estado-vacio.xhtml">
+                <ui:param name="icono" value="shield"/>
+                <ui:param name="tituloVacio" value="Espacio de administración"/>
+                <ui:param name="descripcion" value="La configuración de periodos corresponde a administración."/>
+                <ui:param name="destino" value="/vista/inicio"/>
+                <ui:param name="accion" value="Volver al inicio"/>
+            </ui:include>
+        </ui:fragment>
+
+        <ui:fragment rendered="#{rol eq 'administrator'}">
+            <ui:include src="/plantillas/xhtml/comp-encabezado.xhtml">
+                <ui:param name="eyebrow" value="CALENDARIO DE ATENCIÓN"/>
+                <ui:param name="tituloPagina" value="Periodos de trámites"/>
+                <ui:param name="descripcion" value="Define cuándo se pueden registrar solicitudes para cada trámite."/>
+            </ui:include>
+
+            <div class="period-list">
+                <ui:include src="/plantillas/xhtml/comp-periodo.xhtml">
+                    <ui:param name="codigo" value="BM"/>
+                    <ui:param name="nombre" value="Baja de materia"/>
+                    <ui:param name="disponible" value="true"/>
+                    <ui:param name="etiqueta" value="Disponible"/>
+                    <ui:param name="apertura" value="2026-08-17"/>
+                    <ui:param name="cierre" value="2026-11-13"/>
+                </ui:include>
+                <ui:include src="/plantillas/xhtml/comp-periodo.xhtml">
+                    <ui:param name="codigo" value="CH"/>
+                    <ui:param name="nombre" value="Cambio de horario"/>
+                    <ui:param name="disponible" value="true"/>
+                    <ui:param name="etiqueta" value="Disponible"/>
+                    <ui:param name="apertura" value="2026-08-17"/>
+                    <ui:param name="cierre" value="2026-11-06"/>
+                </ui:include>
+                <ui:include src="/plantillas/xhtml/comp-periodo.xhtml">
+                    <ui:param name="codigo" value="IM"/>
+                    <ui:param name="nombre" value="Inscripción de materia"/>
+                    <ui:param name="disponible" value="false"/>
+                    <ui:param name="etiqueta" value="Próximamente"/>
+                    <ui:param name="apertura" value="2027-01-25"/>
+                    <ui:param name="cierre" value="2027-02-05"/>
+                </ui:include>
+                <ui:include src="/plantillas/xhtml/comp-periodo.xhtml">
+                    <ui:param name="codigo" value="BT"/>
+                    <ui:param name="nombre" value="Baja temporal"/>
+                    <ui:param name="disponible" value="false"/>
+                    <ui:param name="etiqueta" value="Periodo cerrado"/>
+                    <ui:param name="apertura" value="2026-08-17"/>
+                    <ui:param name="cierre" value="2026-09-25"/>
+                </ui:include>
+            </div>
+        </ui:fragment>
+    </ui:define>
+</ui:composition>
