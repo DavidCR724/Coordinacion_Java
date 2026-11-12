@@ -1,0 +1,18 @@
+# ===== NetBeans / Ant =====
+# Salidas de compilación: se regeneran con "Clean and Build" (EAR, EJB y WAR).
+build/
+dist/
+# Configuración local de cada PC (rutas del servidor, del JDK, archivos abiertos).
+**/nbproject/private/
+
+# ===== Sistema operativo y editores =====
+Thumbs.db
+desktop.ini
+.DS_Store
+*.swp
+*~
+.idea/
+.vscode/
+
+# ===== Registros =====
+*.log
