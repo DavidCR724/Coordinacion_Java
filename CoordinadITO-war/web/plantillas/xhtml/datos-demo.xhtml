@@ -1,0 +1,308 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  DATOS DE LA DEMOSTRACIÓN (equivale a lib/demo-data.ts del front en React).
+  Todavía no hay base de datos ni beans: los componentes de PrimeFaces (p:dataTable,
+  p:dataView, p:chronoline...) necesitan una colección, así que aquí se arman listas y mapas
+  con la sintaxis de colecciones de Expression Language:  [a, b]  es una lista,
+  {'clave': valor}  es un mapa.
+  plantilla-panel incluye este archivo una vez por petición; c:set scope="request" deja cada
+  colección en el request para que cualquier vista o componente la lea (#{solicitudesDemo}...).
+  Cuando existan los beans, estas expresiones se cambian por #{solicitudBean.lista}, etc.
+
+  Colecciones:
+      usuariosDemo      mapa rol -> datos del usuario de prueba (student, coordinator, head, administrator)
+      tramitesDemo      catálogo de trámites (disponibilidad al 5 nov 2026), con su prioridad, sus requisitos y
+                        los campos de su formulario (como la tabla CAMPO_FORMULARIO del modelo de datos)
+      solicitudesDemo   solicitudes con sus datos capturados e historial
+      avisosDemo        actualizaciones (notificaciones) del estudiante, más reciente primero
+      carrerasDemo      catálogo de carreras (tabla CARRERA)
+      gruposDemo        solicitudes de apertura de grupo con sus adhesiones (SOLICITUD colectiva + ADHESION)
+      materiasDemo      materias de ISC para pedir apertura de grupo (MATERIA)
+      comunicadosDemo   avisos oficiales que publica coordinación (AVISO + AVISO_CARRERA)
+      cuentasDemo       cuentas con rol de atención y sus carreras (USUARIO + COORDINACION_CARRERA)
+      periodosDemo      periodos escolares para los paneles de seguimiento
+      volumenDemo       mapa periodo -> conteo de solicitudes por tipo, estado y carrera
+-->
+<ui:composition xmlns="http://www.w3.org/1999/xhtml"
+                xmlns:ui="jakarta.faces.facelets"
+                xmlns:c="jakarta.tags.core">
+
+    <c:set var="usuariosDemo" scope="request" value="#{{
+        'student': {'nombres': 'Sofía', 'paterno': 'Hernández', 'materno': 'López', 'nombreCompleto': 'Sofía Hernández López',
+                    'correo': '00000001@itoaxaca.edu.mx', 'iniciales': 'SH', 'etiquetaRol': 'Estudiante',
+                    'carrera': 'Ingeniería en Sistemas Computacionales', 'control': '00000001', 'semestre': 7},
+        'coordinator': {'nombres': 'Elena', 'paterno': 'Ramírez', 'materno': 'Ruiz', 'nombreCompleto': 'Elena Ramírez Ruiz',
+                    'correo': 'coordinacion.demo@itoaxaca.edu.mx', 'iniciales': 'ER', 'etiquetaRol': 'Coordinación',
+                    'carrera': 'Ingeniería en Sistemas Computacionales', 'control': '', 'semestre': 0},
+        'head': {'nombres': 'Jorge', 'paterno': 'Martínez', 'materno': 'Cruz', 'nombreCompleto': 'Jorge Martínez Cruz',
+                    'correo': 'jefatura.demo@itoaxaca.edu.mx', 'iniciales': 'JM', 'etiquetaRol': 'Jefatura',
+                    'carrera': 'División de Estudios Profesionales', 'control': '', 'semestre': 0},
+        'administrator': {'nombres': 'Administración', 'paterno': 'de prueba', 'materno': '', 'nombreCompleto': 'Administración de prueba',
+                    'correo': 'administracion.demo@itoaxaca.edu.mx', 'iniciales': 'AD', 'etiquetaRol': 'Administración',
+                    'carrera': 'Carrera pendiente de confirmar', 'control': '', 'semestre': 0}
+    }}"/>
+
+    <c:set var="tramitesDemo" scope="request" value="#{[
+        {'id': 'course-drop', 'codigo': 'BM', 'prioridad': 'ALTA', 'abiertas': 27, 'nombre': 'Baja de materia',
+         'descripcion': 'Solicita la baja de una asignatura de tu carga académica actual.',
+         'apertura': '17 ago 2026', 'cierre': '13 nov 2026', 'aperturaIso': '2026-08-17', 'cierreIso': '2026-11-13',
+         'disponible': true, 'etiqueta': 'Disponible',
+         'requisitos': ['Identificar la materia y el grupo de tu carga actual.',
+                        'Indicar el motivo de la baja.',
+                        'Confirmar con coordinación las condiciones académicas aplicables.'],
+         'campos': [{'nombre': 'courseName', 'etiqueta': 'Nombre de la materia', 'ejemplo': 'Ej. Cálculo vectorial', 'maximo': 120, 'multilinea': false},
+                    {'nombre': 'courseCode', 'etiqueta': 'Clave de la materia', 'ejemplo': 'Ej. ACF-0904', 'maximo': 30, 'multilinea': false},
+                    {'nombre': 'group', 'etiqueta': 'Grupo actual', 'ejemplo': 'Ej. 7SA', 'maximo': 30, 'multilinea': false},
+                    {'nombre': 'reason', 'etiqueta': 'Motivo de la solicitud', 'ejemplo': 'Explica por qué necesitas dar de baja esta materia.', 'maximo': 2000, 'multilinea': true}]},
+        {'id': 'schedule-change', 'codigo': 'CH', 'prioridad': 'MEDIA', 'abiertas': 19, 'nombre': 'Cambio de horario',
+         'descripcion': 'Solicita un cambio de grupo u horario para una materia inscrita.',
+         'apertura': '17 ago 2026', 'cierre': '6 nov 2026', 'aperturaIso': '2026-08-17', 'cierreIso': '2026-11-06',
+         'disponible': true, 'etiqueta': 'Disponible',
+         'requisitos': ['Estar inscrito en la materia que deseas cambiar.',
+                        'Conocer el grupo y el horario al que deseas ingresar.',
+                        'Describir el motivo del cambio para su evaluación.'],
+         'campos': [{'nombre': 'courseName', 'etiqueta': 'Nombre de la materia', 'ejemplo': 'Ej. Redes de computadoras', 'maximo': 120, 'multilinea': false},
+                    {'nombre': 'currentGroup', 'etiqueta': 'Grupo actual', 'ejemplo': 'Ej. 7SA', 'maximo': 30, 'multilinea': false},
+                    {'nombre': 'requestedGroup', 'etiqueta': 'Grupo solicitado', 'ejemplo': 'Ej. 7SB', 'maximo': 30, 'multilinea': false},
+                    {'nombre': 'requestedSchedule', 'etiqueta': 'Horario solicitado', 'ejemplo': 'Ej. Lunes a viernes, 10:00 a 11:00', 'maximo': 150, 'multilinea': false},
+                    {'nombre': 'reason', 'etiqueta': 'Motivo del cambio', 'ejemplo': 'Cuéntanos el motivo de tu solicitud.', 'maximo': 2000, 'multilinea': true}]},
+        {'id': 'course-enrollment', 'codigo': 'IM', 'prioridad': 'ALTA', 'abiertas': 0, 'nombre': 'Inscripción de materia',
+         'descripcion': 'Solicita agregar una asignatura a tu carga durante el periodo de ajustes.',
+         'apertura': '25 ene 2027', 'cierre': '5 feb 2027', 'aperturaIso': '2027-01-25', 'cierreIso': '2027-02-05',
+         'disponible': false, 'etiqueta': 'Próximamente',
+         'requisitos': ['Indicar la clave y el grupo de la materia.',
+                        'Revisar los prerrequisitos de tu plan de estudios.',
+                        'El alta está sujeta a la revisión de coordinación.'],
+         'campos': []},
+        {'id': 'program-withdrawal', 'codigo': 'BT', 'prioridad': 'CRITICA', 'abiertas': 2, 'nombre': 'Baja temporal',
+         'descripcion': 'Solicita una pausa temporal de tus estudios y conoce los pasos para continuar después.',
+         'apertura': '17 ago 2026', 'cierre': '25 sep 2026', 'aperturaIso': '2026-08-17', 'cierreIso': '2026-09-25',
+         'disponible': false, 'etiqueta': 'Periodo cerrado',
+         'requisitos': ['Indicar el periodo para el que solicitas la baja.',
+                        'Explicar el motivo de la pausa académica.',
+                        'Consultar sus efectos y condiciones de reingreso con coordinación.'],
+         'campos': []}
+    ]}"/>
+
+    <c:set var="solicitudesDemo" scope="request" value="#{[
+        {'folio': '1043', 'tramite': 'Baja de materia', 'estudiante': 'Daniel Pérez García', 'control': '00000002',
+         'carrera': 'Ingeniería en Sistemas Computacionales', 'codigoEstado': 'received',
+         'registro': '27 oct 2026', 'registroIso': '2026-10-27', 'registroCompleto': '27 oct 2026, 10:00 a.m.',
+         'actualizacion': '27 oct 2026', 'actualizacionIso': '2026-10-27',
+         'resolucion': null, 'fechaResolucion': null,
+         'datos': [{'etiqueta': 'Nombre de la materia', 'valor': 'Taller de investigación II'},
+                   {'etiqueta': 'Clave de la materia', 'valor': 'ACA-0910'},
+                   {'etiqueta': 'Grupo actual', 'valor': '7SB'},
+                   {'etiqueta': 'Motivo de la solicitud', 'valor': 'Solicito una revisión de mi carga de materias.'}],
+         'historial': [{'codigoEstado': 'received', 'fecha': '27 oct 2026, 10:00 a.m.', 'actor': 'Daniel Pérez García',
+                        'comentario': 'Solicitud registrada y enviada a coordinación.', 'transicion': ''}]},
+        {'folio': '1042', 'tramite': 'Cambio de horario', 'estudiante': 'Sofía Hernández López', 'control': '00000001',
+         'carrera': 'Ingeniería en Sistemas Computacionales', 'codigoEstado': 'in-review',
+         'registro': '23 oct 2026', 'registroIso': '2026-10-23', 'registroCompleto': '23 oct 2026, 10:30 a.m.',
+         'actualizacion': '27 oct 2026', 'actualizacionIso': '2026-10-27',
+         'resolucion': null, 'fechaResolucion': null,
+         'datos': [{'etiqueta': 'Nombre de la materia', 'valor': 'Redes de computadoras'},
+                   {'etiqueta': 'Grupo actual', 'valor': '7SA'},
+                   {'etiqueta': 'Grupo solicitado', 'valor': '7SB'},
+                   {'etiqueta': 'Horario solicitado', 'valor': 'Lunes a viernes, 10:00 a 11:00'},
+                   {'etiqueta': 'Motivo del cambio', 'valor': 'El horario actual coincide con mi actividad de servicio social.'}],
+         'historial': [{'codigoEstado': 'in-review', 'fecha': '27 oct 2026, 9:15 a.m.', 'actor': 'Elena Ramírez Ruiz',
+                        'comentario': 'Estamos revisando la disponibilidad del grupo solicitado. Podrás consultar el resultado en este espacio.',
+                        'transicion': 'Recibida → En revisión'},
+                       {'codigoEstado': 'received', 'fecha': '23 oct 2026, 10:30 a.m.', 'actor': 'Sofía Hernández López',
+                        'comentario': 'Tu solicitud fue recibida por la coordinación de tu carrera.', 'transicion': ''}]},
+        {'folio': '1031', 'tramite': 'Baja de materia', 'estudiante': 'Sofía Hernández López', 'control': '00000001',
+         'carrera': 'Ingeniería en Sistemas Computacionales', 'codigoEstado': 'completed',
+         'registro': '20 oct 2026', 'registroIso': '2026-10-20', 'registroCompleto': '20 oct 2026, 11:00 a.m.',
+         'actualizacion': '26 oct 2026', 'actualizacionIso': '2026-10-26',
+         'resolucion': 'Se autorizó la solicitud de baja. Consulta con el área correspondiente la actualización de tu carga académica.',
+         'fechaResolucion': '26 oct 2026, 12:40 p.m.',
+         'datos': [{'etiqueta': 'Nombre de la materia', 'valor': 'Cálculo vectorial'},
+                   {'etiqueta': 'Clave de la materia', 'valor': 'ACF-0904'},
+                   {'etiqueta': 'Grupo actual', 'valor': '7SA'},
+                   {'etiqueta': 'Motivo de la solicitud', 'valor': 'Solicito ajustar mi carga académica este semestre.'}],
+         'historial': [{'codigoEstado': 'completed', 'fecha': '26 oct 2026, 12:40 p.m.', 'actor': 'Elena Ramírez Ruiz',
+                        'comentario': 'Se autorizó la solicitud de baja. Consulta con el área correspondiente la actualización de tu carga académica.',
+                        'transicion': 'En revisión → Finalizada'},
+                       {'codigoEstado': 'in-review', 'fecha': '21 oct 2026, 11:00 a.m.', 'actor': 'Elena Ramírez Ruiz',
+                        'comentario': 'Los datos fueron recibidos para revisión.', 'transicion': 'Recibida → En revisión'},
+                       {'codigoEstado': 'received', 'fecha': '20 oct 2026, 11:00 a.m.', 'actor': 'Sofía Hernández López',
+                        'comentario': 'Solicitud registrada y enviada a coordinación.', 'transicion': ''}]}
+    ]}"/>
+
+    <c:set var="avisosDemo" scope="request" value="#{[
+        {'folio': '1042', 'tramite': 'Cambio de horario', 'icono': 'clock', 'tono': '', 'sinLeer': true,
+         'titulo': 'Tu solicitud está en revisión',
+         'texto': 'Estamos revisando la disponibilidad del grupo solicitado. Podrás consultar el resultado en este espacio.',
+         'fecha': '27 oct 2026, 9:15 a.m.', 'actor': 'Elena Ramírez Ruiz'},
+        {'folio': '1031', 'tramite': 'Baja de materia', 'icono': 'check', 'tono': 'tono-verde', 'sinLeer': true,
+         'titulo': 'Tu solicitud tiene una resolución',
+         'texto': 'Se autorizó la solicitud de baja. Consulta con el área correspondiente la actualización de tu carga académica.',
+         'fecha': '26 oct 2026, 12:40 p.m.', 'actor': 'Elena Ramírez Ruiz'},
+        {'folio': '1042', 'tramite': 'Cambio de horario', 'icono': 'file', 'tono': '', 'sinLeer': false,
+         'titulo': 'Recibimos tu solicitud',
+         'texto': 'Tu solicitud fue recibida por la coordinación de tu carrera.',
+         'fecha': '23 oct 2026, 10:30 a.m.', 'actor': 'Sofía Hernández López'},
+        {'folio': '1031', 'tramite': 'Baja de materia', 'icono': 'clock', 'tono': '', 'sinLeer': false,
+         'titulo': 'Tu solicitud está en revisión',
+         'texto': 'Los datos fueron recibidos para revisión.',
+         'fecha': '21 oct 2026, 11:00 a.m.', 'actor': 'Elena Ramírez Ruiz'},
+        {'folio': '1031', 'tramite': 'Baja de materia', 'icono': 'file', 'tono': '', 'sinLeer': false,
+         'titulo': 'Recibimos tu solicitud',
+         'texto': 'Solicitud registrada y enviada a coordinación.',
+         'fecha': '20 oct 2026, 11:00 a.m.', 'actor': 'Sofía Hernández López'}
+    ]}"/>
+
+    <!-- ===================== Iteraciones 2 a 4 ===================== -->
+
+    <c:set var="carrerasDemo" scope="request" value="#{[
+        {'clave': 'ISC', 'nombre': 'Ingeniería en Sistemas Computacionales'},
+        {'clave': 'II', 'nombre': 'Ingeniería Industrial'},
+        {'clave': 'IC', 'nombre': 'Ingeniería Civil'},
+        {'clave': 'IE', 'nombre': 'Ingeniería Electrónica'},
+        {'clave': 'IGE', 'nombre': 'Ingeniería en Gestión Empresarial'},
+        {'clave': 'LA', 'nombre': 'Licenciatura en Administración'}
+    ]}"/>
+
+    <!-- Solicitudes de apertura de grupo (trámite colectivo). "adherido" y "propia" son del punto de
+         vista de la estudiante de prueba; "alumnos" son las primeras adhesiones (no la lista completa). -->
+    <c:set var="gruposDemo" scope="request" value="#{[
+        {'id': 'G-112', 'materia': 'Programación lógica y funcional', 'clave': 'AEC-1032', 'semestre': 8,
+         'carrera': 'Ingeniería en Sistemas Computacionales', 'claveCarrera': 'ISC', 'adhesiones': 23, 'codigoEstado': 'in-review',
+         'registro': '14 oct 2026', 'registroIso': '2026-10-14', 'actualizacion': '29 oct 2026',
+         'promotor': 'Daniel Pérez García', 'adherido': true, 'propia': false, 'fechaAdhesion': '15 oct 2026',
+         'motivo': 'La materia no se abrió este semestre y somos varios alumnos de 8.º que la necesitamos para no atrasar la retícula.',
+         'alumnos': [{'nombre': 'Daniel Pérez García', 'control': '00000002', 'semestre': 8, 'fecha': '14 oct 2026'},
+                     {'nombre': 'Sofía Hernández López', 'control': '00000001', 'semestre': 7, 'fecha': '15 oct 2026'},
+                     {'nombre': 'Andrea Cruz Mendoza', 'control': '00000014', 'semestre': 8, 'fecha': '15 oct 2026'},
+                     {'nombre': 'Luis Ángel Ruiz Toledo', 'control': '00000021', 'semestre': 9, 'fecha': '16 oct 2026'},
+                     {'nombre': 'Mariana Vásquez Sosa', 'control': '00000033', 'semestre': 8, 'fecha': '17 oct 2026'},
+                     {'nombre': 'Fernando Jiménez Ortiz', 'control': '00000040', 'semestre': 8, 'fecha': '18 oct 2026'}],
+         'historial': [{'codigoEstado': 'in-review', 'fecha': '29 oct 2026, 1:10 p.m.', 'actor': 'Elena Ramírez Ruiz',
+                        'comentario': 'Revisamos con la jefatura la disponibilidad de docente y aula.', 'transicion': 'Recibida → En revisión'},
+                       {'codigoEstado': 'received', 'fecha': '14 oct 2026, 8:40 a.m.', 'actor': 'Daniel Pérez García',
+                        'comentario': 'Solicitud de apertura registrada.', 'transicion': ''}]},
+        {'id': 'G-118', 'materia': 'Lenguajes y autómatas II', 'clave': 'SCD-1016', 'semestre': 7,
+         'carrera': 'Ingeniería en Sistemas Computacionales', 'claveCarrera': 'ISC', 'adhesiones': 14, 'codigoEstado': 'received',
+         'registro': '22 oct 2026', 'registroIso': '2026-10-22', 'actualizacion': '22 oct 2026',
+         'promotor': 'Andrea Cruz Mendoza', 'adherido': false, 'propia': false, 'fechaAdhesion': '',
+         'motivo': 'El único grupo ofertado se llenó en la inscripción.',
+         'alumnos': [{'nombre': 'Andrea Cruz Mendoza', 'control': '00000014', 'semestre': 8, 'fecha': '22 oct 2026'},
+                     {'nombre': 'José Manuel Pérez Luna', 'control': '00000052', 'semestre': 7, 'fecha': '22 oct 2026'},
+                     {'nombre': 'Karla Itzel Santiago Reyes', 'control': '00000058', 'semestre': 7, 'fecha': '23 oct 2026'}],
+         'historial': [{'codigoEstado': 'received', 'fecha': '22 oct 2026, 12:05 p.m.', 'actor': 'Andrea Cruz Mendoza',
+                        'comentario': 'Solicitud de apertura registrada.', 'transicion': ''}]},
+        {'id': 'G-121', 'materia': 'Simulación', 'clave': 'SCD-1022', 'semestre': 5,
+         'carrera': 'Ingeniería en Sistemas Computacionales', 'claveCarrera': 'ISC', 'adhesiones': 9, 'codigoEstado': 'received',
+         'registro': '28 oct 2026', 'registroIso': '2026-10-28', 'actualizacion': '28 oct 2026',
+         'promotor': 'Sofía Hernández López', 'adherido': true, 'propia': true, 'fechaAdhesion': '28 oct 2026',
+         'motivo': 'Necesito acreditar la materia en curso de repetición y no hay grupo en el turno vespertino.',
+         'alumnos': [{'nombre': 'Sofía Hernández López', 'control': '00000001', 'semestre': 7, 'fecha': '28 oct 2026'},
+                     {'nombre': 'Ricardo López Méndez', 'control': '00000061', 'semestre': 6, 'fecha': '29 oct 2026'}],
+         'historial': [{'codigoEstado': 'received', 'fecha': '28 oct 2026, 6:20 p.m.', 'actor': 'Sofía Hernández López',
+                        'comentario': 'Solicitud de apertura registrada.', 'transicion': ''}]},
+        {'id': 'G-097', 'materia': 'Investigación de operaciones', 'clave': 'AEC-1037', 'semestre': 4,
+         'carrera': 'Ingeniería Industrial', 'claveCarrera': 'II', 'adhesiones': 27, 'codigoEstado': 'completed',
+         'registro': '2 sep 2026', 'registroIso': '2026-09-02', 'actualizacion': '19 sep 2026',
+         'promotor': 'Paola Martínez Díaz', 'adherido': false, 'propia': false, 'fechaAdhesion': '',
+         'motivo': 'Alta demanda de alumnos rezagados.',
+         'alumnos': [{'nombre': 'Paola Martínez Díaz', 'control': '00000077', 'semestre': 5, 'fecha': '2 sep 2026'}],
+         'historial': [{'codigoEstado': 'completed', 'fecha': '19 sep 2026, 10:00 a.m.', 'actor': 'Jorge Martínez Cruz',
+                        'comentario': 'Se abrió el grupo 4IB, lunes a viernes de 13:00 a 14:00.', 'transicion': 'En revisión → Finalizada'},
+                       {'codigoEstado': 'received', 'fecha': '2 sep 2026, 9:10 a.m.', 'actor': 'Paola Martínez Díaz',
+                        'comentario': 'Solicitud de apertura registrada.', 'transicion': ''}]},
+        {'id': 'G-103', 'materia': 'Mecánica de suelos aplicada', 'clave': 'ICF-1025', 'semestre': 6,
+         'carrera': 'Ingeniería Civil', 'claveCarrera': 'IC', 'adhesiones': 6, 'codigoEstado': 'rejected',
+         'registro': '9 sep 2026', 'registroIso': '2026-09-09', 'actualizacion': '24 sep 2026',
+         'promotor': 'Omar Reyes Bautista', 'adherido': false, 'propia': false, 'fechaAdhesion': '',
+         'motivo': 'Choque de horario con el grupo ofertado.',
+         'alumnos': [{'nombre': 'Omar Reyes Bautista', 'control': '00000083', 'semestre': 6, 'fecha': '9 sep 2026'}],
+         'historial': [{'codigoEstado': 'rejected', 'fecha': '24 sep 2026, 11:30 a.m.', 'actor': 'Jorge Martínez Cruz',
+                        'comentario': 'No hay docente disponible este semestre; se programará en Ene – Jun 2027.', 'transicion': 'En revisión → Rechazada'},
+                       {'codigoEstado': 'received', 'fecha': '9 sep 2026, 4:00 p.m.', 'actor': 'Omar Reyes Bautista',
+                        'comentario': 'Solicitud de apertura registrada.', 'transicion': ''}]}
+    ]}"/>
+
+    <!-- "grupo" = id de la solicitud de apertura activa de esa materia (vacío si no hay). -->
+    <c:set var="materiasDemo" scope="request" value="#{[
+        {'clave': 'SCC-1019', 'nombre': 'Graficación', 'semestre': 6, 'grupo': ''},
+        {'clave': 'SCD-1016', 'nombre': 'Lenguajes y autómatas II', 'semestre': 7, 'grupo': 'G-118'},
+        {'clave': 'AEC-1032', 'nombre': 'Programación lógica y funcional', 'semestre': 8, 'grupo': 'G-112'},
+        {'clave': 'SCD-1022', 'nombre': 'Simulación', 'semestre': 5, 'grupo': 'G-121'},
+        {'clave': 'ACA-0909', 'nombre': 'Taller de investigación I', 'semestre': 6, 'grupo': ''},
+        {'clave': 'SCD-1027', 'nombre': 'Taller de sistemas operativos', 'semestre': 5, 'grupo': ''}
+    ]}"/>
+
+    <c:set var="comunicadosDemo" scope="request" value="#{[
+        {'id': 'A-07', 'titulo': 'Bajas de materia hasta el 13 de noviembre',
+         'contenido': 'El periodo para solicitar la baja de una materia concluye el viernes 13 de noviembre. Registra tu solicitud desde el catálogo de trámites; no se reciben solicitudes en papel.',
+         'autor': 'Elena Ramírez Ruiz', 'carreras': ['ISC'], 'inicio': '3 nov 2026', 'fin': '13 nov 2026',
+         'publicado': '3 nov 2026, 9:00 a.m.', 'vigente': true, 'icono': 'calendar', 'tono': 'tono-naranja'},
+        {'id': 'A-06', 'titulo': 'Reunión informativa de residencias profesionales',
+         'contenido': 'Alumnos de 8.º semestre en adelante: el jueves 19 de noviembre a las 12:00 en la sala audiovisual se explicará el proceso de residencias Ene – Jun 2027.',
+         'autor': 'Elena Ramírez Ruiz', 'carreras': ['ISC', 'IGE'], 'inicio': '28 oct 2026', 'fin': '19 nov 2026',
+         'publicado': '28 oct 2026, 1:15 p.m.', 'vigente': true, 'icono': 'users', 'tono': ''},
+        {'id': 'A-05', 'titulo': 'Apertura de Programación lógica y funcional en revisión',
+         'contenido': 'La solicitud de apertura G-112 reúne 23 adhesiones y está en revisión con la jefatura. No es necesario crear otra solicitud: adhiérete a la existente.',
+         'autor': 'Elena Ramírez Ruiz', 'carreras': ['ISC'], 'inicio': '29 oct 2026', 'fin': '30 nov 2026',
+         'publicado': '29 oct 2026, 1:20 p.m.', 'vigente': true, 'icono': 'sitemap', 'tono': 'tono-marino'},
+        {'id': 'A-03', 'titulo': 'Cambios de horario: datos que debes tener a la mano',
+         'contenido': 'Antes de solicitar un cambio de horario, consulta el grupo y el horario al que deseas ingresar en la oferta publicada.',
+         'autor': 'Elena Ramírez Ruiz', 'carreras': ['ISC'], 'inicio': '17 ago 2026', 'fin': '6 oct 2026',
+         'publicado': '17 ago 2026, 10:00 a.m.', 'vigente': false, 'icono': 'clock', 'tono': ''},
+        {'id': 'A-01', 'titulo': 'Bienvenida al semestre Ago – Dic 2026',
+         'contenido': 'A partir de este semestre los trámites de coordinación se registran y se siguen en este portal.',
+         'autor': 'Elena Ramírez Ruiz', 'carreras': ['ISC', 'IGE'], 'inicio': '10 ago 2026', 'fin': '31 ago 2026',
+         'publicado': '10 ago 2026, 8:00 a.m.', 'vigente': false, 'icono': 'megaphone', 'tono': 'tono-verde'}
+    ]}"/>
+
+    <!-- rol: valores del ENUM ROLES. "ESTUDIANTE" en esta lista = cuenta sin rol de atención. -->
+    <c:set var="cuentasDemo" scope="request" value="#{[
+        {'nombre': 'Elena Ramírez Ruiz', 'correo': 'coordinacion.demo@itoaxaca.edu.mx', 'iniciales': 'ER',
+         'rol': 'COORDINADOR', 'carreras': ['ISC'], 'desde': '12 ago 2026'},
+        {'nombre': 'Marco Antonio Santiago Vásquez', 'correo': 'coordinacion.ii.demo@itoaxaca.edu.mx', 'iniciales': 'MS',
+         'rol': 'COORDINADOR', 'carreras': ['II', 'IGE'], 'desde': '12 ago 2026'},
+        {'nombre': 'Laura Gómez Aquino', 'correo': 'coordinacion.ic.demo@itoaxaca.edu.mx', 'iniciales': 'LG',
+         'rol': 'COORDINADOR', 'carreras': ['IC'], 'desde': '3 sep 2026'},
+        {'nombre': 'Jorge Martínez Cruz', 'correo': 'jefatura.demo@itoaxaca.edu.mx', 'iniciales': 'JM',
+         'rol': 'JEFE', 'carreras': ['ISC', 'II', 'IC', 'IE', 'IGE', 'LA'], 'desde': '1 ago 2026'},
+        {'nombre': 'Administración de prueba', 'correo': 'administracion.demo@itoaxaca.edu.mx', 'iniciales': 'AD',
+         'rol': 'ADMINISTRADOR', 'carreras': [], 'desde': '1 ago 2026'},
+        {'nombre': 'Rosa María Aquino León', 'correo': 'raquino.demo@itoaxaca.edu.mx', 'iniciales': 'RA',
+         'rol': 'ESTUDIANTE', 'carreras': [], 'desde': ''}
+    ]}"/>
+
+    <c:set var="periodosDemo" scope="request" value="#{[
+        {'id': '2026-2', 'etiqueta': 'Ago – Dic 2026'},
+        {'id': '2026-1', 'etiqueta': 'Ene – Jun 2026'},
+        {'id': '2025-2', 'etiqueta': 'Ago – Dic 2025'}
+    ]}"/>
+
+    <!-- Conteo de solicitudes por periodo. Los totales se calculan en la vista con streams de EL. -->
+    <c:set var="volumenDemo" scope="request" value="#{{
+        '2026-2': {'filas': [
+                      {'tipo': 'Baja de materia', 'recibidas': 18, 'enRevision': 9, 'finalizadas': 41, 'rechazadas': 6},
+                      {'tipo': 'Cambio de horario', 'recibidas': 12, 'enRevision': 7, 'finalizadas': 33, 'rechazadas': 9},
+                      {'tipo': 'Inscripción de materia', 'recibidas': 0, 'enRevision': 0, 'finalizadas': 0, 'rechazadas': 0},
+                      {'tipo': 'Baja temporal', 'recibidas': 0, 'enRevision': 2, 'finalizadas': 11, 'rechazadas': 3},
+                      {'tipo': 'Apertura de grupo', 'recibidas': 3, 'enRevision': 2, 'finalizadas': 4, 'rechazadas': 2}],
+                   'carreras': [{'clave': 'ISC', 'total': 58}, {'clave': 'II', 'total': 37}, {'clave': 'IC', 'total': 24},
+                                {'clave': 'IE', 'total': 15}, {'clave': 'IGE', 'total': 18}, {'clave': 'LA', 'total': 10}]},
+        '2026-1': {'filas': [
+                      {'tipo': 'Baja de materia', 'recibidas': 0, 'enRevision': 0, 'finalizadas': 52, 'rechazadas': 8},
+                      {'tipo': 'Cambio de horario', 'recibidas': 0, 'enRevision': 0, 'finalizadas': 40, 'rechazadas': 11},
+                      {'tipo': 'Inscripción de materia', 'recibidas': 0, 'enRevision': 0, 'finalizadas': 27, 'rechazadas': 5},
+                      {'tipo': 'Baja temporal', 'recibidas': 0, 'enRevision': 0, 'finalizadas': 14, 'rechazadas': 2},
+                      {'tipo': 'Apertura de grupo', 'recibidas': 0, 'enRevision': 0, 'finalizadas': 9, 'rechazadas': 4}],
+                   'carreras': [{'clave': 'ISC', 'total': 61}, {'clave': 'II', 'total': 38}, {'clave': 'IC', 'total': 27},
+                                {'clave': 'IE', 'total': 16}, {'clave': 'IGE', 'total': 19}, {'clave': 'LA', 'total': 11}]},
+        '2025-2': {'filas': [
+                      {'tipo': 'Baja de materia', 'recibidas': 0, 'enRevision': 0, 'finalizadas': 47, 'rechazadas': 9},
+                      {'tipo': 'Cambio de horario', 'recibidas': 0, 'enRevision': 0, 'finalizadas': 36, 'rechazadas': 10},
+                      {'tipo': 'Inscripción de materia', 'recibidas': 0, 'enRevision': 0, 'finalizadas': 0, 'rechazadas': 0},
+                      {'tipo': 'Baja temporal', 'recibidas': 0, 'enRevision': 0, 'finalizadas': 12, 'rechazadas': 3},
+                      {'tipo': 'Apertura de grupo', 'recibidas': 0, 'enRevision': 0, 'finalizadas': 7, 'rechazadas': 3}],
+                   'carreras': [{'clave': 'ISC', 'total': 45}, {'clave': 'II', 'total': 29}, {'clave': 'IC', 'total': 20},
+                                {'clave': 'IE', 'total': 12}, {'clave': 'IGE', 'total': 13}, {'clave': 'LA', 'total': 8}]}
+    }}"/>
+</ui:composition>

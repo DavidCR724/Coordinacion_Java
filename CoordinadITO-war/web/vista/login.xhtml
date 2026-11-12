@@ -2,94 +2,96 @@
 <!--
   VISTA: inicio de sesión. Equivale a app/login/page.tsx.
   Usa la plantilla base (no el panel, porque aún no hay sesión).
-  El formulario es HTML plano que navega por GET a la pantalla de inicio;
-  cuando exista el bean de login se cambiará por <h:form> + <h:commandButton>.
-  Por eso el campo de correo NO lleva name: no queremos que viaje en la URL.
+  El formulario es un h:form con componentes PrimeFaces: el correo se valida en el servidor
+  (obligatorio + f:validateRegex para @itoaxaca.edu.mx) y el error sale en p:message.
+  Como todavía no hay bean de login, el valor se guarda solo en requestScope (no viaja en la URL)
+  y, si es válido, el botón navega a la pantalla de inicio. La autenticación real (OIDC) es de
+  la Iteración 3.
 -->
 <ui:composition template="/plantillas/xhtml/plantilla-base.xhtml"
                 xmlns="http://www.w3.org/1999/xhtml"
                 xmlns:h="jakarta.faces.html"
                 xmlns:f="jakarta.faces.core"
-                xmlns:ui="jakarta.faces.facelets">
+                xmlns:ui="jakarta.faces.facelets"
+                xmlns:p="primefaces">
 
     <ui:define name="titulo">Iniciar sesión · Trámites de Coordinación ITO</ui:define>
 
     <ui:define name="cuerpo">
-        <main class="login-page">
-            <section class="login-main">
-                <h:link outcome="/vista/login" styleClass="brand brand-dark">
-                    <span class="brand-symbol">i<span>t</span>o</span>
-                    <span>Trámites ITO<small>Coordinación académica</small></span>
-                </h:link>
+        <main class="login">
+            <section class="login-principal">
+                <ui:include src="/plantillas/xhtml/comp-marca.xhtml">
+                    <ui:param name="oscuro" value="true"/>
+                    <ui:param name="destino" value="/vista/login"/>
+                </ui:include>
 
-                <div class="login-form-wrapper">
+                <div class="login-formulario">
                     <p class="eyebrow">TU ESPACIO ACADÉMICO</p>
-                    <h1>Bienvenido a tu portal.</h1>
-                    <p>
+                    <h1 class="text-5xl font-bold line-height-2 mt-2 mb-3">Bienvenido a tu portal.</h1>
+                    <p class="text-color-secondary text-lg mt-0 mb-5">
                         Consulta tus solicitudes y mantente al tanto de cada paso. Comienza con tu correo
                         institucional.
                     </p>
-                    <form method="get" action="#{request.contextPath}/vista/inicio.xhtml">
-                        <label class="field" for="email">
-                            Correo institucional
-                            <input id="email" type="email" required="required"
-                                   pattern="[^@\s]+@[iI][tT][oO][aA][xX][aA][cC][aA]\.[eE][dD][uU]\.[mM][xX]"
-                                   title="Ingresa un correo institucional @itoaxaca.edu.mx"
-                                   autocomplete="email" placeholder="num_control@itoaxaca.edu.mx"
-                                   maxlength="254" aria-describedby="email-help"/>
-                            <small id="email-help">Usa tu cuenta @itoaxaca.edu.mx.</small>
-                        </label>
-                        <button type="submit" class="button button-primary">
-                            Entrar a mi espacio
-                            <svg class="icono" width="18" height="18" aria-hidden="true"><use href="#i-arrow"/></svg>
-                        </button>
-                    </form>
 
-                    <div class="login-divider">Conoce el portal</div>
-                    <h:link outcome="/vista/inicio" styleClass="button button-secondary">
+                    <h:form id="formLogin">
+                        <div class="field">
+                            <p:outputLabel for="correo" value="Correo institucional" styleClass="block font-medium mb-2"/>
+                            <span class="ui-input-icon-left w-full">
+                                <i class="pi pi-envelope"/>
+                                <p:inputText id="correo" type="email" value="#{requestScope.correo}" styleClass="w-full"
+                                             required="true" requiredMessage="Escribe tu correo institucional."
+                                             validatorMessage="Ingresa un correo institucional @itoaxaca.edu.mx"
+                                             maxlength="254" autocomplete="email"
+                                             placeholder="num_control@itoaxaca.edu.mx">
+                                    <f:validateRegex pattern="[^@\s]+@[iI][tT][oO][aA][xX][aA][cC][aA]\.[eE][dD][uU]\.[mM][xX]"/>
+                                </p:inputText>
+                            </span>
+                            <p:message for="correo" display="text"/>
+                            <small class="block mt-1 text-color-secondary">Usa tu cuenta @itoaxaca.edu.mx.</small>
+                        </div>
+                        <p:commandButton value="Entrar a mi espacio" icon="pi pi-arrow-right" iconPos="right"
+                                         action="/vista/inicio?faces-redirect=true" update="@form"
+                                         styleClass="w-full" size="large"/>
+                    </h:form>
+
+                    <p:divider align="center"><span class="text-sm text-color-secondary">Conoce el portal</span></p:divider>
+
+                    <p:linkButton outcome="/vista/inicio" value="Explorar vista de prueba" icon="pi pi-chevron-right" iconPos="right"
+                                  styleClass="ui-button-outlined w-full">
                         <f:param name="rol" value="student"/>
-                        Explorar vista de prueba
-                        <svg class="icono" width="16" height="16" aria-hidden="true"><use href="#i-chevron"/></svg>
-                    </h:link>
-                    <p class="login-preview-note">
+                    </p:linkButton>
+                    <p class="text-center text-sm text-color-secondary">
                         Recorre las interfaces con datos ficticios, sin una cuenta.
                     </p>
                 </div>
 
-                <footer class="login-footer">
-                    Instituto Tecnológico de Oaxaca
-                    <br/>
+                <footer class="text-sm text-color-secondary">
+                    Instituto Tecnológico de Oaxaca<br/>
                     Tecnológico Nacional de México
                 </footer>
             </section>
 
-            <aside class="login-feature">
+            <aside class="login-lateral">
                 <p class="eyebrow">MENOS FILAS. MÁS CLARIDAD.</p>
-                <h2>
-                    Tu proceso académico,
-                    <br/>
-                    <span>paso a paso.</span>
-                </h2>
-                <p>
+                <h2>Tu proceso académico,<br/><span>paso a paso.</span></h2>
+                <p class="text-lg m-0" style="max-width: 32rem;">
                     Un espacio para solicitar, consultar y dar seguimiento a tus trámites de coordinación.
                 </p>
-                <div class="login-preview-card">
-                    <div>
-                        <span class="message-icon">
-                            <svg class="icono" width="20" height="20" aria-hidden="true"><use href="#i-check"/></svg>
-                        </span>
+                <p:card>
+                    <div class="flex align-items-center gap-3 mb-3">
+                        <span class="icono-circulo chico tono-naranja"><i class="pi pi-check" aria-hidden="true"></i></span>
                         <div>
                             <strong>El seguimiento que necesitas.</strong>
-                            <small>Desde tu primera solicitud hasta su resolución</small>
+                            <small class="block">Desde tu primera solicitud hasta su resolución</small>
                         </div>
                     </div>
-                    <p>
+                    <p class="m-0">
                         Revisa los requisitos, completa el formato de tu trámite y encuentra sus actualizaciones
                         en tu bandeja.
                     </p>
-                </div>
-                <div class="login-feature-bottom">
-                    <svg class="icono" width="19" height="19" aria-hidden="true"><use href="#i-cap"/></svg>
+                </p:card>
+                <div class="flex align-items-center gap-2 text-sm">
+                    <i class="pi pi-graduation-cap" aria-hidden="true"></i>
                     Coordinación académica · ITO
                 </div>
             </aside>

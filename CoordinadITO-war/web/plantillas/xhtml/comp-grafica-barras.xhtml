@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  COMPONENTE: gráfica de barras (p:chart de PrimeFaces, que dibuja con Chart.js).
+  p:chart recibe la configuración de Chart.js como texto JSON. Aquí el JSON se arma con
+  Expression Language a partir de listas, así la gráfica no necesita un bean. Cuando exista
+  SeguimientoControl puede devolver el JSON hecho (o un modelo de PrimeFaces) y este
+  componente solo lo dibuja.
+  Parámetros (ui:param):
+      etiquetas   -> lista de textos del eje (tipos de trámite, carreras...)
+      series      -> lista de mapas {'etiqueta': 'Recibidas', 'valores': [..], 'color': '#2b6cb0'}
+                     (una serie por color; con una sola, la leyenda se oculta)
+      horizontal  -> true para barras horizontales (etiquetas largas)
+      apilada     -> true para apilar las series (total por barra)
+      alto        -> (opcional) alto de la gráfica en CSS; por omisión 320px
+      descripcion -> texto alternativo para lectores de pantalla
+  TRUCO DE LAS COMILLAS: Facelets no acepta una expresión que mezcle comillas simples y dobles
+  ("EL Expression Unbalanced"). Por eso el JSON se escribe con ~ en lugar de " y al final se
+  reemplaza: ~ por el carácter 34 (la comilla doble), que se obtiene con
+  String.valueOf(Character.toChars(34)) (EL importa java.lang).
+-->
+<ui:composition xmlns="http://www.w3.org/1999/xhtml"
+                xmlns:ui="jakarta.faces.facelets"
+                xmlns:c="jakarta.tags.core"
+                xmlns:p="primefaces">
+
+    <c:set var="comilla" value="#{String.valueOf(Character.toChars(34))}"/>
+    <!-- [~Baja de materia~, ~Cambio de horario~, ...] -->
+    <c:set var="jsonEtiquetas" value="#{etiquetas.stream().map(e -> '~'.concat(e).concat('~')).toList().toString()}"/>
+    <!-- [{~label~:~Recibidas~,~data~:[18, 12, ...],~backgroundColor~:~#2b6cb0~}, ...] -->
+    <c:set var="jsonSeries" value="#{series.stream().map(s -> '{~label~:~'.concat(s.etiqueta)
+            .concat('~,~data~:').concat(s.valores.toString())
+            .concat(',~backgroundColor~:~').concat(s.color)
+            .concat('~,~borderRadius~:4,~maxBarThickness~:36}')).toList().toString()}"/>
+    <c:set var="jsonOpciones" value="#{'{~indexAxis~:~'.concat(horizontal ? 'y' : 'x')
+            .concat('~,~responsive~:true,~maintainAspectRatio~:false')
+            .concat(',~plugins~:{~legend~:{~display~:').concat(series.size() gt 1 ? 'true' : 'false')
+            .concat(',~position~:~bottom~}}')
+            .concat(',~scales~:{~x~:{~stacked~:').concat(apilada ? 'true' : 'false')
+            .concat(',~grid~:{~display~:').concat(horizontal ? 'true' : 'false').concat('}}')
+            .concat(',~y~:{~stacked~:').concat(apilada ? 'true' : 'false')
+            .concat(',~beginAtZero~:true,~grid~:{~display~:').concat(horizontal ? 'false' : 'true').concat('}}}}')}"/>
+
+    <div class="grafica" style="height: #{empty alto ? '320px' : alto};">
+        <p:chart value="#{'{~type~:~bar~,~data~:{~labels~:'.concat(jsonEtiquetas)
+                          .concat(',~datasets~:').concat(jsonSeries).concat('},~options~:')
+                          .concat(jsonOpciones).concat('}').replace('~', comilla)}"
+                 ariaLabel="#{descripcion}" style="height: 100%;"/>
+    </div>
+</ui:composition>

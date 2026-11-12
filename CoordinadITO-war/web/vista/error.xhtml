@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  VISTA: error / página no encontrada (plantilla-simple, sin menú).
+  web.xml la registra como <error-page> para los códigos 404 y 500, así que el servidor la
+  muestra en lugar de su página genérica. El código llega en el atributo de petición
+  jakarta.servlet.error.status_code (lo pone el contenedor de servlets).
+  También se puede abrir a mano: /vista/error.xhtml?codigo=404 (para ver el diseño).
+-->
+<ui:composition template="/plantillas/xhtml/plantilla-simple.xhtml"
+                xmlns="http://www.w3.org/1999/xhtml"
+                xmlns:ui="jakarta.faces.facelets"
+                xmlns:c="jakarta.tags.core"
+                xmlns:p="primefaces">
+
+    <ui:define name="titulo">Página no disponible</ui:define>
+
+    <ui:define name="contenido">
+        <c:set var="codigo" value="#{not empty requestScope['jakarta.servlet.error.status_code']
+                                    ? requestScope['jakarta.servlet.error.status_code']
+                                    : (empty param.codigo ? 404 : param.codigo)}"/>
+        <c:set var="noEncontrada" value="#{codigo eq 404}"/>
+
+        <p:card styleClass="text-center py-4">
+            <span class="icono-circulo tono-naranja mb-3" style="width: 4.5rem; height: 4.5rem; font-size: 1.8rem;">
+                <i class="pi #{noEncontrada ? 'pi-compass' : 'pi-exclamation-triangle'}" aria-hidden="true"></i>
+            </span>
+            <p class="eyebrow">ERROR #{codigo}</p>
+            <h1 class="text-3xl font-bold mt-2 mb-2">
+                #{noEncontrada ? 'No encontramos esta página' : 'Algo no salió como esperábamos'}
+            </h1>
+            <p class="text-color-secondary text-lg mt-0 mb-4 mx-auto" style="max-width: 26rem;">
+                #{noEncontrada
+                  ? 'La dirección puede estar mal escrita o la página ya no existe. Tus solicitudes siguen a salvo.'
+                  : 'El servidor tuvo un problema al atender tu petición. Intenta de nuevo en unos minutos.'}
+            </p>
+            <div class="flex justify-content-center gap-2 flex-wrap">
+                <p:linkButton outcome="/vista/inicio" value="Ir a mi espacio" icon="pi pi-home"/>
+                <p:button value="Regresar" icon="pi pi-arrow-left" styleClass="ui-button-outlined"
+                          onclick="history.back(); return false;"/>
+            </div>
+        </p:card>
+
+        <p class="text-center text-sm text-color-secondary mt-4">
+            Si el problema continúa, comunícate con la coordinación de tu carrera.
+        </p>
+    </ui:define>
+</ui:composition>

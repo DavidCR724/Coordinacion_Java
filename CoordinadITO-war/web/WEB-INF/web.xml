@@ -18,6 +18,19 @@
         <param-value>true</param-value>
     </context-param>
 
+    <!-- ============ PrimeFaces ============ -->
+    <!-- Tema propio: Saga recoloreado con la paleta del ITO.
+         Vive en resources/primefaces-coordinadito/theme.css (lo genera herramientas/generar-tema.py). -->
+    <context-param>
+        <param-name>primefaces.THEME</param-name>
+        <param-value>coordinadito</param-value>
+    </context-param>
+    <!-- Los scripts de PrimeFaces van al final del <body>: la página se pinta antes. -->
+    <context-param>
+        <param-name>primefaces.MOVE_SCRIPTS_TO_BOTTOM</param-name>
+        <param-value>true</param-value>
+    </context-param>
+
     <servlet>
         <servlet-name>Faces Servlet</servlet-name>
         <servlet-class>jakarta.faces.webapp.FacesServlet</servlet-class>
@@ -30,7 +43,23 @@
 
     <session-config>
         <session-timeout>30</session-timeout>
+        <!-- Solo cookie: evita que las URL lleven ";jsessionid=..." en la primera visita. -->
+        <tracking-mode>COOKIE</tracking-mode>
     </session-config>
+
+    <!-- Páginas propias para errores (plantilla-simple). -->
+    <error-page>
+        <error-code>403</error-code>
+        <location>/vista/acceso-denegado.xhtml</location>
+    </error-page>
+    <error-page>
+        <error-code>404</error-code>
+        <location>/vista/error.xhtml</location>
+    </error-page>
+    <error-page>
+        <error-code>500</error-code>
+        <location>/vista/error.xhtml</location>
+    </error-page>
 
     <welcome-file-list>
         <welcome-file>index.xhtml</welcome-file>

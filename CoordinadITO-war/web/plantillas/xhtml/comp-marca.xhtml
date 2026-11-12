@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  COMPONENTE: logotipo "ito" + nombre del sistema. Enlaza a la pantalla de inicio.
+  Se usa en la barra lateral, en el menú móvil y (con oscuro="true") en el login.
+  Parámetros (ui:param):
+      oscuro  -> (opcional) true para texto azul marino sobre fondo claro
+      destino -> (opcional) outcome del enlace; por omisión /vista/inicio
+-->
+<ui:composition xmlns="http://www.w3.org/1999/xhtml"
+                xmlns:h="jakarta.faces.html"
+                xmlns:ui="jakarta.faces.facelets">
+    <h:link outcome="#{empty destino ? '/vista/inicio' : destino}" includeViewParams="#{empty destino}"
+            styleClass="marca #{oscuro ? 'marca-oscura' : ''}">
+        <span class="marca-simbolo">i<span>t</span>o</span>
+        <span class="marca-texto">Trámites ITO<small>Coordinación académica</small></span>
+    </h:link>
+</ui:composition>

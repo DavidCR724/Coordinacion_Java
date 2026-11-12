@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  COMPONENTE: insignia de prioridad (ENUM PRIORIDAD de la base de datos). Es un p:tag.
+      BAJA    -> gris          (flecha abajo)
+      MEDIA   -> info (azul)   (guion)
+      ALTA    -> warning       (flecha arriba)
+      CRITICA -> danger        (doble flecha)
+  Parámetro (ui:param):
+      prioridad -> BAJA | MEDIA | ALTA | CRITICA
+-->
+<ui:composition xmlns="http://www.w3.org/1999/xhtml"
+                xmlns:ui="jakarta.faces.facelets"
+                xmlns:p="primefaces">
+    <p:tag rounded="true"
+           value="#{prioridad eq 'CRITICA' ? 'Crítica' : (prioridad eq 'ALTA' ? 'Alta' : (prioridad eq 'MEDIA' ? 'Media' : 'Baja'))}"
+           severity="#{prioridad eq 'CRITICA' ? 'danger' : (prioridad eq 'ALTA' ? 'warning' : (prioridad eq 'MEDIA' ? 'info' : null))}"
+           styleClass="#{prioridad eq 'BAJA' ? 'tag-gris' : ''}"
+           icon="pi #{prioridad eq 'CRITICA' ? 'pi-angle-double-up' : (prioridad eq 'ALTA' ? 'pi-angle-up' : (prioridad eq 'MEDIA' ? 'pi-minus' : 'pi-angle-down'))}"/>
+</ui:composition>

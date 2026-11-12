@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  COMPONENTE: tarjeta de una solicitud de apertura de grupo (HU 4.2 y 4.3). Es un p:card.
+  Se usa dentro de <ui:repeat var="g"> sobre #{gruposDemo} (o una parte filtrada).
+  Campos de "g": id, materia, clave, semestre, claveCarrera, adhesiones, codigoEstado,
+                 actualizacion, adherido, propia.
+  Parámetro (ui:param):
+      paraAlumno -> true para mostrar "Te adheriste" / "La iniciaste" (vista del estudiante)
+  El botón abre /vista/grupo-detalle?id=G-112 conservando el rol.
+-->
+<ui:composition xmlns="http://www.w3.org/1999/xhtml"
+                xmlns:f="jakarta.faces.core"
+                xmlns:ui="jakarta.faces.facelets"
+                xmlns:p="primefaces">
+    <p:card styleClass="h-full tarjeta-grupo">
+        <div class="flex justify-content-between align-items-start gap-2 mb-3">
+            <span class="icono-circulo chico tono-marino"><i class="pi pi-users" aria-hidden="true"></i></span>
+            <ui:include src="/plantillas/xhtml/comp-insignia-estado.xhtml">
+                <ui:param name="codigoEstado" value="#{g.codigoEstado}"/>
+            </ui:include>
+        </div>
+        <h3 class="text-lg mt-0 mb-1">#{g.materia}</h3>
+        <p class="text-color-secondary text-sm mt-0 mb-3">#{g.clave} · #{g.semestre}.º semestre · #{g.claveCarrera}</p>
+
+        <div class="flex align-items-end gap-2 mb-2">
+            <span class="metrica-valor">#{g.adhesiones}</span>
+            <span class="text-color-secondary pb-1">#{g.adhesiones eq 1 ? 'alumno adherido' : 'alumnos adheridos'}</span>
+        </div>
+        <div class="flex gap-2 flex-wrap mb-3" style="min-height: 1.75rem;">
+            <ui:fragment rendered="#{paraAlumno and g.propia}">
+                <p:tag value="La iniciaste tú" icon="pi pi-star" rounded="true" severity="info"/>
+            </ui:fragment>
+            <ui:fragment rendered="#{paraAlumno and g.adherido and not g.propia}">
+                <p:tag value="Te adheriste" icon="pi pi-check" rounded="true" severity="success"/>
+            </ui:fragment>
+            <small class="text-color-secondary align-self-center">Actualizada el #{g.actualizacion}</small>
+        </div>
+
+        <p:linkButton outcome="/vista/grupo-detalle" includeViewParams="true" iconPos="right" icon="pi pi-arrow-right"
+                      value="#{paraAlumno and not g.adherido and (g.codigoEstado eq 'received' or g.codigoEstado eq 'in-review') ? 'Ver y adherirme' : 'Ver solicitud'}"
+                      styleClass="w-full #{paraAlumno and not g.adherido ? '' : 'ui-button-outlined'}">
+            <f:param name="id" value="#{g.id}"/>
+        </p:linkButton>
+    </p:card>
+</ui:composition>

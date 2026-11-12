@@ -2,37 +2,41 @@
 <!--
   VISTA: detalle de una solicitud. Equivale a app/dashboard/requests/[requestId]/page.tsx.
   Parámetros de la URL: ?folio=1042 | 1031 | 1043  y  ?rol=...
+  La solicitud se busca por folio en #{solicitudesDemo} (datos-demo.xhtml), así que la
+  pantalla se escribe una sola vez para todas: datos capturados con ui:repeat, historial con
+  p:chronoline y el panel de atención con comp-atender-solicitud.
   Quién puede ver qué (igual que visibleRequests() del front):
       student     -> 1042 y 1031 (son suyas)
       coordinator -> 1042, 1031 y 1043 (carrera ISC)
-      cualquier otro caso (folio inexistente, 1044 de otra carrera, administrador) -> "Solicitud no disponible"
-  La parte común (encabezado, panel de datos, línea de tiempo) está escrita una sola vez;
-  solo las partes que cambian de una solicitud a otra (valores capturados y eventos) van en
-  ui:fragment con rendered="#{folio eq '...'}".
+      head        -> todas, solo consulta (sin panel de atención)
+      cualquier otro caso (folio inexistente, administrador) -> "Solicitud no disponible"
 -->
 <ui:composition template="/plantillas/xhtml/plantilla-panel.xhtml"
                 xmlns="http://www.w3.org/1999/xhtml"
-                xmlns:h="jakarta.faces.html"
                 xmlns:f="jakarta.faces.core"
                 xmlns:ui="jakarta.faces.facelets"
-                xmlns:c="jakarta.tags.core">
+                xmlns:c="jakarta.tags.core"
+                xmlns:p="primefaces">
 
-    <ui:param name="seccion" value="#{param.rol eq 'coordinator' ? 'bandeja' : 'solicitudes'}"/>
+    <ui:define name="metadatos">
+        <f:metadata>
+            <f:viewParam name="rol" value="#{viewScope.rol}"/>
+            <f:viewParam name="folio" value="#{viewScope.folio}"/>
+        </f:metadata>
+    </ui:define>
+
+    <ui:param name="seccion" value="#{viewScope.rol eq 'coordinator' ? 'bandeja' : 'solicitudes'}"/>
     <ui:param name="rotulo" value="Detalle de solicitud"/>
 
     <ui:define name="titulo">Detalle de solicitud</ui:define>
 
     <ui:define name="contenido">
-        <c:set var="rol" value="#{param.rol eq 'coordinator' or param.rol eq 'administrator' ? param.rol : 'student'}"/>
-        <c:set var="folio" value="#{param.folio}"/>
-        <c:set var="esSuya" value="#{folio eq '1042' or folio eq '1031'}"/>
-        <c:set var="visible" value="#{(rol eq 'student' and esSuya) or (rol eq 'coordinator' and (esSuya or folio eq '1043'))}"/>
-
-        <c:set var="tramite" value="#{folio eq '1042' ? 'Cambio de horario' : 'Baja de materia'}"/>
-        <c:set var="estado" value="#{folio eq '1042' ? 'in-review' : (folio eq '1031' ? 'completed' : 'received')}"/>
-        <c:set var="registrada" value="#{folio eq '1042' ? '23 oct 2026, 10:30 a.m.' : (folio eq '1031' ? '20 oct 2026, 11:00 a.m.' : '27 oct 2026, 10:00 a.m.')}"/>
-        <c:set var="solicitante" value="#{folio eq '1043' ? 'Daniel Pérez García' : 'Sofía Hernández López'}"/>
-        <c:set var="control" value="#{folio eq '1043' ? '00000002' : '00000001'}"/>
+        <c:set var="rol" value="#{viewScope.rol eq 'coordinator' or viewScope.rol eq 'head' or viewScope.rol eq 'administrator' ? viewScope.rol : 'student'}"/>
+        <c:set var="sol" value="#{solicitudesDemo.stream().filter(s -> s.folio eq viewScope.folio).findFirst().orElse(null)}"/>
+        <c:set var="visible" value="#{not empty sol and ((rol eq 'student' and sol.control eq usuariosDemo.student.control)
+                                                        or (rol eq 'coordinator' and sol.carrera eq usuariosDemo.coordinator.carrera)
+                                                        or rol eq 'head')}"/>
+        <c:set var="cerrada" value="#{sol.codigoEstado eq 'completed' or sol.codigoEstado eq 'rejected'}"/>
 
         <!-- ===== Sin acceso o inexistente ===== -->
         <ui:fragment rendered="#{not visible}">
@@ -46,228 +50,108 @@
         </ui:fragment>
 
         <ui:fragment rendered="#{visible}">
-            <h:link outcome="#{rol eq 'coordinator' ? '/vista/bandeja' : '/vista/solicitudes'}" styleClass="back-link">
-                <f:param name="rol" value="#{param.rol}" disable="#{empty param.rol}"/>
-                <svg class="icono" width="16" height="16" aria-hidden="true"><use href="#i-back"/></svg>
-                Volver a solicitudes
-            </h:link>
+            <p:linkButton outcome="#{rol eq 'coordinator' ? '/vista/bandeja' : '/vista/solicitudes'}" includeViewParams="true"
+                          value="Volver a solicitudes" icon="pi pi-arrow-left" styleClass="ui-button-flat mb-3 -ml-3"/>
 
             <ui:decorate template="/plantillas/xhtml/comp-encabezado.xhtml">
-                <ui:param name="eyebrow" value="ITO-#{folio}"/>
-                <ui:param name="tituloPagina" value="#{tramite}"/>
-                <ui:param name="descripcion" value="Registrada el #{registrada}"/>
+                <ui:param name="eyebrow" value="ITO-#{sol.folio}"/>
+                <ui:param name="tituloPagina" value="#{sol.tramite}"/>
+                <ui:param name="descripcion" value="Registrada el #{sol.registroCompleto}"/>
                 <ui:param name="conAccion" value="true"/>
                 <ui:define name="accion">
-                    <div class="detail-heading-actions">
-                        <ui:include src="/plantillas/xhtml/comp-insignia-estado.xhtml">
-                            <ui:param name="codigoEstado" value="#{estado}"/>
-                        </ui:include>
-                        <!-- Solo el estudiante, y solo si la solicitud tiene novedades sin leer (1042 y 1031 las tienen). -->
-                        <ui:fragment rendered="#{rol eq 'student'}">
-                            <button type="button" class="text-button">
-                                <svg class="icono" width="15" height="15" aria-hidden="true"><use href="#i-check"/></svg>
-                                Marcar actualizaciones como leídas
-                            </button>
-                        </ui:fragment>
-                    </div>
+                    <ui:include src="/plantillas/xhtml/comp-insignia-estado.xhtml">
+                        <ui:param name="codigoEstado" value="#{sol.codigoEstado}"/>
+                    </ui:include>
+                    <!-- Solo el estudiante (sus dos solicitudes tienen novedades sin leer). Aún no hace nada. -->
+                    <ui:fragment rendered="#{rol eq 'student'}">
+                        <p:commandButton type="button" value="Marcar actualizaciones como leídas" icon="pi pi-check"
+                                         styleClass="ui-button-flat"/>
+                    </ui:fragment>
                 </ui:define>
             </ui:decorate>
 
-            <div class="request-detail-grid">
-                <div class="detail-main">
-                    <!-- Resolución: solo existe en la solicitud ya finalizada (1031). -->
-                    <ui:fragment rendered="#{folio eq '1031'}">
-                        <section class="resolution-panel">
-                            <span class="resolution-icon">
-                                <svg class="icono" width="24" height="24" aria-hidden="true"><use href="#i-check"/></svg>
-                            </span>
-                            <div>
-                                <p class="eyebrow">RESOLUCIÓN DE LA SOLICITUD</p>
-                                <h2>Tu solicitud fue finalizada</h2>
-                                <p>Se autorizó la solicitud de baja. Consulta con el área correspondiente la actualización de tu carga académica.</p>
-                                <small>26 oct 2026, 12:40 p.m.</small>
+            <div class="grid">
+                <div class="col-12 lg:col-8">
+                    <!-- Resolución: solo existe en una solicitud ya finalizada (1031). -->
+                    <ui:fragment rendered="#{not empty sol.resolucion}">
+                        <p:card styleClass="mb-4 border-green-200">
+                            <div class="flex gap-3 align-items-start">
+                                <span class="icono-circulo tono-verde"><i class="pi pi-check" aria-hidden="true"></i></span>
+                                <div>
+                                    <p class="eyebrow">RESOLUCIÓN DE LA SOLICITUD</p>
+                                    <h2 class="text-xl my-2">Tu solicitud fue finalizada</h2>
+                                    <p class="mt-0">#{sol.resolucion}</p>
+                                    <small class="text-color-secondary">#{sol.fechaResolucion}</small>
+                                </div>
                             </div>
-                        </section>
+                        </p:card>
                     </ui:fragment>
 
-                    <section class="panel">
-                        <div class="section-heading">
-                            <h2>Datos de la solicitud</h2>
-                            <svg class="icono" width="20" height="20" aria-hidden="true"><use href="#i-file"/></svg>
+                    <p:card styleClass="mb-4">
+                        <f:facet name="title">
+                            <div class="flex justify-content-between align-items-center">
+                                Datos de la solicitud
+                                <i class="pi pi-file text-color-secondary" aria-hidden="true"></i>
+                            </div>
+                        </f:facet>
+                        <div class="grid">
+                            <ui:include src="/plantillas/xhtml/comp-dato-revision.xhtml">
+                                <ui:param name="etiqueta" value="Solicitante"/>
+                                <ui:param name="valor" value="#{sol.estudiante}"/>
+                            </ui:include>
+                            <ui:include src="/plantillas/xhtml/comp-dato-revision.xhtml">
+                                <ui:param name="etiqueta" value="Número de control"/>
+                                <ui:param name="valor" value="#{sol.control}"/>
+                            </ui:include>
+                            <ui:include src="/plantillas/xhtml/comp-dato-revision.xhtml">
+                                <ui:param name="etiqueta" value="Carrera"/>
+                                <ui:param name="valor" value="#{sol.carrera}"/>
+                                <ui:param name="completo" value="true"/>
+                            </ui:include>
                         </div>
-                        <dl class="request-metadata">
-                            <div>
-                                <dt>Solicitante</dt>
-                                <dd>#{solicitante}</dd>
-                            </div>
-                            <div>
-                                <dt>Número de control</dt>
-                                <dd>#{control}</dd>
-                            </div>
-                            <div class="full-width">
-                                <dt>Carrera</dt>
-                                <dd>Ingeniería en Sistemas Computacionales</dd>
-                            </div>
-                        </dl>
-                        <div class="form-section">
-                            <dl class="review-values">
-                                <!-- 1042: cambio de horario -->
-                                <ui:fragment rendered="#{folio eq '1042'}">
-                                    <ui:include src="/plantillas/xhtml/comp-dato-revision.xhtml">
-                                        <ui:param name="etiqueta" value="Nombre de la materia"/>
-                                        <ui:param name="valor" value="Redes de computadoras"/>
-                                    </ui:include>
-                                    <ui:include src="/plantillas/xhtml/comp-dato-revision.xhtml">
-                                        <ui:param name="etiqueta" value="Grupo actual"/>
-                                        <ui:param name="valor" value="7SA"/>
-                                    </ui:include>
-                                    <ui:include src="/plantillas/xhtml/comp-dato-revision.xhtml">
-                                        <ui:param name="etiqueta" value="Grupo solicitado"/>
-                                        <ui:param name="valor" value="7SB"/>
-                                    </ui:include>
-                                    <ui:include src="/plantillas/xhtml/comp-dato-revision.xhtml">
-                                        <ui:param name="etiqueta" value="Horario solicitado"/>
-                                        <ui:param name="valor" value="Lunes a viernes, 10:00 a 11:00"/>
-                                    </ui:include>
-                                    <ui:include src="/plantillas/xhtml/comp-dato-revision.xhtml">
-                                        <ui:param name="etiqueta" value="Motivo del cambio"/>
-                                        <ui:param name="valor" value="El horario actual coincide con mi actividad de servicio social."/>
-                                    </ui:include>
-                                </ui:fragment>
-                                <!-- 1031: baja de materia -->
-                                <ui:fragment rendered="#{folio eq '1031'}">
-                                    <ui:include src="/plantillas/xhtml/comp-dato-revision.xhtml">
-                                        <ui:param name="etiqueta" value="Nombre de la materia"/>
-                                        <ui:param name="valor" value="Cálculo vectorial"/>
-                                    </ui:include>
-                                    <ui:include src="/plantillas/xhtml/comp-dato-revision.xhtml">
-                                        <ui:param name="etiqueta" value="Clave de la materia"/>
-                                        <ui:param name="valor" value="ACF-0904"/>
-                                    </ui:include>
-                                    <ui:include src="/plantillas/xhtml/comp-dato-revision.xhtml">
-                                        <ui:param name="etiqueta" value="Grupo actual"/>
-                                        <ui:param name="valor" value="7SA"/>
-                                    </ui:include>
-                                    <ui:include src="/plantillas/xhtml/comp-dato-revision.xhtml">
-                                        <ui:param name="etiqueta" value="Motivo de la solicitud"/>
-                                        <ui:param name="valor" value="Solicito ajustar mi carga académica este semestre."/>
-                                    </ui:include>
-                                </ui:fragment>
-                                <!-- 1043: baja de materia (otro estudiante) -->
-                                <ui:fragment rendered="#{folio eq '1043'}">
-                                    <ui:include src="/plantillas/xhtml/comp-dato-revision.xhtml">
-                                        <ui:param name="etiqueta" value="Nombre de la materia"/>
-                                        <ui:param name="valor" value="Taller de investigación II"/>
-                                    </ui:include>
-                                    <ui:include src="/plantillas/xhtml/comp-dato-revision.xhtml">
-                                        <ui:param name="etiqueta" value="Clave de la materia"/>
-                                        <ui:param name="valor" value="ACA-0910"/>
-                                    </ui:include>
-                                    <ui:include src="/plantillas/xhtml/comp-dato-revision.xhtml">
-                                        <ui:param name="etiqueta" value="Grupo actual"/>
-                                        <ui:param name="valor" value="7SB"/>
-                                    </ui:include>
-                                    <ui:include src="/plantillas/xhtml/comp-dato-revision.xhtml">
-                                        <ui:param name="etiqueta" value="Motivo de la solicitud"/>
-                                        <ui:param name="valor" value="Solicito una revisión de mi carga de materias."/>
-                                    </ui:include>
-                                </ui:fragment>
-                            </dl>
+                        <p:divider/>
+                        <div class="grid">
+                            <ui:repeat value="#{sol.datos}" var="dato">
+                                <ui:include src="/plantillas/xhtml/comp-dato-revision.xhtml">
+                                    <ui:param name="etiqueta" value="#{dato.etiqueta}"/>
+                                    <ui:param name="valor" value="#{dato.valor}"/>
+                                    <ui:param name="completo" value="#{dato.etiqueta.startsWith('Motivo')}"/>
+                                </ui:include>
+                            </ui:repeat>
                         </div>
-                    </section>
+                    </p:card>
 
                     <!-- Panel de atención: solo coordinación y solo si la solicitud no está cerrada. -->
-                    <ui:fragment rendered="#{rol eq 'coordinator' and estado ne 'completed' and estado ne 'rejected'}">
+                    <ui:fragment rendered="#{rol eq 'coordinator' and not cerrada}">
                         <ui:include src="/plantillas/xhtml/comp-atender-solicitud.xhtml">
-                            <ui:param name="codigoEstado" value="#{estado}"/>
+                            <ui:param name="codigoEstado" value="#{sol.codigoEstado}"/>
                         </ui:include>
                     </ui:fragment>
 
                     <!-- Solicitud cerrada: solo lectura. -->
-                    <ui:fragment rendered="#{estado eq 'completed' or estado eq 'rejected'}">
-                        <div class="info-note">
-                            <svg class="icono" width="19" height="19" aria-hidden="true"><use href="#i-shield"/></svg>
-                            <p>
-                                Esta solicitud está cerrada. Su resolución e historial se conservan sin cambios.
-                                Para otro asunto se requiere una solicitud nueva.
-                            </p>
-                        </div>
+                    <ui:fragment rendered="#{cerrada}">
+                        <p:staticMessage severity="info" icon="pi pi-shield" styleClass="w-full"
+                                         detail="Esta solicitud está cerrada. Su resolución e historial se conservan sin cambios. Para otro asunto se requiere una solicitud nueva."/>
                     </ui:fragment>
                 </div>
 
-                <aside class="panel timeline-panel">
-                    <div class="section-heading">
-                        <h2>Seguimiento</h2>
-                        <svg class="icono" width="18" height="18" aria-hidden="true"><use href="#i-clock"/></svg>
-                    </div>
-                    <!-- De más reciente a más antiguo. -->
-                    <ol class="timeline">
-                        <ui:fragment rendered="#{folio eq '1042'}">
-                            <ui:include src="/plantillas/xhtml/comp-evento-historial.xhtml">
-                                <ui:param name="ultimo" value="true"/>
-                                <ui:param name="codigoEstado" value="in-review"/>
-                                <ui:param name="fechaIso" value="2026-10-27T15:15:00Z"/>
-                                <ui:param name="fecha" value="27 oct 2026, 9:15 a.m."/>
-                                <ui:param name="comentario" value="Estamos revisando la disponibilidad del grupo solicitado. Podrás consultar el resultado en este espacio."/>
-                                <ui:param name="actor" value="Elena Ramírez Ruiz"/>
-                                <ui:param name="transicion" value="Recibida → En revisión"/>
-                            </ui:include>
-                            <ui:include src="/plantillas/xhtml/comp-evento-historial.xhtml">
-                                <ui:param name="ultimo" value="false"/>
-                                <ui:param name="codigoEstado" value="received"/>
-                                <ui:param name="fechaIso" value="2026-10-23T16:30:00Z"/>
-                                <ui:param name="fecha" value="23 oct 2026, 10:30 a.m."/>
-                                <ui:param name="comentario" value="Tu solicitud fue recibida por la coordinación de tu carrera."/>
-                                <ui:param name="actor" value="Sofía Hernández López"/>
-                                <ui:param name="transicion" value=""/>
-                            </ui:include>
-                        </ui:fragment>
-                        <ui:fragment rendered="#{folio eq '1031'}">
-                            <ui:include src="/plantillas/xhtml/comp-evento-historial.xhtml">
-                                <ui:param name="ultimo" value="true"/>
-                                <ui:param name="codigoEstado" value="completed"/>
-                                <ui:param name="fechaIso" value="2026-10-26T18:40:00Z"/>
-                                <ui:param name="fecha" value="26 oct 2026, 12:40 p.m."/>
-                                <ui:param name="comentario" value="Se autorizó la solicitud de baja. Consulta con el área correspondiente la actualización de tu carga académica."/>
-                                <ui:param name="actor" value="Elena Ramírez Ruiz"/>
-                                <ui:param name="transicion" value="En revisión → Finalizada"/>
-                            </ui:include>
-                            <ui:include src="/plantillas/xhtml/comp-evento-historial.xhtml">
-                                <ui:param name="ultimo" value="false"/>
-                                <ui:param name="codigoEstado" value="in-review"/>
-                                <ui:param name="fechaIso" value="2026-10-21T17:00:00Z"/>
-                                <ui:param name="fecha" value="21 oct 2026, 11:00 a.m."/>
-                                <ui:param name="comentario" value="Los datos fueron recibidos para revisión."/>
-                                <ui:param name="actor" value="Elena Ramírez Ruiz"/>
-                                <ui:param name="transicion" value="Recibida → En revisión"/>
-                            </ui:include>
-                            <ui:include src="/plantillas/xhtml/comp-evento-historial.xhtml">
-                                <ui:param name="ultimo" value="false"/>
-                                <ui:param name="codigoEstado" value="received"/>
-                                <ui:param name="fechaIso" value="2026-10-20T17:00:00Z"/>
-                                <ui:param name="fecha" value="20 oct 2026, 11:00 a.m."/>
-                                <ui:param name="comentario" value="Solicitud registrada y enviada a coordinación."/>
-                                <ui:param name="actor" value="Sofía Hernández López"/>
-                                <ui:param name="transicion" value=""/>
-                            </ui:include>
-                        </ui:fragment>
-                        <ui:fragment rendered="#{folio eq '1043'}">
-                            <ui:include src="/plantillas/xhtml/comp-evento-historial.xhtml">
-                                <ui:param name="ultimo" value="true"/>
-                                <ui:param name="codigoEstado" value="received"/>
-                                <ui:param name="fechaIso" value="2026-10-27T16:00:00Z"/>
-                                <ui:param name="fecha" value="27 oct 2026, 10:00 a.m."/>
-                                <ui:param name="comentario" value="Solicitud registrada y enviada a coordinación."/>
-                                <ui:param name="actor" value="Daniel Pérez García"/>
-                                <ui:param name="transicion" value=""/>
-                            </ui:include>
-                        </ui:fragment>
-                    </ol>
-                    <p class="timeline-footnote">
-                        <svg class="icono" width="15" height="15" aria-hidden="true"><use href="#i-shield"/></svg>
-                        El historial es de solo lectura.
-                    </p>
-                </aside>
+                <div class="col-12 lg:col-4">
+                    <p:card>
+                        <f:facet name="title">
+                            <div class="flex justify-content-between align-items-center">
+                                Seguimiento
+                                <i class="pi pi-clock text-color-secondary" aria-hidden="true"></i>
+                            </div>
+                        </f:facet>
+                        <!-- De más reciente a más antiguo. -->
+                        <ui:include src="/plantillas/xhtml/comp-evento-historial.xhtml">
+                            <ui:param name="eventos" value="#{sol.historial}"/>
+                        </ui:include>
+                        <small class="flex align-items-center gap-2 text-color-secondary">
+                            <i class="pi pi-shield" aria-hidden="true"></i> El historial es de solo lectura.
+                        </small>
+                    </p:card>
+                </div>
             </div>
         </ui:fragment>
     </ui:define>

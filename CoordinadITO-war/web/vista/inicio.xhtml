@@ -1,359 +1,299 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
   VISTA: inicio del panel. Equivale a app/dashboard/page.tsx.
-  Muestra contenido distinto según el rol (?rol=student | coordinator | administrator).
-  Datos de la demostración (iguales a lib/demo-data.ts del front):
+  Muestra contenido distinto según el rol (?rol=student | coordinator | head | administrator).
+  Datos de la demostración (datos-demo.xhtml):
       Estudiante   -> 1 solicitud en curso, 2 actualizaciones sin leer, 1 finalizada
       Coordinación -> 2 solicitudes en curso, 1 por comenzar, 1 finalizada
-      Administración -> 4 trámites en catálogo, 4 periodos habilitados
+      Jefatura       -> volumen del periodo (volumenDemo) y demanda de grupos (gruposDemo)
+      Administración -> 4 trámites en catálogo, 4 periodos habilitados; accesos a prioridades y roles
+  El estudiante ve además los avisos vigentes de su carrera (comp-avisos-vigentes, HU 5.3).
+  PrimeFaces: p:linkButton, p:card, p:tabView (bandeja), p:dataTable (comp-tabla-solicitudes),
+  p:avatar, p:tag. Maquetación con la rejilla de PrimeFlex (grid / col-*).
 -->
 <ui:composition template="/plantillas/xhtml/plantilla-panel.xhtml"
                 xmlns="http://www.w3.org/1999/xhtml"
                 xmlns:h="jakarta.faces.html"
                 xmlns:f="jakarta.faces.core"
                 xmlns:ui="jakarta.faces.facelets"
-                xmlns:c="jakarta.tags.core">
+                xmlns:c="jakarta.tags.core"
+                xmlns:p="primefaces">
 
+    <ui:define name="metadatos">
+        <f:metadata>
+            <f:viewParam name="rol" value="#{viewScope.rol}"/>
+        </f:metadata>
+    </ui:define>
     <ui:param name="seccion" value="inicio"/>
     <ui:param name="rotulo" value="Inicio"/>
 
     <ui:define name="titulo">Inicio</ui:define>
 
     <ui:define name="contenido">
-        <c:set var="rol" value="#{param.rol eq 'coordinator' or param.rol eq 'administrator' ? param.rol : 'student'}"/>
+        <c:set var="rol" value="#{viewScope.rol eq 'coordinator' or viewScope.rol eq 'head' or viewScope.rol eq 'administrator' ? viewScope.rol : 'student'}"/>
 
         <!-- Encabezado con botón de acción (cambia según el rol). -->
         <ui:decorate template="/plantillas/xhtml/comp-encabezado.xhtml">
-            <ui:param name="eyebrow" value="#{rol eq 'student' ? 'TU ESPACIO ACADÉMICO' : 'COORDINACIÓN ACADÉMICA'}"/>
-            <ui:param name="tituloPagina" value="Hola, #{rol eq 'coordinator' ? 'Elena' : (rol eq 'administrator' ? 'Administración' : 'Sofía')}."/>
-            <ui:param name="descripcion" value="#{rol eq 'student' ? 'Qué gusto verte. Aquí puedes seguir cada paso de tus trámites.' : (rol eq 'coordinator' ? 'Revisa las solicitudes de tu carrera y acompaña su seguimiento.' : 'Mantén al día los periodos de atención del catálogo.')}"/>
+            <ui:param name="eyebrow" value="#{rol eq 'student' ? 'TU ESPACIO ACADÉMICO' : (rol eq 'head' ? 'JEFATURA DE DIVISIÓN' : 'COORDINACIÓN ACADÉMICA')}"/>
+            <ui:param name="tituloPagina" value="Hola, #{usuariosDemo[rol].nombres}."/>
+            <ui:param name="descripcion" value="#{rol eq 'student' ? 'Qué gusto verte. Aquí puedes seguir cada paso de tus trámites.' : (rol eq 'coordinator' ? 'Revisa las solicitudes de tu carrera y acompaña su seguimiento.' : (rol eq 'head' ? 'Consulta la carga de solicitudes y la demanda de grupos de todas las carreras.' : 'Mantén al día los periodos, las prioridades y los roles.'))}"/>
             <ui:param name="conAccion" value="true"/>
             <ui:define name="accion">
-                <h:link outcome="#{rol eq 'student' ? '/vista/tramites' : (rol eq 'coordinator' ? '/vista/bandeja' : '/vista/periodos')}"
-                        styleClass="button button-primary">
-                    <f:param name="rol" value="#{param.rol}" disable="#{empty param.rol}"/>
-                    <svg class="icono" width="18" height="18" aria-hidden="true"><use href="#{rol eq 'student' ? '#i-plus' : '#i-arrow'}"/></svg>
-                    #{rol eq 'student' ? 'Solicitar un trámite' : (rol eq 'coordinator' ? 'Ir a la bandeja' : 'Configurar periodos')}
-                </h:link>
+                <p:linkButton outcome="#{rol eq 'student' ? '/vista/tramites' : (rol eq 'coordinator' ? '/vista/bandeja' : (rol eq 'head' ? '/vista/seguimiento-volumen' : '/vista/periodos'))}"
+                              includeViewParams="true" size="large"
+                              icon="pi #{rol eq 'student' ? 'pi-plus' : 'pi-arrow-right'}"
+                              value="#{rol eq 'student' ? 'Solicitar un trámite' : (rol eq 'coordinator' ? 'Ir a la bandeja' : (rol eq 'head' ? 'Ver seguimiento' : 'Configurar periodos'))}"/>
             </ui:define>
         </ui:decorate>
 
         <!-- ============ MÉTRICAS ============ -->
-        <ui:fragment rendered="#{rol ne 'administrator'}">
-            <div class="metric-grid">
-                <article class="metric-card">
-                    <div>
-                        <p>Solicitudes en curso</p>
-                        <strong>#{rol eq 'student' ? '01' : '02'}</strong>
-                        <small>Recibidas o en revisión</small>
-                    </div>
-                    <span class="metric-icon tone-blue">
-                        <svg class="icono" width="22" height="22" aria-hidden="true"><use href="#i-file"/></svg>
-                    </span>
-                </article>
-                <article class="metric-card">
-                    <div>
-                        <p>#{rol eq 'student' ? 'Actualizaciones sin leer' : 'Por comenzar'}</p>
-                        <strong>#{rol eq 'student' ? '02' : '01'}</strong>
-                        <small>#{rol eq 'student' ? 'Novedades en tu bandeja' : 'Solicitudes recién recibidas'}</small>
-                    </div>
-                    <span class="metric-icon tone-orange">
-                        <svg class="icono" width="22" height="22" aria-hidden="true"><use href="#i-inbox"/></svg>
-                    </span>
-                </article>
-                <article class="metric-card">
-                    <div>
-                        <p>Trámites finalizados</p>
-                        <strong>01</strong>
-                        <small>Con resolución disponible</small>
-                    </div>
-                    <span class="metric-icon tone-navy">
-                        <svg class="icono" width="22" height="22" aria-hidden="true"><use href="#i-check"/></svg>
-                    </span>
-                </article>
-            </div>
-        </ui:fragment>
-        <ui:fragment rendered="#{rol eq 'administrator'}">
-            <div class="metric-grid two-metrics">
-                <article class="metric-card">
-                    <div>
-                        <p>Trámites en catálogo</p>
-                        <strong>04</strong>
-                        <small>Formatos de esta vista</small>
-                    </div>
-                    <span class="metric-icon tone-blue">
-                        <svg class="icono" width="22" height="22" aria-hidden="true"><use href="#i-folder"/></svg>
-                    </span>
-                </article>
-                <article class="metric-card">
-                    <div>
-                        <p>Periodos habilitados</p>
-                        <strong>04</strong>
-                        <small>Consulta sus fechas de atención</small>
-                    </div>
-                    <span class="metric-icon tone-orange">
-                        <svg class="icono" width="22" height="22" aria-hidden="true"><use href="#i-calendar"/></svg>
-                    </span>
-                </article>
-            </div>
-        </ui:fragment>
+        <div class="grid mb-3">
+            <ui:fragment rendered="#{rol eq 'student' or rol eq 'coordinator'}">
+                <div class="col-12 md:col-4">
+                    <ui:include src="/plantillas/xhtml/comp-tarjeta-metrica.xhtml">
+                        <ui:param name="etiqueta" value="Solicitudes en curso"/>
+                        <ui:param name="valor" value="#{rol eq 'student' ? '01' : '02'}"/>
+                        <ui:param name="nota" value="Recibidas o en revisión"/>
+                        <ui:param name="icono" value="file"/>
+                    </ui:include>
+                </div>
+                <div class="col-12 md:col-4">
+                    <ui:include src="/plantillas/xhtml/comp-tarjeta-metrica.xhtml">
+                        <ui:param name="etiqueta" value="#{rol eq 'student' ? 'Actualizaciones sin leer' : 'Por comenzar'}"/>
+                        <ui:param name="valor" value="#{rol eq 'student' ? '02' : '01'}"/>
+                        <ui:param name="nota" value="#{rol eq 'student' ? 'Novedades en tu bandeja' : 'Solicitudes recién recibidas'}"/>
+                        <ui:param name="icono" value="inbox"/>
+                        <ui:param name="tono" value="tono-naranja"/>
+                    </ui:include>
+                </div>
+                <div class="col-12 md:col-4">
+                    <ui:include src="/plantillas/xhtml/comp-tarjeta-metrica.xhtml">
+                        <ui:param name="etiqueta" value="Trámites finalizados"/>
+                        <ui:param name="valor" value="01"/>
+                        <ui:param name="nota" value="Con resolución disponible"/>
+                        <ui:param name="icono" value="check"/>
+                        <ui:param name="tono" value="tono-marino"/>
+                    </ui:include>
+                </div>
+            </ui:fragment>
+            <ui:fragment rendered="#{rol eq 'head'}">
+                <c:set var="volActual" value="#{volumenDemo['2026-2'].filas}"/>
+                <div class="col-12 md:col-4">
+                    <ui:include src="/plantillas/xhtml/comp-tarjeta-metrica.xhtml">
+                        <ui:param name="etiqueta" value="Solicitudes del periodo"/>
+                        <ui:param name="valor" value="#{volActual.stream().map(f -> f.recibidas + f.enRevision + f.finalizadas + f.rechazadas).sum()}"/>
+                        <ui:param name="nota" value="Ago – Dic 2026, todas las carreras"/>
+                        <ui:param name="icono" value="file"/>
+                    </ui:include>
+                </div>
+                <div class="col-12 md:col-4">
+                    <ui:include src="/plantillas/xhtml/comp-tarjeta-metrica.xhtml">
+                        <ui:param name="etiqueta" value="Abiertas"/>
+                        <ui:param name="valor" value="#{volActual.stream().map(f -> f.recibidas + f.enRevision).sum()}"/>
+                        <ui:param name="nota" value="Recibidas o en revisión"/>
+                        <ui:param name="icono" value="clock"/>
+                        <ui:param name="tono" value="tono-naranja"/>
+                    </ui:include>
+                </div>
+                <div class="col-12 md:col-4">
+                    <ui:include src="/plantillas/xhtml/comp-tarjeta-metrica.xhtml">
+                        <ui:param name="etiqueta" value="Grupos solicitados"/>
+                        <ui:param name="valor" value="0#{gruposDemo.stream().filter(g -> g.codigoEstado eq 'received' or g.codigoEstado eq 'in-review').count()}"/>
+                        <ui:param name="nota" value="Solicitudes de apertura activas"/>
+                        <ui:param name="icono" value="users"/>
+                        <ui:param name="tono" value="tono-marino"/>
+                    </ui:include>
+                </div>
+            </ui:fragment>
+            <ui:fragment rendered="#{rol eq 'administrator'}">
+                <div class="col-12 md:col-6">
+                    <ui:include src="/plantillas/xhtml/comp-tarjeta-metrica.xhtml">
+                        <ui:param name="etiqueta" value="Trámites en catálogo"/>
+                        <ui:param name="valor" value="0#{tramitesDemo.size()}"/>
+                        <ui:param name="nota" value="Formatos de esta vista"/>
+                        <ui:param name="icono" value="folder"/>
+                    </ui:include>
+                </div>
+                <div class="col-12 md:col-6">
+                    <ui:include src="/plantillas/xhtml/comp-tarjeta-metrica.xhtml">
+                        <ui:param name="etiqueta" value="Periodos habilitados"/>
+                        <ui:param name="valor" value="0#{tramitesDemo.size()}"/>
+                        <ui:param name="nota" value="Consulta sus fechas de atención"/>
+                        <ui:param name="icono" value="calendar"/>
+                        <ui:param name="tono" value="tono-naranja"/>
+                    </ui:include>
+                </div>
+            </ui:fragment>
+        </div>
 
         <!-- ============ ESTUDIANTE ============ -->
         <ui:fragment rendered="#{rol eq 'student'}">
-            <div class="home-grid">
-                <div class="home-main">
-                    <section class="panel inbox-panel">
-                        <div class="section-heading">
-                            <div class="section-title">
-                                <span class="section-icon">
-                                    <svg class="icono" width="20" height="20" aria-hidden="true"><use href="#i-inbox"/></svg>
-                                </span>
-                                <h2>Bandeja de entrada</h2>
-                                <span class="count-pill">2 nuevas</span>
+            <div class="grid">
+                <div class="col-12 xl:col-8">
+                    <p:card styleClass="mb-4">
+                        <div class="flex justify-content-between align-items-center flex-wrap gap-2 mb-2">
+                            <div class="flex align-items-center gap-2">
+                                <span class="icono-circulo chico"><i class="pi pi-inbox" aria-hidden="true"></i></span>
+                                <h2 class="text-xl m-0">Bandeja de entrada</h2>
+                                <p:tag value="2 nuevas" severity="warning" rounded="true"/>
                             </div>
-                            <button type="button" class="text-button mark-read-button">
-                                <svg class="icono" width="15" height="15" aria-hidden="true"><use href="#i-check"/></svg> Marcar todo como leído
-                            </button>
+                            <!-- Aún no hay servicio: el botón no hace nada todavía. -->
+                            <p:commandButton type="button" value="Marcar todo como leído" icon="pi pi-check"
+                                             styleClass="ui-button-flat ui-button-sm"/>
                         </div>
-                        <div class="tabs" role="group" aria-label="Filtrar actualizaciones">
-                            <button type="button" aria-pressed="true" class="active">Todas las actualizaciones</button>
-                            <button type="button" aria-pressed="false">Sin leer <span>2</span></button>
-                        </div>
-                        <div role="region" aria-label="Todas las actualizaciones">
-                            <!-- Cada actualización es un enlace a la solicitud. "unread" marca las no leídas. -->
-                            <h:link outcome="/vista/solicitud-detalle" styleClass="inbox-item unread">
-                                <f:param name="folio" value="1042"/>
-                                <f:param name="rol" value="#{param.rol}" disable="#{empty param.rol}"/>
-                                <span class="message-icon">
-                                    <svg class="icono" width="19" height="19" aria-hidden="true"><use href="#i-clock"/></svg>
-                                </span>
-                                <div class="message-content">
-                                    <div class="message-meta">
-                                        <span>ITO-1042 · Cambio de horario</span>
-                                        <span class="unread-dot" aria-label="Sin leer"></span>
-                                    </div>
-                                    <h3>Tu solicitud está en revisión</h3>
-                                    <p>Estamos revisando la disponibilidad del grupo solicitado. Podrás consultar el resultado en este espacio.</p>
-                                    <time datetime="2026-10-27T15:15:00Z">27 oct 2026, 9:15 a.m. · Elena Ramírez Ruiz</time>
-                                </div>
-                                <svg class="icono message-chevron" width="17" height="17" aria-hidden="true"><use href="#i-chevron"/></svg>
-                            </h:link>
-                            <h:link outcome="/vista/solicitud-detalle" styleClass="inbox-item unread">
-                                <f:param name="folio" value="1031"/>
-                                <f:param name="rol" value="#{param.rol}" disable="#{empty param.rol}"/>
-                                <span class="message-icon resolved">
-                                    <svg class="icono" width="19" height="19" aria-hidden="true"><use href="#i-check"/></svg>
-                                </span>
-                                <div class="message-content">
-                                    <div class="message-meta">
-                                        <span>ITO-1031 · Baja de materia</span>
-                                        <span class="unread-dot" aria-label="Sin leer"></span>
-                                    </div>
-                                    <h3>Tu solicitud tiene una resolución</h3>
-                                    <p>Se autorizó la solicitud de baja. Consulta con el área correspondiente la actualización de tu carga académica.</p>
-                                    <time datetime="2026-10-26T18:40:00Z">26 oct 2026, 12:40 p.m. · Elena Ramírez Ruiz</time>
-                                </div>
-                                <svg class="icono message-chevron" width="17" height="17" aria-hidden="true"><use href="#i-chevron"/></svg>
-                            </h:link>
-                            <h:link outcome="/vista/solicitud-detalle" styleClass="inbox-item">
-                                <f:param name="folio" value="1042"/>
-                                <f:param name="rol" value="#{param.rol}" disable="#{empty param.rol}"/>
-                                <span class="message-icon">
-                                    <svg class="icono" width="19" height="19" aria-hidden="true"><use href="#i-file"/></svg>
-                                </span>
-                                <div class="message-content">
-                                    <div class="message-meta">
-                                        <span>ITO-1042 · Cambio de horario</span>
-                                    </div>
-                                    <h3>Recibimos tu solicitud</h3>
-                                    <p>Tu solicitud fue recibida por la coordinación de tu carrera.</p>
-                                    <time datetime="2026-10-23T16:30:00Z">23 oct 2026, 10:30 a.m. · Sofía Hernández López</time>
-                                </div>
-                                <svg class="icono message-chevron" width="17" height="17" aria-hidden="true"><use href="#i-chevron"/></svg>
-                            </h:link>
-                            <h:link outcome="/vista/solicitud-detalle" styleClass="inbox-item">
-                                <f:param name="folio" value="1031"/>
-                                <f:param name="rol" value="#{param.rol}" disable="#{empty param.rol}"/>
-                                <span class="message-icon">
-                                    <svg class="icono" width="19" height="19" aria-hidden="true"><use href="#i-clock"/></svg>
-                                </span>
-                                <div class="message-content">
-                                    <div class="message-meta">
-                                        <span>ITO-1031 · Baja de materia</span>
-                                    </div>
-                                    <h3>Tu solicitud está en revisión</h3>
-                                    <p>Los datos fueron recibidos para revisión.</p>
-                                    <time datetime="2026-10-21T17:00:00Z">21 oct 2026, 11:00 a.m. · Elena Ramírez Ruiz</time>
-                                </div>
-                                <svg class="icono message-chevron" width="17" height="17" aria-hidden="true"><use href="#i-chevron"/></svg>
-                            </h:link>
-                            <h:link outcome="/vista/solicitud-detalle" styleClass="inbox-item">
-                                <f:param name="folio" value="1031"/>
-                                <f:param name="rol" value="#{param.rol}" disable="#{empty param.rol}"/>
-                                <span class="message-icon">
-                                    <svg class="icono" width="19" height="19" aria-hidden="true"><use href="#i-file"/></svg>
-                                </span>
-                                <div class="message-content">
-                                    <div class="message-meta">
-                                        <span>ITO-1031 · Baja de materia</span>
-                                    </div>
-                                    <h3>Recibimos tu solicitud</h3>
-                                    <p>Solicitud registrada y enviada a coordinación.</p>
-                                    <time datetime="2026-10-20T17:00:00Z">20 oct 2026, 11:00 a.m. · Sofía Hernández López</time>
-                                </div>
-                                <svg class="icono message-chevron" width="17" height="17" aria-hidden="true"><use href="#i-chevron"/></svg>
-                            </h:link>
-                        </div>
-                    </section>
 
-                    <section class="recent-section">
-                        <div class="section-heading unboxed">
-                            <h2>Mis solicitudes recientes</h2>
-                            <h:link outcome="/vista/solicitudes" styleClass="text-link">
-                                <f:param name="rol" value="#{param.rol}" disable="#{empty param.rol}"/>
-                                Ver todas
-                                <svg class="icono" width="16" height="16" aria-hidden="true"><use href="#i-arrow"/></svg>
-                            </h:link>
-                        </div>
-                        <ui:decorate template="/plantillas/xhtml/comp-tabla-solicitudes.xhtml">
-                            <ui:param name="conEstudiante" value="false"/>
-                            <ui:param name="conFiltros" value="false"/>
-                            <ui:param name="totalFilas" value="2"/>
-                            <ui:define name="filas">
-                                <ui:include src="/plantillas/xhtml/comp-fila-solicitud.xhtml">
-                                    <ui:param name="folio" value="1042"/>
-                                    <ui:param name="tramite" value="Cambio de horario"/>
-                                    <ui:param name="registro" value="23 oct 2026"/>
-                                    <ui:param name="codigoEstado" value="in-review"/>
-                                    <ui:param name="actualizacion" value="27 oct 2026"/>
-                                    <ui:param name="conEstudiante" value="false"/>
-                                </ui:include>
-                                <ui:include src="/plantillas/xhtml/comp-fila-solicitud.xhtml">
-                                    <ui:param name="folio" value="1031"/>
-                                    <ui:param name="tramite" value="Baja de materia"/>
-                                    <ui:param name="registro" value="20 oct 2026"/>
-                                    <ui:param name="codigoEstado" value="completed"/>
-                                    <ui:param name="actualizacion" value="26 oct 2026"/>
-                                    <ui:param name="conEstudiante" value="false"/>
-                                </ui:include>
-                            </ui:define>
-                        </ui:decorate>
-                    </section>
+                        <p:tabView styleClass="bandeja-tabs">
+                            <p:tab title="Todas las actualizaciones">
+                                <ui:repeat value="#{avisosDemo}" var="aviso">
+                                    <ui:include src="/plantillas/xhtml/comp-fila-notificacion.xhtml"/>
+                                </ui:repeat>
+                            </p:tab>
+                            <p:tab>
+                                <f:facet name="title">Sin leer <p:badge value="2" severity="warning" styleClass="ml-1"/></f:facet>
+                                <ui:repeat value="#{avisosDemo.stream().filter(a -> a.sinLeer).toList()}" var="aviso">
+                                    <ui:include src="/plantillas/xhtml/comp-fila-notificacion.xhtml"/>
+                                </ui:repeat>
+                            </p:tab>
+                        </p:tabView>
+                    </p:card>
+
+                    <div class="flex justify-content-between align-items-center mb-3">
+                        <h2 class="text-xl m-0">Mis solicitudes recientes</h2>
+                        <p:linkButton outcome="/vista/solicitudes" includeViewParams="true" value="Ver todas"
+                                      icon="pi pi-arrow-right" iconPos="right" styleClass="ui-button-flat"/>
+                    </div>
+                    <ui:include src="/plantillas/xhtml/comp-tabla-solicitudes.xhtml">
+                        <ui:param name="solicitudes" value="#{solicitudesDemo.stream().filter(s -> s.control eq usuariosDemo.student.control).toList()}"/>
+                        <ui:param name="conEstudiante" value="false"/>
+                        <ui:param name="conFiltros" value="false"/>
+                    </ui:include>
                 </div>
 
-                <aside class="home-aside">
-                    <section class="profile-summary">
-                        <div class="section-heading unboxed">
-                            <h2>Mi expediente</h2>
-                            <svg class="icono" width="18" height="18" aria-hidden="true"><use href="#i-user"/></svg>
+                <div class="col-12 xl:col-4">
+                    <ui:include src="/plantillas/xhtml/comp-avisos-vigentes.xhtml">
+                        <ui:param name="avisos" value="#{comunicadosDemo.stream().filter(a -> a.vigente and a.carreras.contains('ISC')).limit(2).toList()}"/>
+                        <ui:param name="compacto" value="true"/>
+                        <ui:param name="conEnlace" value="true"/>
+                    </ui:include>
+
+                    <p:card styleClass="mb-4 text-center">
+                        <div class="flex justify-content-between align-items-center mb-3">
+                            <h2 class="text-lg m-0">Mi expediente</h2>
+                            <i class="pi pi-user text-color-secondary" aria-hidden="true"></i>
                         </div>
-                        <span class="avatar avatar-large">SH</span>
-                        <h3>Sofía Hernández López</h3>
-                        <p>Ingeniería en Sistemas Computacionales</p>
-                        <dl>
-                            <div>
-                                <dt>Número de control</dt>
-                                <dd>00000001</dd>
-                            </div>
-                            <div>
-                                <dt>Semestre</dt>
-                                <dd>7.º semestre</dd>
-                            </div>
-                        </dl>
-                        <h:link outcome="/vista/perfil" styleClass="button button-secondary">
-                            <f:param name="rol" value="#{param.rol}" disable="#{empty param.rol}"/>
-                            Ver mi perfil
-                            <svg class="icono" width="16" height="16" aria-hidden="true"><use href="#i-arrow"/></svg>
-                        </h:link>
-                    </section>
-                    <section class="quick-guide">
-                        <span class="guide-label">
-                            <svg class="icono" width="17" height="17" aria-hidden="true"><use href="#i-info"/></svg> ANTES DE COMENZAR
-                        </span>
-                        <h3>Un trámite bien preparado, un proceso más claro.</h3>
-                        <ol>
-                            <li><span>01</span>Revisa los requisitos y las fechas.</li>
-                            <li><span>02</span>Completa el formulario de tu trámite.</li>
-                            <li><span>03</span>Sigue las novedades en tu bandeja.</li>
+                        <p:avatar label="#{usuariosDemo.student.iniciales}" size="xlarge" shape="circle" styleClass="app-avatar mb-3"/>
+                        <h3 class="m-0">#{usuariosDemo.student.nombreCompleto}</h3>
+                        <p class="text-color-secondary mt-1">#{usuariosDemo.student.carrera}</p>
+                        <p:divider/>
+                        <div class="flex justify-content-between mb-2">
+                            <span class="text-color-secondary">Número de control</span>
+                            <strong>#{usuariosDemo.student.control}</strong>
+                        </div>
+                        <div class="flex justify-content-between mb-4">
+                            <span class="text-color-secondary">Semestre</span>
+                            <strong>#{usuariosDemo.student.semestre}.º semestre</strong>
+                        </div>
+                        <p:linkButton outcome="/vista/perfil" includeViewParams="true" value="Ver mi perfil"
+                                      icon="pi pi-arrow-right" iconPos="right" styleClass="ui-button-outlined w-full"/>
+                    </p:card>
+
+                    <p:card>
+                        <span class="eyebrow"><i class="pi pi-info-circle mr-1" aria-hidden="true"></i> Antes de comenzar</span>
+                        <h3 class="mt-2">Un trámite bien preparado, un proceso más claro.</h3>
+                        <ol class="lista-requisitos">
+                            <li><p:tag value="01" rounded="true"/> Revisa los requisitos y las fechas.</li>
+                            <li><p:tag value="02" rounded="true"/> Completa el formulario de tu trámite.</li>
+                            <li><p:tag value="03" rounded="true"/> Sigue las novedades en tu bandeja.</li>
                         </ol>
-                        <h:link outcome="/vista/tramites" styleClass="text-link">
-                            <f:param name="rol" value="#{param.rol}" disable="#{empty param.rol}"/>
-                            Explorar el catálogo
-                            <svg class="icono" width="16" height="16" aria-hidden="true"><use href="#i-arrow"/></svg>
-                        </h:link>
-                    </section>
-                </aside>
+                        <p:linkButton outcome="/vista/tramites" includeViewParams="true" value="Explorar el catálogo"
+                                      icon="pi pi-arrow-right" iconPos="right" styleClass="ui-button-flat p-0"/>
+                    </p:card>
+                </div>
             </div>
         </ui:fragment>
 
         <!-- ============ COORDINACIÓN ============ -->
         <ui:fragment rendered="#{rol eq 'coordinator'}">
-            <div class="section-heading unboxed">
-                <h2>Solicitudes de tu carrera</h2>
-                <span class="helper-text">Ingeniería en Sistemas Computacionales</span>
+            <div class="flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
+                <h2 class="text-xl m-0">Solicitudes de tu carrera</h2>
+                <span class="text-color-secondary">#{usuariosDemo.coordinator.carrera}</span>
             </div>
-            <ui:decorate template="/plantillas/xhtml/comp-tabla-solicitudes.xhtml">
+            <ui:include src="/plantillas/xhtml/comp-tabla-solicitudes.xhtml">
+                <ui:param name="solicitudes" value="#{solicitudesDemo.stream().filter(s -> s.carrera eq usuariosDemo.coordinator.carrera).toList()}"/>
                 <ui:param name="conEstudiante" value="true"/>
                 <ui:param name="conFiltros" value="true"/>
-                <ui:param name="totalFilas" value="3"/>
-                <ui:define name="filas">
-                    <ui:include src="/plantillas/xhtml/comp-fila-solicitud.xhtml">
-                        <ui:param name="folio" value="1043"/>
-                        <ui:param name="tramite" value="Baja de materia"/>
-                        <ui:param name="estudiante" value="Daniel Pérez García"/>
-                        <ui:param name="control" value="00000002"/>
-                        <ui:param name="registro" value="27 oct 2026"/>
-                        <ui:param name="codigoEstado" value="received"/>
-                        <ui:param name="actualizacion" value="27 oct 2026"/>
-                        <ui:param name="conEstudiante" value="true"/>
-                    </ui:include>
-                    <ui:include src="/plantillas/xhtml/comp-fila-solicitud.xhtml">
-                        <ui:param name="folio" value="1042"/>
-                        <ui:param name="tramite" value="Cambio de horario"/>
-                        <ui:param name="estudiante" value="Sofía Hernández López"/>
-                        <ui:param name="control" value="00000001"/>
-                        <ui:param name="registro" value="23 oct 2026"/>
-                        <ui:param name="codigoEstado" value="in-review"/>
-                        <ui:param name="actualizacion" value="27 oct 2026"/>
-                        <ui:param name="conEstudiante" value="true"/>
-                    </ui:include>
-                    <ui:include src="/plantillas/xhtml/comp-fila-solicitud.xhtml">
-                        <ui:param name="folio" value="1031"/>
-                        <ui:param name="tramite" value="Baja de materia"/>
-                        <ui:param name="estudiante" value="Sofía Hernández López"/>
-                        <ui:param name="control" value="00000001"/>
-                        <ui:param name="registro" value="20 oct 2026"/>
-                        <ui:param name="codigoEstado" value="completed"/>
-                        <ui:param name="actualizacion" value="26 oct 2026"/>
-                        <ui:param name="conEstudiante" value="true"/>
-                    </ui:include>
-                </ui:define>
-            </ui:decorate>
-            <p class="helper-text section-note">
+            </ui:include>
+            <p class="text-color-secondary mt-3">
                 Las solicitudes finalizadas o rechazadas conservan su historial y no admiten nuevos
                 cambios de estado.
             </p>
         </ui:fragment>
 
+        <!-- ============ JEFATURA ============ -->
+        <ui:fragment rendered="#{rol eq 'head'}">
+            <div class="grid">
+                <div class="col-12 lg:col-6">
+                    <p:card styleClass="h-full">
+                        <div class="flex justify-content-between align-items-center mb-3">
+                            <h2 class="text-xl m-0">Demanda de grupos</h2>
+                            <p:linkButton outcome="/vista/grupos" includeViewParams="true" value="Ver todas"
+                                          icon="pi pi-arrow-right" iconPos="right" styleClass="ui-button-flat"/>
+                        </div>
+                        <ui:repeat value="#{gruposDemo.stream().filter(g -> g.codigoEstado eq 'received' or g.codigoEstado eq 'in-review').sorted((a, b) -> b.adhesiones - a.adhesiones).toList()}" var="g">
+                            <h:link outcome="/vista/grupo-detalle" includeViewParams="true" styleClass="mensaje">
+                                <f:param name="id" value="#{g.id}"/>
+                                <span class="icono-circulo chico tono-marino"><i class="pi pi-users" aria-hidden="true"></i></span>
+                                <span class="flex-1">
+                                    <h3>#{g.materia}</h3>
+                                    <p>#{g.id} · #{g.claveCarrera} · #{g.semestre}.º semestre</p>
+                                </span>
+                                <span class="text-right">
+                                    <strong class="text-xl block">#{g.adhesiones}</strong>
+                                    <small class="text-color-secondary">alumnos</small>
+                                </span>
+                            </h:link>
+                        </ui:repeat>
+                    </p:card>
+                </div>
+                <div class="col-12 lg:col-6">
+                    <p:card styleClass="h-full">
+                        <div class="flex justify-content-between align-items-center mb-3">
+                            <h2 class="text-xl m-0">Solicitudes por carrera</h2>
+                            <p:linkButton outcome="/vista/seguimiento-volumen" includeViewParams="true" value="Ver detalle"
+                                          icon="pi pi-arrow-right" iconPos="right" styleClass="ui-button-flat"/>
+                        </div>
+                        <ui:include src="/plantillas/xhtml/comp-grafica-barras.xhtml">
+                            <ui:param name="etiquetas" value="#{volumenDemo['2026-2'].carreras.stream().map(x -> x.clave).toList()}"/>
+                            <ui:param name="series" value="#{[{'etiqueta': 'Solicitudes', 'valores': volumenDemo['2026-2'].carreras.stream().map(x -> x.total).toList(), 'color': '#12233f'}]}"/>
+                            <ui:param name="alto" value="260px"/>
+                            <ui:param name="descripcion" value="Solicitudes por carrera en Ago – Dic 2026"/>
+                        </ui:include>
+                    </p:card>
+                </div>
+            </div>
+        </ui:fragment>
+
         <!-- ============ ADMINISTRACIÓN ============ -->
         <ui:fragment rendered="#{rol eq 'administrator'}">
-            <section class="panel admin-overview">
-                <span class="empty-icon">
-                    <svg class="icono" width="28" height="28" aria-hidden="true"><use href="#i-calendar"/></svg>
-                </span>
-                <div>
-                    <h2>Un calendario claro para cada trámite</h2>
-                    <p>
-                        Define la apertura y el cierre. El catálogo mostrará de inmediato si cada trámite está
-                        disponible, próximo a abrir o cerrado.
-                    </p>
-                    <h:link outcome="/vista/periodos" styleClass="text-link">
-                        <f:param name="rol" value="#{param.rol}" disable="#{empty param.rol}"/>
-                        Administrar periodos
-                        <svg class="icono" width="16" height="16" aria-hidden="true"><use href="#i-arrow"/></svg>
-                    </h:link>
-                </div>
-            </section>
+            <div class="grid">
+                <ui:repeat value="#{[
+                    {'destino': '/vista/periodos', 'icono': 'calendar', 'tono': '', 'titulo': 'Un calendario claro para cada trámite',
+                     'texto': 'Define la apertura y el cierre. El catálogo mostrará si cada trámite está disponible, próximo a abrir o cerrado.', 'accion': 'Administrar periodos'},
+                    {'destino': '/vista/prioridades', 'icono': 'sort-amount-up', 'tono': 'tono-naranja', 'titulo': 'Qué se atiende primero',
+                     'texto': 'Asigna a cada tipo de trámite su prioridad; las solicitudes nuevas la heredan.', 'accion': 'Ajustar prioridades'},
+                    {'destino': '/vista/roles', 'icono': 'id-card', 'tono': 'tono-marino', 'titulo': 'Quién atiende cada carrera',
+                     'texto': 'Otorga el rol de coordinación o jefatura y las carreras que le corresponden a cada cuenta.', 'accion': 'Gestionar roles'}]}" var="tarjeta">
+                    <div class="col-12 lg:col-4">
+                        <p:card styleClass="h-full">
+                            <span class="icono-circulo #{tarjeta.tono} mb-3"><i class="pi pi-#{tarjeta.icono}" aria-hidden="true"></i></span>
+                            <h2 class="text-xl mt-0">#{tarjeta.titulo}</h2>
+                            <p class="text-color-secondary">#{tarjeta.texto}</p>
+                            <p:linkButton outcome="#{tarjeta.destino}" includeViewParams="true" value="#{tarjeta.accion}"
+                                          icon="pi pi-arrow-right" iconPos="right" styleClass="ui-button-flat p-0"/>
+                        </p:card>
+                    </div>
+                </ui:repeat>
+            </div>
         </ui:fragment>
     </ui:define>
 </ui:composition>

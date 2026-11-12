@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  COMPONENTE: bloque "Avisos de tu carrera" con los avisos oficiales vigentes (HU 5.3:
+  "los alumnos de esas carreras ven el aviso al ingresar a la plataforma").
+  Se usa en el inicio del estudiante y arriba de la vista avisos.
+  Parámetros (ui:param):
+      avisos       -> lista de avisos a mostrar (ya filtrada por carrera y vigencia)
+      compacto     -> true para recortar el texto (inicio)
+      conEnlace    -> true para mostrar "Ver todos" hacia /vista/avisos
+  Si la lista está vacía muestra un texto en lugar de las tarjetas.
+-->
+<ui:composition xmlns="http://www.w3.org/1999/xhtml"
+                xmlns:ui="jakarta.faces.facelets"
+                xmlns:p="primefaces">
+    <section class="mb-4" aria-labelledby="titulo-avisos-vigentes">
+        <div class="flex justify-content-between align-items-center mb-3">
+            <h2 id="titulo-avisos-vigentes" class="text-xl m-0 flex align-items-center gap-2">
+                <i class="pi pi-megaphone text-color-secondary" aria-hidden="true"></i> Avisos de tu carrera
+                <p:badge value="#{avisos.size()}" severity="info" rendered="#{not empty avisos}"/>
+            </h2>
+            <ui:fragment rendered="#{conEnlace}">
+                <p:linkButton outcome="/vista/avisos" includeViewParams="true" value="Ver todos"
+                              icon="pi pi-arrow-right" iconPos="right" styleClass="ui-button-flat"/>
+            </ui:fragment>
+        </div>
+        <ui:fragment rendered="#{empty avisos}">
+            <p class="text-color-secondary">No hay avisos vigentes para tu carrera.</p>
+        </ui:fragment>
+        <ui:repeat value="#{avisos}" var="aviso">
+            <ui:include src="/plantillas/xhtml/comp-tarjeta-aviso.xhtml">
+                <ui:param name="compacto" value="#{compacto}"/>
+            </ui:include>
+        </ui:repeat>
+    </section>
+</ui:composition>

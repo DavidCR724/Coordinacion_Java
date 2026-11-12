@@ -9,40 +9,42 @@
   Aún no guarda nada: el botón está deshabilitado hasta que exista el servicio.
 -->
 <ui:composition xmlns="http://www.w3.org/1999/xhtml"
-                xmlns:ui="jakarta.faces.facelets">
-    <section class="panel review-action-panel">
-        <div class="section-heading">
-            <div>
-                <h2>Atender solicitud</h2>
-                <p>Deja constancia del motivo de cada cambio.</p>
+                xmlns:h="jakarta.faces.html"
+                xmlns:f="jakarta.faces.core"
+                xmlns:ui="jakarta.faces.facelets"
+                xmlns:p="primefaces">
+    <p:card styleClass="mb-4">
+        <f:facet name="title">
+            <div class="flex justify-content-between align-items-center">
+                Atender solicitud
+                <i class="pi pi-pencil text-color-secondary" aria-hidden="true"></i>
             </div>
-            <svg class="icono" width="20" height="20" aria-hidden="true"><use href="#i-edit"/></svg>
-        </div>
-        <form class="form-section" action="#" onsubmit="return false;">
-            <label class="field">
-                Siguiente estado
-                <select>
-                    <ui:fragment rendered="#{codigoEstado eq 'received'}">
-                        <option value="in-review" selected="selected">En revisión</option>
-                        <option value="rejected">Rechazada</option>
-                    </ui:fragment>
-                    <ui:fragment rendered="#{codigoEstado ne 'received'}">
-                        <option value="completed" selected="selected">Finalizada</option>
-                        <option value="rejected">Rechazada</option>
-                    </ui:fragment>
-                </select>
-            </label>
-            <label class="field">
-                #{codigoEstado eq 'received' ? 'Comentario de seguimiento' : 'Motivo de la resolución'} *
-                <textarea maxlength="2000" rows="4" placeholder="Explica el motivo. El estudiante podrá consultar este comentario."></textarea>
-            </label>
-            <p class="helper-text">
-                Vista de diseño: registrar el cambio se conectará al servicio en un sprint posterior.
-            </p>
-            <button type="submit" class="button button-primary" disabled="disabled">
-                <svg class="icono" width="16" height="16" aria-hidden="true"><use href="#i-save"/></svg>
-                Registrar cambio
-            </button>
-        </form>
-    </section>
+        </f:facet>
+        <f:facet name="subtitle">Deja constancia del motivo de cada cambio.</f:facet>
+
+        <h:form>
+            <div class="field">
+                <p:outputLabel for="siguienteEstado" value="Siguiente estado" styleClass="block font-medium mb-2"/>
+                <p:selectOneMenu id="siguienteEstado" value="#{viewScope.siguienteEstado}" styleClass="w-full md:w-20rem">
+                    <!-- Solo las transiciones permitidas desde el estado actual (la primera queda elegida). -->
+                    <f:selectItems var="opcion" itemValue="#{opcion.valor}" itemLabel="#{opcion.texto}"
+                                   value="#{codigoEstado eq 'received'
+                                            ? [{'valor': 'in-review', 'texto': 'En revisión'}, {'valor': 'rejected', 'texto': 'Rechazada'}]
+                                            : [{'valor': 'completed', 'texto': 'Finalizada'}, {'valor': 'rejected', 'texto': 'Rechazada'}]}"/>
+                </p:selectOneMenu>
+            </div>
+            <div class="field">
+                <p:outputLabel for="motivo" styleClass="block font-medium mb-2"
+                               value="#{codigoEstado eq 'received' ? 'Comentario de seguimiento' : 'Motivo de la resolución'}"/>
+                <p:inputTextarea id="motivo" value="#{viewScope.motivo}" required="true" rows="4" maxlength="2000"
+                                 counter="motivoContador" counterTemplate="{0} caracteres restantes" styleClass="w-full"
+                                 placeholder="Explica el motivo. El estudiante podrá consultar este comentario."/>
+                <h:outputText id="motivoContador" styleClass="block text-color-secondary text-sm mt-1"/>
+            </div>
+            <p:staticMessage severity="info" summary="Vista de diseño."
+                             detail="Registrar el cambio se conectará al servicio en un sprint posterior."
+                             styleClass="w-full mb-3"/>
+            <p:commandButton value="Registrar cambio" icon="pi pi-save" disabled="true"/>
+        </h:form>
+    </p:card>
 </ui:composition>

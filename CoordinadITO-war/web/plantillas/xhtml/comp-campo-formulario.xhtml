@@ -1,26 +1,34 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
   COMPONENTE: un campo del formulario de solicitud (parte de components/requests/request-form.tsx).
-  Parámetros (ui:param):
-      nombre      -> atributo name del campo; también es la clave en la URL (?courseName=...)
+  p:inputText o p:inputTextarea (con contador de caracteres), obligatorio, con su p:message.
+  Se usa dentro de <ui:repeat var="campo"> sobre los campos del trámite (#{tramite.campos}),
+  en el p:wizard de tramite-detalle.xhtml.
+  Campos de "campo" (como la tabla CAMPO_FORMULARIO):
+      nombre      -> clave del dato; el valor se guarda en viewScope[nombre] (courseName, reason...)
       etiqueta    -> texto de la etiqueta
       ejemplo     -> placeholder
       maximo      -> longitud máxima
-      multilinea  -> true = <textarea>, false = <input>
-  El valor se toma de la URL con #{param[nombre]}: así, al volver desde la
-  pantalla de revisión ("Editar datos") los campos aparecen con lo que se escribió.
-  Facelets escapa el valor al imprimirlo, por lo que no hay inyección de HTML.
+      multilinea  -> true = p:inputTextarea, false = p:inputText
+  Los id son fijos ("texto", "linea", "contador"): ui:repeat les agrega el número de fila, así no chocan.
+  Sin beans todavía: el valor vive en el viewScope de la página para que el paso de revisión
+  lo muestre. Con el bean será #{solicitudBean.respuestas[campo.nombre]}.
 -->
 <ui:composition xmlns="http://www.w3.org/1999/xhtml"
-                xmlns:ui="jakarta.faces.facelets">
-    <label class="field" for="request-#{nombre}">
-        <span>#{etiqueta}<span class="required-mark"> *</span></span>
-        <ui:fragment rendered="#{multilinea}">
-            <textarea id="request-#{nombre}" name="#{nombre}" required="required" maxlength="#{maximo}" placeholder="#{ejemplo}" rows="5">#{param[nombre]}</textarea>
-            <small class="character-count">#{empty param[nombre] ? 0 : param[nombre].length()} / #{maximo}</small>
-        </ui:fragment>
-        <ui:fragment rendered="#{not multilinea}">
-            <input id="request-#{nombre}" name="#{nombre}" required="required" maxlength="#{maximo}" placeholder="#{ejemplo}" value="#{param[nombre]}"/>
-        </ui:fragment>
-    </label>
+                xmlns:h="jakarta.faces.html"
+                xmlns:ui="jakarta.faces.facelets"
+                xmlns:p="primefaces">
+    <div class="field col-12 #{campo.multilinea ? '' : 'md:col-6'}">
+        <p:outputLabel for="#{campo.multilinea ? 'texto' : 'linea'}" value="#{campo.etiqueta}" styleClass="block font-medium mb-2"/>
+        <p:inputTextarea id="texto" rendered="#{campo.multilinea}" value="#{viewScope[campo.nombre]}"
+                         required="true" requiredMessage="Este campo es obligatorio." label="#{campo.etiqueta}"
+                         maxlength="#{campo.maximo}" placeholder="#{campo.ejemplo}" rows="5" autoResize="false"
+                         counter="contador" counterTemplate="{0} caracteres restantes" styleClass="w-full"/>
+        <h:outputText id="contador" rendered="#{campo.multilinea}" styleClass="block text-color-secondary text-sm mt-1"/>
+        <p:inputText id="linea" rendered="#{not campo.multilinea}" value="#{viewScope[campo.nombre]}"
+                     required="true" requiredMessage="Este campo es obligatorio." label="#{campo.etiqueta}"
+                     maxlength="#{campo.maximo}" placeholder="#{campo.ejemplo}" styleClass="w-full"/>
+        <p:message for="texto" display="text" rendered="#{campo.multilinea}"/>
+        <p:message for="linea" display="text" rendered="#{not campo.multilinea}"/>
+    </div>
 </ui:composition>

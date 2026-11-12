@@ -2,20 +2,28 @@
 <!--
   VISTA: catálogo de trámites. Equivale a app/dashboard/procedures/page.tsx.
   Solo para estudiantes; coordinación y administración ven un aviso.
-  Disponibilidad calculada al 5 de noviembre de 2026 (en el front salía de la fecha del sistema;
-  aquí es fija porque todavía no hay lógica en Java):
+  El catálogo sale de #{tramitesDemo} (datos-demo.xhtml). Disponibilidad al 5 nov 2026:
       BM  Baja de materia          17 ago – 13 nov 2026  -> Disponible
       CH  Cambio de horario        17 ago –  6 nov 2026  -> Disponible
       IM  Inscripción de materia   25 ene –  5 feb 2027  -> Próximamente
       BT  Baja temporal            17 ago – 25 sep 2026  -> Periodo cerrado
-  La búsqueda y el filtro son solo visuales en esta versión.
+  La búsqueda (p:inputText) y el filtro (p:selectOneButton) ya funcionan: cada cambio hace una
+  petición AJAX (p:ajax) que vuelve a dibujar solo la rejilla de tarjetas. Los criterios se
+  guardan en viewScope.busqueda y viewScope.filtro.
 -->
 <ui:composition template="/plantillas/xhtml/plantilla-panel.xhtml"
                 xmlns="http://www.w3.org/1999/xhtml"
                 xmlns:h="jakarta.faces.html"
                 xmlns:f="jakarta.faces.core"
                 xmlns:ui="jakarta.faces.facelets"
-                xmlns:c="jakarta.tags.core">
+                xmlns:c="jakarta.tags.core"
+                xmlns:p="primefaces">
+
+    <ui:define name="metadatos">
+        <f:metadata>
+            <f:viewParam name="rol" value="#{viewScope.rol}"/>
+        </f:metadata>
+    </ui:define>
 
     <ui:param name="seccion" value="tramites"/>
     <ui:param name="rotulo" value="Trámites"/>
@@ -23,7 +31,13 @@
     <ui:define name="titulo">Trámites</ui:define>
 
     <ui:define name="contenido">
-        <c:set var="rol" value="#{param.rol eq 'coordinator' or param.rol eq 'administrator' ? param.rol : 'student'}"/>
+        <c:set var="rol" value="#{viewScope.rol eq 'coordinator' or viewScope.rol eq 'head' or viewScope.rol eq 'administrator' ? viewScope.rol : 'student'}"/>
+        <!-- Trámites que cumplen la búsqueda y el filtro (sin distinguir mayúsculas). -->
+        <c:set var="visibles" value="#{tramitesDemo.stream().filter(t ->
+                (viewScope.filtro ne 'disponibles' or t.disponible)
+                and (empty viewScope.busqueda
+                     or t.nombre.toLowerCase().contains(viewScope.busqueda.toLowerCase())
+                     or t.descripcion.toLowerCase().contains(viewScope.busqueda.toLowerCase()))).toList()}"/>
 
         <!-- Quien no es estudiante no puede solicitar trámites. -->
         <ui:fragment rendered="#{rol ne 'student'}">
@@ -43,76 +57,44 @@
                 <ui:param name="descripcion" value="Conoce los requisitos, revisa las fechas y comienza tu solicitud."/>
             </ui:include>
 
-            <div class="catalog-toolbar">
-                <label class="search-field">
-                    <svg class="icono" width="19" height="19" aria-hidden="true"><use href="#i-search"/></svg>
-                    <input aria-label="Buscar trámites" placeholder="Buscar un trámite..."/>
-                </label>
-                <div class="segmented-control" aria-label="Disponibilidad">
-                    <button type="button" aria-pressed="true" class="active">Todos los trámites</button>
-                    <button type="button" aria-pressed="false">Disponibles</button>
-                </div>
-            </div>
-            <p class="catalog-result-count">4 trámites en el catálogo</p>
+            <h:form id="formCatalogo" styleClass="flex flex-column md:flex-row justify-content-between gap-3 mb-3">
+                <span class="ui-input-icon-left w-full md:w-30rem">
+                    <i class="pi pi-search"/>
+                    <p:inputText id="busqueda" value="#{viewScope.busqueda}" placeholder="Buscar un trámite..."
+                                 styleClass="w-full" ariaLabel="Buscar trámites">
+                        <p:ajax event="input" delay="300" update=":catalogo"/>
+                    </p:inputText>
+                </span>
+                <p:selectOneButton id="filtro" value="#{viewScope.filtro}" unselectable="false" ariaLabel="Disponibilidad">
+                    <!-- Valor nulo = "todos": así queda elegido al abrir la página, cuando aún no hay filtro. -->
+                    <f:selectItem itemValue="#{null}" itemLabel="Todos los trámites"/>
+                    <f:selectItem itemValue="disponibles" itemLabel="Disponibles"/>
+                    <p:ajax update=":catalogo"/>
+                </p:selectOneButton>
+            </h:form>
 
-            <div class="procedure-grid">
-                <ui:include src="/plantillas/xhtml/comp-tarjeta-tramite.xhtml">
-                    <ui:param name="idTramite" value="course-drop"/>
-                    <ui:param name="codigo" value="BM"/>
-                    <ui:param name="nombre" value="Baja de materia"/>
-                    <ui:param name="descripcion" value="Solicita la baja de una asignatura de tu carga académica actual."/>
-                    <ui:param name="periodo" value="17 ago 2026 — 13 nov 2026"/>
-                    <ui:param name="disponible" value="true"/>
-                    <ui:param name="etiqueta" value="Disponible"/>
-                    <ui:param name="requisito1" value="Identificar la materia y el grupo de tu carga actual."/>
-                    <ui:param name="requisito2" value="Indicar el motivo de la baja."/>
-                    <ui:param name="textoBoton" value="Iniciar solicitud"/>
-                </ui:include>
-                <ui:include src="/plantillas/xhtml/comp-tarjeta-tramite.xhtml">
-                    <ui:param name="idTramite" value="schedule-change"/>
-                    <ui:param name="codigo" value="CH"/>
-                    <ui:param name="nombre" value="Cambio de horario"/>
-                    <ui:param name="descripcion" value="Solicita un cambio de grupo u horario para una materia inscrita."/>
-                    <ui:param name="periodo" value="17 ago 2026 — 6 nov 2026"/>
-                    <ui:param name="disponible" value="true"/>
-                    <ui:param name="etiqueta" value="Disponible"/>
-                    <ui:param name="requisito1" value="Estar inscrito en la materia que deseas cambiar."/>
-                    <ui:param name="requisito2" value="Conocer el grupo y el horario al que deseas ingresar."/>
-                    <ui:param name="textoBoton" value="Iniciar solicitud"/>
-                </ui:include>
-                <ui:include src="/plantillas/xhtml/comp-tarjeta-tramite.xhtml">
-                    <ui:param name="idTramite" value="course-enrollment"/>
-                    <ui:param name="codigo" value="IM"/>
-                    <ui:param name="nombre" value="Inscripción de materia"/>
-                    <ui:param name="descripcion" value="Solicita agregar una asignatura a tu carga durante el periodo de ajustes."/>
-                    <ui:param name="periodo" value="25 ene 2027 — 5 feb 2027"/>
-                    <ui:param name="disponible" value="false"/>
-                    <ui:param name="etiqueta" value="Próximamente"/>
-                    <ui:param name="requisito1" value="Indicar la clave y el grupo de la materia."/>
-                    <ui:param name="requisito2" value="Revisar los prerrequisitos de tu plan de estudios."/>
-                    <ui:param name="textoBoton" value="Consultar disponibilidad"/>
-                </ui:include>
-                <ui:include src="/plantillas/xhtml/comp-tarjeta-tramite.xhtml">
-                    <ui:param name="idTramite" value="program-withdrawal"/>
-                    <ui:param name="codigo" value="BT"/>
-                    <ui:param name="nombre" value="Baja temporal"/>
-                    <ui:param name="descripcion" value="Solicita una pausa temporal de tus estudios y conoce los pasos para continuar después."/>
-                    <ui:param name="periodo" value="17 ago 2026 — 25 sep 2026"/>
-                    <ui:param name="disponible" value="false"/>
-                    <ui:param name="etiqueta" value="Periodo cerrado"/>
-                    <ui:param name="requisito1" value="Indicar el periodo para el que solicitas la baja."/>
-                    <ui:param name="requisito2" value="Explicar el motivo de la pausa académica."/>
-                    <ui:param name="textoBoton" value="Consultar disponibilidad"/>
-                </ui:include>
-            </div>
-
-            <div class="info-note">
-                <svg class="icono" width="19" height="19" aria-hidden="true"><use href="#i-info"/></svg>
-                <p>
-                    Los formatos, requisitos y fechas de esta vista son ejemplos para revisión. Confirma las
-                    condiciones oficiales con tu coordinación antes de realizar un trámite real.
+            <h:panelGroup id="catalogo" layout="block">
+                <p class="text-color-secondary mt-0">
+                    #{visibles.size()} #{visibles.size() eq 1 ? 'trámite' : 'trámites'} en el catálogo
                 </p>
-            </div>
+                <div class="grid">
+                    <ui:repeat value="#{visibles}" var="t">
+                        <div class="col-12 md:col-6 xl:col-3">
+                            <ui:include src="/plantillas/xhtml/comp-tarjeta-tramite.xhtml"/>
+                        </div>
+                    </ui:repeat>
+                </div>
+                <ui:fragment rendered="#{visibles.isEmpty()}">
+                    <ui:include src="/plantillas/xhtml/comp-estado-vacio.xhtml">
+                        <ui:param name="icono" value="search"/>
+                        <ui:param name="tituloVacio" value="Sin resultados"/>
+                        <ui:param name="descripcion" value="Ningún trámite coincide con tu búsqueda. Prueba con otra palabra."/>
+                    </ui:include>
+                </ui:fragment>
+            </h:panelGroup>
+
+            <p:staticMessage severity="info" styleClass="w-full mt-4"
+                             detail="Los formatos, requisitos y fechas de esta vista son ejemplos para revisión. Confirma las condiciones oficiales con tu coordinación antes de realizar un trámite real."/>
         </ui:fragment>
     </ui:define>
 </ui:composition>

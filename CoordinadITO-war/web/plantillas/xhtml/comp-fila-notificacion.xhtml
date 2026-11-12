@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  COMPONENTE: una actualización de la bandeja del estudiante (enlace a la solicitud).
+  Se usa dentro de <ui:repeat var="aviso"> sobre #{avisosDemo}.
+  Campos de "aviso": folio, tramite, icono, tono, sinLeer, titulo, texto, fecha, actor.
+  Si la vista guardó #{viewScope.todasLeidas} (botón "Marcar todo como leído"), se pinta como leída.
+-->
+<ui:composition xmlns="http://www.w3.org/1999/xhtml"
+                xmlns:h="jakarta.faces.html"
+                xmlns:f="jakarta.faces.core"
+                xmlns:ui="jakarta.faces.facelets"
+                xmlns:p="primefaces">
+    <h:link outcome="/vista/solicitud-detalle" includeViewParams="true"
+            styleClass="mensaje #{aviso.sinLeer and not viewScope.todasLeidas ? 'sin-leer' : ''}">
+        <f:param name="folio" value="#{aviso.folio}"/>
+        <span class="icono-circulo chico #{aviso.tono}"><i class="pi pi-#{aviso.icono}" aria-hidden="true"></i></span>
+        <span class="flex-1">
+            <span class="flex align-items-center gap-2 text-sm text-color-secondary">
+                ITO-#{aviso.folio} · #{aviso.tramite}
+                <ui:fragment rendered="#{aviso.sinLeer and not viewScope.todasLeidas}"><p:badge value="Nueva" severity="warning" size="small"/></ui:fragment>
+            </span>
+            <h3>#{aviso.titulo}</h3>
+            <p>#{aviso.texto}</p>
+            <small class="text-color-secondary">#{aviso.fecha} · #{aviso.actor}</small>
+        </span>
+        <i class="pi pi-chevron-right text-color-secondary align-self-center" aria-hidden="true"></i>
+    </h:link>
+</ui:composition>

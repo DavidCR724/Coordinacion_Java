@@ -1,11 +1,19 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
   COMPONENTE: insignia de estado de una solicitud (equivale a components/ui/status-badge.tsx).
+  Es un p:tag de PrimeFaces; el color lo da "severity":
+      received  -> info     (Recibida)
+      in-review -> warning  (En revisión)
+      completed -> success  (Finalizada)
+      rejected  -> danger   (Rechazada)
   Parámetro (ui:param):
       codigoEstado -> received | in-review | completed | rejected
-  El color sale de la clase CSS status-<codigoEstado>.
 -->
 <ui:composition xmlns="http://www.w3.org/1999/xhtml"
-                xmlns:ui="jakarta.faces.facelets">
-    <span class="status-badge status-#{codigoEstado}"><span></span>#{codigoEstado eq 'received' ? 'Recibida' : (codigoEstado eq 'in-review' ? 'En revisión' : (codigoEstado eq 'completed' ? 'Finalizada' : 'Rechazada'))}</span>
+                xmlns:ui="jakarta.faces.facelets"
+                xmlns:p="primefaces">
+    <p:tag rounded="true"
+           value="#{codigoEstado eq 'received' ? 'Recibida' : (codigoEstado eq 'in-review' ? 'En revisión' : (codigoEstado eq 'completed' ? 'Finalizada' : 'Rechazada'))}"
+           severity="#{codigoEstado eq 'received' ? 'info' : (codigoEstado eq 'in-review' ? 'warning' : (codigoEstado eq 'completed' ? 'success' : 'danger'))}"
+           icon="pi #{codigoEstado eq 'received' ? 'pi-inbox' : (codigoEstado eq 'in-review' ? 'pi-clock' : (codigoEstado eq 'completed' ? 'pi-check' : 'pi-times'))}"/>
 </ui:composition>

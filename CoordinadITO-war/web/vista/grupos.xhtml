@@ -1,0 +1,177 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  VISTA: apertura de grupos, lista y demanda. HU 4.2, 4.3 y 4.4.
+      student     -> tarjetas (comp-tarjeta-grupo): las solicitudes en las que participa y las
+                     demás activas de su carrera, para adherirse en lugar de crear otra.
+      coordinator -> tabla de solicitudes de su carrera (solo lectura).
+      head        -> tabla de TODAS las carreras, ordenada por número de adhesiones (HU 4.4),
+                     con filtro por carrera y estado.
+      administrator -> estado vacío.
+  Datos: #{gruposDemo}. La tabla es un p:dataTable (ordena y filtra solo).
+  ORDENAR: p:dataTable ordena la lista "en su lugar" y luego la vuelve a leer. Las listas de
+  ejemplo se arman con EL y se recrean en cada lectura, así que se guarda una sola instancia por
+  petición con facesContext.attributes.computeIfAbsent(clave, k -> lista). Con un bean que
+  devuelva siempre la misma lista esto ya no hace falta.
+-->
+<ui:composition template="/plantillas/xhtml/plantilla-panel.xhtml"
+                xmlns="http://www.w3.org/1999/xhtml"
+                xmlns:h="jakarta.faces.html"
+                xmlns:f="jakarta.faces.core"
+                xmlns:ui="jakarta.faces.facelets"
+                xmlns:c="jakarta.tags.core"
+                xmlns:p="primefaces">
+
+    <ui:define name="metadatos">
+        <f:metadata>
+            <f:viewParam name="rol" value="#{viewScope.rol}"/>
+        </f:metadata>
+    </ui:define>
+
+    <ui:param name="seccion" value="grupos"/>
+    <ui:param name="rotulo" value="#{viewScope.rol eq 'head' ? 'Demanda de grupos' : 'Apertura de grupos'}"/>
+
+    <ui:define name="titulo">Apertura de grupos</ui:define>
+
+    <ui:define name="contenido">
+        <c:set var="rol" value="#{viewScope.rol eq 'coordinator' or viewScope.rol eq 'head' or viewScope.rol eq 'administrator' ? viewScope.rol : 'student'}"/>
+
+        <ui:fragment rendered="#{rol eq 'administrator'}">
+            <ui:include src="/plantillas/xhtml/comp-estado-vacio.xhtml">
+                <ui:param name="icono" value="users"/>
+                <ui:param name="tituloVacio" value="Grupos de cada carrera"/>
+                <ui:param name="descripcion" value="Las solicitudes de apertura de grupo las atienden coordinación y jefatura."/>
+                <ui:param name="destino" value="/vista/inicio"/>
+                <ui:param name="accion" value="Volver al inicio"/>
+            </ui:include>
+        </ui:fragment>
+
+        <!-- ============ ESTUDIANTE ============ -->
+        <ui:fragment rendered="#{rol eq 'student'}">
+            <ui:decorate template="/plantillas/xhtml/comp-encabezado.xhtml">
+                <ui:param name="eyebrow" value="UNA SOLA LISTA POR MATERIA"/>
+                <ui:param name="tituloPagina" value="Apertura de grupos"/>
+                <ui:param name="descripcion" value="Pide que se abra un grupo o súmate a una solicitud que ya existe."/>
+                <ui:param name="conAccion" value="true"/>
+                <ui:define name="accion">
+                    <p:linkButton outcome="/vista/grupo-nuevo" includeViewParams="true" value="Solicitar apertura"
+                                  icon="pi pi-plus" size="large"/>
+                </ui:define>
+            </ui:decorate>
+
+            <ui:include src="/plantillas/xhtml/comp-aviso.xhtml">
+                <ui:param name="tipo" value="info"/>
+                <ui:param name="icono" value="search"/>
+                <ui:param name="tituloAviso" value="¿Tu materia ya está en la lista?"/>
+                <ui:param name="texto" value="Adhiérete a la solicitud existente en lugar de crear otra: así la coordinación ve cuántos alumnos la necesitan de verdad."/>
+            </ui:include>
+
+            <h2 class="text-xl mt-5 mb-3">Solicitudes en las que participas</h2>
+            <div class="grid">
+                <ui:repeat value="#{gruposDemo.stream().filter(g -> g.adherido).toList()}" var="g">
+                    <div class="col-12 md:col-6 xl:col-4">
+                        <ui:include src="/plantillas/xhtml/comp-tarjeta-grupo.xhtml">
+                            <ui:param name="paraAlumno" value="true"/>
+                        </ui:include>
+                    </div>
+                </ui:repeat>
+            </div>
+
+            <h2 class="text-xl mt-4 mb-3">Otras solicitudes activas de tu carrera</h2>
+            <div class="grid">
+                <ui:repeat value="#{gruposDemo.stream().filter(g -> not g.adherido and g.claveCarrera eq 'ISC' and (g.codigoEstado eq 'received' or g.codigoEstado eq 'in-review')).toList()}" var="g">
+                    <div class="col-12 md:col-6 xl:col-4">
+                        <ui:include src="/plantillas/xhtml/comp-tarjeta-grupo.xhtml">
+                            <ui:param name="paraAlumno" value="true"/>
+                        </ui:include>
+                    </div>
+                </ui:repeat>
+            </div>
+        </ui:fragment>
+
+        <!-- ============ COORDINACIÓN Y JEFATURA ============ -->
+        <ui:fragment rendered="#{rol eq 'coordinator' or rol eq 'head'}">
+            <c:set var="lista" value="#{rol eq 'head' ? gruposDemo : gruposDemo.stream().filter(g -> g.claveCarrera eq 'ISC').toList()}"/>
+
+            <ui:include src="/plantillas/xhtml/comp-encabezado.xhtml">
+                <ui:param name="eyebrow" value="#{rol eq 'head' ? 'DEMANDA REAL POR MATERIA' : 'SOLO CONSULTA'}"/>
+                <ui:param name="tituloPagina" value="#{rol eq 'head' ? 'Demanda de grupos' : 'Apertura de grupos de tu carrera'}"/>
+                <ui:param name="descripcion" value="#{rol eq 'head' ? 'Todas las solicitudes de apertura con su número de adhesiones, de todas las carreras.' : 'Solicitudes de apertura de '.concat(usuariosDemo.coordinator.carrera).concat('.')}"/>
+            </ui:include>
+
+            <div class="grid mb-2">
+                <div class="col-12 md:col-4">
+                    <ui:include src="/plantillas/xhtml/comp-tarjeta-metrica.xhtml">
+                        <ui:param name="etiqueta" value="Solicitudes activas"/>
+                        <ui:param name="valor" value="#{lista.stream().filter(g -> g.codigoEstado eq 'received' or g.codigoEstado eq 'in-review').count()}"/>
+                        <ui:param name="nota" value="Recibidas o en revisión"/>
+                        <ui:param name="icono" value="users"/>
+                    </ui:include>
+                </div>
+                <div class="col-12 md:col-4">
+                    <ui:include src="/plantillas/xhtml/comp-tarjeta-metrica.xhtml">
+                        <ui:param name="etiqueta" value="Alumnos interesados"/>
+                        <ui:param name="valor" value="#{lista.stream().filter(g -> g.codigoEstado eq 'received' or g.codigoEstado eq 'in-review').map(g -> g.adhesiones).sum()}"/>
+                        <ui:param name="nota" value="Suma de adhesiones activas"/>
+                        <ui:param name="icono" value="user-plus"/>
+                        <ui:param name="tono" value="tono-naranja"/>
+                    </ui:include>
+                </div>
+                <div class="col-12 md:col-4">
+                    <ui:include src="/plantillas/xhtml/comp-tarjeta-metrica.xhtml">
+                        <ui:param name="etiqueta" value="Grupos abiertos"/>
+                        <ui:param name="valor" value="#{lista.stream().filter(g -> g.codigoEstado eq 'completed').count()}"/>
+                        <ui:param name="nota" value="Este semestre"/>
+                        <ui:param name="icono" value="check"/>
+                        <ui:param name="tono" value="tono-verde"/>
+                    </ui:include>
+                </div>
+            </div>
+
+            <h:form>
+                <p:dataTable value="#{facesContext.attributes.computeIfAbsent('tablaGrupos', k -> lista)}" var="g" rowKey="#{g.id}"
+                             reflow="true" widgetVar="tablaGrupos">
+                    <p:column headerText="Materia" sortBy="#{g.materia}">
+                        <h:link outcome="/vista/grupo-detalle" includeViewParams="true" styleClass="enlace-solicitud">
+                            <f:param name="id" value="#{g.id}"/>
+                            #{g.materia}
+                            <small>#{g.id} · #{g.clave} · #{g.semestre}.º semestre</small>
+                        </h:link>
+                    </p:column>
+                    <p:column headerText="Carrera" rendered="#{rol eq 'head'}" filterBy="#{g.claveCarrera}" filterMatchMode="exact"
+                              sortBy="#{g.claveCarrera}" style="width: 9rem;">
+                        <f:facet name="filter">
+                            <p:selectOneMenu onchange="PF('tablaGrupos').filter()" styleClass="w-full">
+                                <f:selectItem itemLabel="Todas" itemValue="#{null}" noSelectionOption="true"/>
+                                <f:selectItems value="#{carrerasDemo}" var="car" itemValue="#{car.clave}" itemLabel="#{car.clave}"/>
+                            </p:selectOneMenu>
+                        </f:facet>
+                        <p:chip label="#{g.claveCarrera}" styleClass="chip-chico"/>
+                    </p:column>
+                    <p:column headerText="Adhesiones" sortBy="#{g.adhesiones}" sortOrder="descending" style="width: 9rem;" styleClass="text-center">
+                        <span class="text-xl font-bold">#{g.adhesiones}</span>
+                    </p:column>
+                    <p:column headerText="Estado" filterBy="#{g.codigoEstado}" filterMatchMode="exact" style="width: 11rem;">
+                        <f:facet name="filter">
+                            <p:selectOneMenu onchange="PF('tablaGrupos').filter()" styleClass="w-full">
+                                <f:selectItem itemLabel="Todos" itemValue="#{null}" noSelectionOption="true"/>
+                                <f:selectItem itemLabel="Recibida" itemValue="received"/>
+                                <f:selectItem itemLabel="En revisión" itemValue="in-review"/>
+                                <f:selectItem itemLabel="Finalizada" itemValue="completed"/>
+                                <f:selectItem itemLabel="Rechazada" itemValue="rejected"/>
+                            </p:selectOneMenu>
+                        </f:facet>
+                        <ui:include src="/plantillas/xhtml/comp-insignia-estado.xhtml">
+                            <ui:param name="codigoEstado" value="#{g.codigoEstado}"/>
+                        </ui:include>
+                    </p:column>
+                    <p:column headerText="Actualización" sortBy="#{g.registroIso}" style="width: 10rem;">
+                        #{g.actualizacion}
+                    </p:column>
+                    <f:facet name="footer">
+                        Ordenada por número de adhesiones: la que más alumnos reúne aparece primero.
+                    </f:facet>
+                </p:dataTable>
+            </h:form>
+        </ui:fragment>
+    </ui:define>
+</ui:composition>

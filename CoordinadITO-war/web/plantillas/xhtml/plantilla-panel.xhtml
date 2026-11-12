@@ -7,250 +7,156 @@
   Es una plantilla que a su vez usa otra (plantilla-base): "plantillas anidadas".
 
   Huecos que rellena cada vista:
-      titulo    -> texto de <title>
-      contenido -> el contenido propio de la pantalla (dentro de <main>)
+      metadatos  -> <f:metadata> con los f:viewParam de la vista (al menos "rol", ver abajo)
+      titulo     -> texto de <title>
+      contenido  -> el contenido propio de la pantalla (dentro de <main>)
   Parámetros (ui:param) que envía cada vista:
-      seccion   -> inicio | perfil | tramites | solicitudes | bandeja | periodos
-                   (marca el enlace activo; vacío en pantallas de detalle)
+      seccion   -> inicio | perfil | tramites | solicitudes | bandeja | periodos | grupos |
+                   notificaciones | avisos | prioridades | roles | volumen
+                   (marca la opción activa del menú; vacío en pantallas de detalle)
       rotulo    -> texto final de las migas de pan (Mi espacio > rotulo)
 
-  ROL DE LA DEMOSTRACIÓN: aún no hay inicio de sesión real, así que el rol se
-  lee del parámetro de la URL (?rol=student | coordinator | administrator).
-  Si falta o es otro valor, se usa "student".
+  ROL DE LA DEMOSTRACIÓN: aún no hay inicio de sesión real, así que el rol llega en la URL
+  (?rol=student | coordinator | head | administrator). Cada vista lo declara así:
+      <ui:define name="metadatos">
+          <f:metadata>
+              <f:viewParam name="rol" value="#{viewScope.rol}"/>
+          </f:metadata>
+      </ui:define>
+  f:viewParam lo guarda en viewScope.rol: así sigue disponible en las peticiones AJAX de
+  PrimeFaces (filtros, pasos del formulario), que no repiten la URL. Si falta o es otro valor,
+  se usa "student". Los enlaces usan includeViewParams="true" para conservar el rol al navegar.
+  OJO: Mojarra solo lee f:metadata escrito en la VISTA, no en esta plantilla; por eso va en
+  cada vista y no aquí.
+
+  Componentes PrimeFaces usados: p:tieredMenu (comp-menu-lateral), p:sidebar (menú en móvil),
+  p:toolbar, p:breadCrumb, p:badge, p:avatar, p:chip, p:selectOneMenu.
 -->
 <ui:composition template="/plantillas/xhtml/plantilla-base.xhtml"
                 xmlns="http://www.w3.org/1999/xhtml"
                 xmlns:h="jakarta.faces.html"
                 xmlns:f="jakarta.faces.core"
                 xmlns:ui="jakarta.faces.facelets"
-                xmlns:pt="jakarta.faces.passthrough"
-                xmlns:c="jakarta.tags.core">
+                xmlns:c="jakarta.tags.core"
+                xmlns:p="primefaces">
 
     <ui:define name="titulo"><ui:insert name="titulo">Trámites ITO</ui:insert> · Trámites ITO</ui:define>
 
     <ui:define name="cuerpo">
+        <!-- Datos ficticios (usuarios, trámites, solicitudes, avisos) disponibles para todas las vistas. -->
+        <ui:include src="/plantillas/xhtml/datos-demo.xhtml"/>
+
         <!-- Variables de la demostración (se calculan a partir del rol). -->
-        <c:set var="rol" value="#{param.rol eq 'coordinator' or param.rol eq 'administrator' ? param.rol : 'student'}"/>
-        <c:set var="nombreCorto" value="#{rol eq 'coordinator' ? 'Elena' : (rol eq 'administrator' ? 'Administración' : 'Sofía')}"/>
-        <c:set var="iniciales" value="#{rol eq 'coordinator' ? 'ER' : (rol eq 'administrator' ? 'AD' : 'SH')}"/>
-        <c:set var="etiquetaRol" value="#{rol eq 'coordinator' ? 'Coordinación' : (rol eq 'administrator' ? 'Administración' : 'Estudiante')}"/>
+        <c:set var="rol" value="#{viewScope.rol eq 'coordinator' or viewScope.rol eq 'head' or viewScope.rol eq 'administrator' ? viewScope.rol : 'student'}"/>
+        <c:set var="usuario" value="#{usuariosDemo[rol]}"/>
         <c:set var="sinLeer" value="#{rol eq 'student' ? 2 : (rol eq 'coordinator' ? 3 : 0)}"/>
 
-        <div id="shell" class="dashboard-shell">
+        <div id="shell" class="app-shell">
             <a href="#main-content" class="skip-link">Saltar al contenido</a>
-            <button type="button" class="sidebar-backdrop" data-shell="cerrar"
-                    aria-label="Cerrar menú de navegación" tabindex="-1"></button>
 
-            <!-- ============ BARRA LATERAL ============ -->
-            <aside id="main-sidebar" class="sidebar" aria-label="Navegación principal">
-                <div class="sidebar-brand-row">
-                    <h:link outcome="/vista/inicio" styleClass="brand">
-                        <f:param name="rol" value="#{param.rol}" disable="#{empty param.rol}"/>
-                        <span class="brand-symbol">i<span>t</span>o</span>
-                        <span class="sidebar-label">Trámites ITO<small>Coordinación académica</small></span>
-                    </h:link>
-                    <button type="button" class="icon-button mobile-close" data-shell="cerrar" aria-label="Cerrar menú">
-                        <svg class="icono" width="20" height="20" aria-hidden="true"><use href="#i-close"/></svg>
-                    </button>
-                </div>
+            <!-- ============ BARRA LATERAL (escritorio) ============ -->
+            <aside id="main-sidebar" class="app-sidebar hidden lg:flex" aria-label="Navegación principal">
+                <ui:include src="/plantillas/xhtml/comp-marca.xhtml"/>
                 <div class="sidebar-workspace">
                     <span class="workspace-dot"></span>
-                    <span class="sidebar-label">Portal de #{rol eq 'student' ? 'estudiantes' : (rol eq 'coordinator' ? 'coordinación' : 'administración')}</span>
+                    Portal de #{rol eq 'student' ? 'estudiantes' : (rol eq 'coordinator' ? 'coordinación' : (rol eq 'head' ? 'jefatura' : 'administración'))}
                 </div>
-                <p class="nav-caption sidebar-label">MI ESPACIO</p>
+                <ui:include src="/plantillas/xhtml/comp-menu-lateral.xhtml"/>
 
-                <!-- Los enlaces cambian según el rol. -->
-                <nav>
-                    <ui:include src="/plantillas/xhtml/comp-enlace-nav.xhtml">
-                        <ui:param name="destino" value="/vista/inicio"/>
-                        <ui:param name="etiqueta" value="Inicio"/>
-                        <ui:param name="icono" value="home"/>
-                        <ui:param name="activo" value="#{seccion eq 'inicio'}"/>
-                        <ui:param name="contador" value="#{sinLeer}"/>
-                    </ui:include>
-
-                    <ui:fragment rendered="#{rol eq 'student'}">
-                        <ui:include src="/plantillas/xhtml/comp-enlace-nav.xhtml">
-                            <ui:param name="destino" value="/vista/perfil"/>
-                            <ui:param name="etiqueta" value="Mi perfil"/>
-                            <ui:param name="icono" value="user"/>
-                            <ui:param name="activo" value="#{seccion eq 'perfil'}"/>
-                        </ui:include>
-                        <ui:include src="/plantillas/xhtml/comp-enlace-nav.xhtml">
-                            <ui:param name="destino" value="/vista/tramites"/>
-                            <ui:param name="etiqueta" value="Trámites"/>
-                            <ui:param name="icono" value="folder"/>
-                            <ui:param name="activo" value="#{seccion eq 'tramites'}"/>
-                        </ui:include>
-                        <ui:include src="/plantillas/xhtml/comp-enlace-nav.xhtml">
-                            <ui:param name="destino" value="/vista/solicitudes"/>
-                            <ui:param name="etiqueta" value="Mis solicitudes"/>
-                            <ui:param name="icono" value="file"/>
-                            <ui:param name="activo" value="#{seccion eq 'solicitudes'}"/>
-                        </ui:include>
-                    </ui:fragment>
-
-                    <ui:fragment rendered="#{rol eq 'coordinator'}">
-                        <ui:include src="/plantillas/xhtml/comp-enlace-nav.xhtml">
-                            <ui:param name="destino" value="/vista/bandeja"/>
-                            <ui:param name="etiqueta" value="Bandeja de atención"/>
-                            <ui:param name="icono" value="inbox"/>
-                            <ui:param name="activo" value="#{seccion eq 'bandeja'}"/>
-                        </ui:include>
-                        <ui:include src="/plantillas/xhtml/comp-enlace-nav.xhtml">
-                            <ui:param name="destino" value="/vista/perfil"/>
-                            <ui:param name="etiqueta" value="Mi perfil"/>
-                            <ui:param name="icono" value="user"/>
-                            <ui:param name="activo" value="#{seccion eq 'perfil'}"/>
-                        </ui:include>
-                    </ui:fragment>
-
-                    <ui:fragment rendered="#{rol eq 'administrator'}">
-                        <ui:include src="/plantillas/xhtml/comp-enlace-nav.xhtml">
-                            <ui:param name="destino" value="/vista/periodos"/>
-                            <ui:param name="etiqueta" value="Periodos de atención"/>
-                            <ui:param name="icono" value="calendar"/>
-                            <ui:param name="activo" value="#{seccion eq 'periodos'}"/>
-                        </ui:include>
-                        <ui:include src="/plantillas/xhtml/comp-enlace-nav.xhtml">
-                            <ui:param name="destino" value="/vista/perfil"/>
-                            <ui:param name="etiqueta" value="Mi perfil"/>
-                            <ui:param name="icono" value="user"/>
-                            <ui:param name="activo" value="#{seccion eq 'perfil'}"/>
-                        </ui:include>
-                    </ui:fragment>
-                </nav>
-
-                <div class="sidebar-bottom">
-                    <div class="sidebar-help sidebar-label">
-                        <span class="help-mark">
-                            <svg class="icono" width="24" height="24" aria-hidden="true"><use href="#i-cap"/></svg>
-                        </span>
+                <div class="mt-auto">
+                    <div class="sidebar-help">
+                        <i class="pi pi-graduation-cap text-2xl" aria-hidden="true"></i>
                         <h3>Acompañamos tu camino.</h3>
                         <p>Consulta los requisitos antes de comenzar una solicitud.</p>
-                        <h:link outcome="#{rol eq 'student' ? '/vista/tramites' : (rol eq 'coordinator' ? '/vista/bandeja' : '/vista/periodos')}">
-                            <f:param name="rol" value="#{param.rol}" disable="#{empty param.rol}"/>
-                            Ir a #{rol eq 'student' ? 'trámites' : (rol eq 'coordinator' ? 'la bandeja' : 'periodos')}
-                            <svg class="icono" width="15" height="15" aria-hidden="true"><use href="#i-arrow"/></svg>
+                        <h:link outcome="#{rol eq 'student' ? '/vista/tramites' : (rol eq 'coordinator' ? '/vista/bandeja' : (rol eq 'head' ? '/vista/seguimiento-volumen' : '/vista/periodos'))}"
+                                includeViewParams="true">
+                            Ir a #{rol eq 'student' ? 'trámites' : (rol eq 'coordinator' ? 'la bandeja' : (rol eq 'head' ? 'seguimiento' : 'periodos'))}
+                            <i class="pi pi-arrow-right ml-1 text-sm" aria-hidden="true"></i>
                         </h:link>
                     </div>
                     <!-- "Salir" regresa al login (todavía no hay sesión que cerrar). -->
-                    <h:link outcome="/vista/login" styleClass="nav-link sign-out">
-                        <svg class="icono" width="20" height="20" aria-hidden="true"><use href="#i-logout"/></svg>
-                        <span class="sidebar-label">Salir de mi espacio</span>
+                    <h:link outcome="/vista/login" styleClass="sidebar-salir">
+                        <i class="pi pi-sign-out" aria-hidden="true"></i> Salir de mi espacio
                     </h:link>
-                    <p class="sidebar-footer sidebar-label">
-                        Instituto Tecnológico de Oaxaca
-                        <br/>
+                    <p class="sidebar-footer">
+                        Instituto Tecnológico de Oaxaca<br/>
                         <span>Tecnológico Nacional de México</span>
                     </p>
                 </div>
             </aside>
 
-            <!-- ============ CUERPO ============ -->
-            <div class="dashboard-body">
-                <header class="topbar">
-                    <div class="topbar-start">
-                        <button type="button" class="icon-button mobile-menu" data-shell="abrir"
-                                aria-label="Abrir menú" aria-expanded="false" aria-controls="main-sidebar">
-                            <svg class="icono" width="20" height="20" aria-hidden="true"><use href="#i-menu"/></svg>
-                        </button>
-                        <button type="button" class="icon-button desktop-toggle" data-shell="colapsar"
-                                aria-label="Contraer o expandir la barra lateral" aria-expanded="true" aria-controls="main-sidebar">
-                            <svg class="icono" width="20" height="20" aria-hidden="true"><use href="#i-panel"/></svg>
-                        </button>
-                        <div class="breadcrumbs">
-                            <span>Mi espacio</span>
-                            <svg class="icono" width="12" height="12" aria-hidden="true"><use href="#i-chevron"/></svg>
-                            <strong>#{empty rotulo ? 'Detalle de solicitud' : rotulo}</strong>
-                        </div>
-                    </div>
-                    <div class="topbar-end">
-                        <span class="academic-term">
-                            <svg class="icono" width="15" height="15" aria-hidden="true"><use href="#i-calendar"/></svg>
-                            Ago – Dic 2026
-                        </span>
-                        <h:link outcome="/vista/inicio" styleClass="icon-button notification-button"
-                                pt:aria-label="Bandeja de entrada, #{sinLeer} actualizaciones sin leer">
-                            <f:param name="rol" value="#{param.rol}" disable="#{empty param.rol}"/>
-                            <svg class="icono" width="20" height="20" aria-hidden="true"><use href="#i-bell"/></svg>
-                            <ui:fragment rendered="#{sinLeer gt 0}"><span></span></ui:fragment>
-                        </h:link>
-                        <h:link outcome="/vista/perfil" styleClass="topbar-user">
-                            <f:param name="rol" value="#{param.rol}" disable="#{empty param.rol}"/>
-                            <span class="avatar">#{iniciales}</span>
-                            <span class="topbar-user-name">#{nombreCorto}<small>#{etiquetaRol}</small></span>
-                        </h:link>
-                    </div>
-                </header>
+            <!-- ============ MENÚ EN MÓVIL (p:sidebar se abre con el botón de la barra superior) ============ -->
+            <p:sidebar widgetVar="menuMovil" styleClass="app-sidebar-movil" ariaLabel="Navegación principal">
+                <ui:include src="/plantillas/xhtml/comp-marca.xhtml"/>
+                <ui:include src="/plantillas/xhtml/comp-menu-lateral.xhtml"/>
+                <h:link outcome="/vista/login" styleClass="sidebar-salir mt-3">
+                    <i class="pi pi-sign-out" aria-hidden="true"></i> Salir de mi espacio
+                </h:link>
+            </p:sidebar>
 
-                <!-- Franja de la demostración + selector "Ver como" (envía ?rol=... por GET). -->
-                <div class="preview-bar">
-                    <div>
-                        <span class="preview-dot"></span>
+            <!-- ============ CUERPO ============ -->
+            <div class="app-body">
+                <p:toolbar styleClass="app-topbar">
+                    <p:toolbarGroup>
+                        <p:commandButton type="button" icon="pi pi-bars" styleClass="ui-button-flat ui-button-secondary rounded-button lg:hidden"
+                                         onclick="PF('menuMovil').show()" ariaLabel="Abrir menú"/>
+                        <p:commandButton type="button" icon="pi pi-th-large" styleClass="ui-button-flat ui-button-secondary rounded-button hidden lg:inline-flex"
+                                         onclick="CoordinadITO.alternarBarraLateral(this)" ariaLabel="Contraer o expandir la barra lateral"/>
+                        <p:breadCrumb homeDisplay="text" styleClass="app-migas">
+                            <p:menuitem value="Mi espacio" outcome="/vista/inicio" includeViewParams="true"/>
+                            <p:menuitem value="#{empty rotulo ? 'Detalle de solicitud' : rotulo}"/>
+                        </p:breadCrumb>
+                    </p:toolbarGroup>
+                    <p:toolbarGroup align="right" styleClass="gap-2">
+                        <p:chip label="Ago – Dic 2026" icon="pi pi-calendar" styleClass="hidden md:inline-flex"/>
+                        <h:link outcome="#{rol eq 'student' ? '/vista/notificaciones' : '/vista/inicio'}" includeViewParams="true" styleClass="app-campana"
+                                title="Notificaciones, #{sinLeer} sin leer">
+                            <i class="pi pi-bell text-xl" aria-hidden="true"></i>
+                            <ui:fragment rendered="#{sinLeer gt 0}">
+                                <p:badge value="#{sinLeer}" severity="warning" size="small" styleClass="app-campana-globo"/>
+                            </ui:fragment>
+                        </h:link>
+                        <h:link outcome="/vista/perfil" includeViewParams="true" styleClass="app-usuario">
+                            <p:avatar label="#{usuario.iniciales}" shape="circle" styleClass="app-avatar"/>
+                            <span class="hidden sm:flex flex-column line-height-2">
+                                <strong>#{usuario.nombres}</strong>
+                                <small class="text-color-secondary">#{usuario.etiquetaRol}</small>
+                            </span>
+                        </h:link>
+                    </p:toolbarGroup>
+                </p:toolbar>
+
+                <!-- Franja de la demostración + selector "Ver como" (navega con ?rol=... a la pantalla de inicio). -->
+                <div class="app-franja-prueba">
+                    <div class="flex align-items-center gap-2 flex-wrap">
+                        <span class="workspace-dot"></span>
                         <strong>Vista de prueba</strong>
-                        <span class="preview-description">Datos ficticios. Esta versión solo muestra el diseño: todavía no guarda cambios.</span>
+                        <span class="hidden md:inline">Datos ficticios. Esta versión solo muestra el diseño: todavía no guarda cambios.</span>
                     </div>
-                    <form class="demo-role-form" method="get" action="#{request.contextPath}/vista/inicio.xhtml">
-                        <label class="demo-role-label">
-                            <span>Ver como</span>
-                            <!-- Un atributo "selected" con valor vacío igual selecciona la opción, por eso
-                                 cada opción marcada se dibuja solo cuando le toca (ui:fragment rendered). -->
-                            <select name="rol" aria-label="Cambiar rol de prueba" onchange="this.form.submit()">
-                                <ui:fragment rendered="#{rol eq 'student'}"><option value="student" selected="selected">Estudiante</option></ui:fragment>
-                                <ui:fragment rendered="#{rol ne 'student'}"><option value="student">Estudiante</option></ui:fragment>
-                                <ui:fragment rendered="#{rol eq 'coordinator'}"><option value="coordinator" selected="selected">Coordinación</option></ui:fragment>
-                                <ui:fragment rendered="#{rol ne 'coordinator'}"><option value="coordinator">Coordinación</option></ui:fragment>
-                                <ui:fragment rendered="#{rol eq 'administrator'}"><option value="administrator" selected="selected">Administración</option></ui:fragment>
-                                <ui:fragment rendered="#{rol ne 'administrator'}"><option value="administrator">Administración</option></ui:fragment>
-                            </select>
-                        </label>
-                    </form>
+                    <h:form id="formRol" styleClass="flex align-items-center gap-2" prependId="false">
+                        <p:outputLabel for="verComo" value="Ver como"/>
+                        <p:selectOneMenu id="verComo" value="#{rol}" widgetVar="verComo"
+                                         onchange="CoordinadITO.verComo('#{request.contextPath}', PF('verComo').getSelectedValue())">
+                            <f:selectItem itemValue="student" itemLabel="Estudiante"/>
+                            <f:selectItem itemValue="coordinator" itemLabel="Coordinación"/>
+                            <f:selectItem itemValue="head" itemLabel="Jefatura"/>
+                            <f:selectItem itemValue="administrator" itemLabel="Administración"/>
+                        </p:selectOneMenu>
+                    </h:form>
                 </div>
 
-                <main id="main-content" class="dashboard-content" tabindex="-1">
+                <main id="main-content" class="app-contenido" tabindex="-1">
                     <ui:insert name="contenido">Contenido de la pantalla</ui:insert>
                 </main>
 
-                <footer class="content-footer">
+                <footer class="app-pie">
                     <span>Trámites ITO · Coordinación académica</span>
                     <span>Tu proceso, con claridad.</span>
                 </footer>
             </div>
         </div>
 
-        <!--
-          Comportamiento del menú (en React lo hacían useState/useEffect).
-          Botones con data-shell: "abrir"/"cerrar" (menú móvil) y "colapsar" (barra de escritorio).
-          Escape cierra el menú móvil.
-        -->
-        <script type="text/javascript">
-            //<![CDATA[
-            (function () {
-                var shell = document.getElementById('shell');
-                if (!shell) { return; }
-                function menuMovil(abierto) {
-                    shell.classList.toggle('mobile-sidebar-open', abierto);
-                    document.body.style.overflow = abierto ? 'hidden' : '';
-                    var boton = shell.querySelector('.mobile-menu');
-                    if (boton) { boton.setAttribute('aria-expanded', abierto ? 'true' : 'false'); }
-                }
-                shell.addEventListener('click', function (evento) {
-                    var origen = evento.target.closest('[data-shell]');
-                    if (!origen) { return; }
-                    var accion = origen.getAttribute('data-shell');
-                    if (accion === 'abrir') { menuMovil(true); }
-                    if (accion === 'cerrar') { menuMovil(false); }
-                    if (accion === 'colapsar') {
-                        var colapsada = shell.classList.toggle('sidebar-collapsed');
-                        origen.setAttribute('aria-expanded', colapsada ? 'false' : 'true');
-                    }
-                });
-                document.addEventListener('keydown', function (evento) {
-                    if (evento.key === 'Escape') { menuMovil(false); }
-                });
-            })();
-            //]]>
-        </script>
+        <!-- Comportamiento del marco: contraer la barra lateral y el selector "Ver como". -->
+        <h:outputScript library="js" name="panel.js" target="body"/>
     </ui:define>
 </ui:composition>

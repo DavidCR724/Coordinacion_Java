@@ -1,19 +1,26 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
   VISTA: perfil. Equivale a app/dashboard/profile/page.tsx.
-  Los tres usuarios de la demostración (de lib/demo-data.ts):
+  Los tres usuarios de la demostración están en datos-demo.xhtml (#{usuariosDemo[rol]}):
       student       Sofía Hernández López    00000001@itoaxaca.edu.mx   ISC, 7.º semestre, control 00000001
       coordinator   Elena Ramírez Ruiz       coordinacion.demo@itoaxaca.edu.mx   ISC
       administrator Administración de prueba administracion.demo@itoaxaca.edu.mx
-  Los datos de cada rol se eligen con c:set + operador ?: de EL. Guardar está deshabilitado
-  hasta que exista un bean que reciba el formulario.
+  Formulario con p:inputText / p:selectOneMenu. Guardar está deshabilitado hasta que exista un
+  bean que reciba el formulario.
 -->
 <ui:composition template="/plantillas/xhtml/plantilla-panel.xhtml"
                 xmlns="http://www.w3.org/1999/xhtml"
                 xmlns:h="jakarta.faces.html"
                 xmlns:f="jakarta.faces.core"
                 xmlns:ui="jakarta.faces.facelets"
-                xmlns:c="jakarta.tags.core">
+                xmlns:c="jakarta.tags.core"
+                xmlns:p="primefaces">
+
+    <ui:define name="metadatos">
+        <f:metadata>
+            <f:viewParam name="rol" value="#{viewScope.rol}"/>
+        </f:metadata>
+    </ui:define>
 
     <ui:param name="seccion" value="perfil"/>
     <ui:param name="rotulo" value="Mi perfil"/>
@@ -21,14 +28,8 @@
     <ui:define name="titulo">Mi perfil</ui:define>
 
     <ui:define name="contenido">
-        <c:set var="rol" value="#{param.rol eq 'coordinator' or param.rol eq 'administrator' ? param.rol : 'student'}"/>
-        <c:set var="nombres" value="#{rol eq 'coordinator' ? 'Elena' : (rol eq 'administrator' ? 'Administración' : 'Sofía')}"/>
-        <c:set var="paterno" value="#{rol eq 'coordinator' ? 'Ramírez' : (rol eq 'administrator' ? 'de prueba' : 'Hernández')}"/>
-        <c:set var="materno" value="#{rol eq 'coordinator' ? 'Ruiz' : (rol eq 'administrator' ? '' : 'López')}"/>
-        <c:set var="nombreCompleto" value="#{rol eq 'coordinator' ? 'Elena Ramírez Ruiz' : (rol eq 'administrator' ? 'Administración de prueba' : 'Sofía Hernández López')}"/>
-        <c:set var="correo" value="#{rol eq 'coordinator' ? 'coordinacion.demo@itoaxaca.edu.mx' : (rol eq 'administrator' ? 'administracion.demo@itoaxaca.edu.mx' : '00000001@itoaxaca.edu.mx')}"/>
-        <c:set var="siglas" value="#{rol eq 'coordinator' ? 'ER' : (rol eq 'administrator' ? 'AD' : 'SH')}"/>
-        <c:set var="etiquetaRol" value="#{rol eq 'coordinator' ? 'Coordinación' : (rol eq 'administrator' ? 'Administración' : 'Estudiante')}"/>
+        <c:set var="rol" value="#{viewScope.rol eq 'coordinator' or viewScope.rol eq 'head' or viewScope.rol eq 'administrator' ? viewScope.rol : 'student'}"/>
+        <c:set var="u" value="#{usuariosDemo[rol]}"/>
 
         <ui:include src="/plantillas/xhtml/comp-encabezado.xhtml">
             <ui:param name="eyebrow" value="MI EXPEDIENTE"/>
@@ -36,116 +37,103 @@
             <ui:param name="descripcion" value="Tu información personal y académica, en un solo lugar."/>
         </ui:include>
 
-        <div class="profile-page-grid">
+        <div class="grid">
             <!-- Tarjeta de identidad -->
-            <aside class="panel identity-card">
-                <span class="avatar avatar-xl">#{siglas}</span>
-                <span class="outlined-label">#{etiquetaRol}</span>
-                <h2>#{nombreCompleto}</h2>
-                <p>#{correo}</p>
-                <div class="identity-divider"></div>
-                <svg class="icono" width="26" height="26" aria-hidden="true"><use href="#i-cap"/></svg>
-                <p>#{rol eq 'administrator' ? 'Coordinación académica' : 'Ingeniería en Sistemas Computacionales'}</p>
-                <ui:fragment rendered="#{rol eq 'student'}"><strong>00000001</strong></ui:fragment>
-                <div class="identity-note">
-                    <svg class="icono" width="18" height="18" aria-hidden="true"><use href="#i-shield"/></svg>
-                    <span>El correo, el número de control y el rol no se cambian desde el perfil.</span>
-                </div>
-            </aside>
+            <div class="col-12 lg:col-4">
+                <p:card styleClass="text-center">
+                    <p:avatar label="#{u.iniciales}" size="xlarge" shape="circle" styleClass="app-avatar mb-3"/>
+                    <div><p:tag value="#{u.etiquetaRol}" rounded="true"/></div>
+                    <h2 class="text-xl mb-1">#{u.nombreCompleto}</h2>
+                    <p class="text-color-secondary mt-0">#{u.correo}</p>
+                    <p:divider/>
+                    <i class="pi pi-graduation-cap text-2xl text-color-secondary" aria-hidden="true"></i>
+                    <p class="mb-1">#{rol eq 'administrator' ? 'Coordinación académica' : u.carrera}</p>
+                    <ui:fragment rendered="#{rol eq 'student'}"><strong>#{u.control}</strong></ui:fragment>
+                    <p:staticMessage severity="info" icon="pi pi-shield" styleClass="mt-4 text-left w-full"
+                                     detail="El correo, el número de control y el rol no se cambian desde el perfil."/>
+                </p:card>
+            </div>
 
             <!-- Formulario -->
-            <form class="panel profile-form" action="#" onsubmit="return false;">
-                <div class="section-heading">
-                    <div>
-                        <h2>Información personal</h2>
-                        <p>Revisa tus datos antes de registrar una solicitud.</p>
-                    </div>
-                    <span class="outlined-label">
-                        <svg class="icono" width="14" height="14" aria-hidden="true"><use href="#i-user"/></svg> Mi expediente
-                    </span>
-                </div>
-                <div class="form-section">
-                    <div class="form-grid">
-                        <label class="field">
-                            Nombre(s)
-                            <input required="required" name="firstName" autocomplete="given-name" maxlength="100" value="#{nombres}"/>
-                        </label>
-                        <label class="field">
-                            Apellido paterno
-                            <input required="required" name="paternalLastName" autocomplete="family-name" maxlength="100" value="#{paterno}"/>
-                        </label>
-                        <label class="field">
-                            Apellido materno <span class="optional-label">Opcional</span>
-                            <input name="maternalLastName" maxlength="100" value="#{materno}"/>
-                        </label>
-                        <label class="field">
-                            Correo institucional
-                            <input type="email" readonly="readonly" value="#{correo}"/>
-                            <small>Vinculado a tu cuenta institucional.</small>
-                        </label>
-                    </div>
-                </div>
-                <div class="form-section">
-                    <h3>Información académica</h3>
-                    <div class="form-grid">
-                        <label class="field">
-                            Carrera
-                            <!-- El estudiante de la demostración puede elegir carrera; los demás la ven solo de lectura. -->
+            <div class="col-12 lg:col-8">
+                <p:card>
+                    <f:facet name="title">
+                        <div class="flex justify-content-between align-items-center flex-wrap gap-2">
+                            Información personal
+                            <p:chip label="Mi expediente" icon="pi pi-user"/>
+                        </div>
+                    </f:facet>
+                    <f:facet name="subtitle">Revisa tus datos antes de registrar una solicitud.</f:facet>
+
+                    <h:form id="formPerfil">
+                        <div class="formgrid grid">
+                            <div class="field col-12 md:col-6">
+                                <p:outputLabel for="nombres" value="Nombre(s)" styleClass="block font-medium mb-2"/>
+                                <p:inputText id="nombres" value="#{u.nombres}" required="true" maxlength="100"
+                                             autocomplete="given-name" styleClass="w-full"/>
+                            </div>
+                            <div class="field col-12 md:col-6">
+                                <p:outputLabel for="paterno" value="Apellido paterno" styleClass="block font-medium mb-2"/>
+                                <p:inputText id="paterno" value="#{u.paterno}" required="true" maxlength="100"
+                                             autocomplete="family-name" styleClass="w-full"/>
+                            </div>
+                            <div class="field col-12 md:col-6">
+                                <p:outputLabel for="materno" styleClass="block font-medium mb-2">
+                                    Apellido materno <small class="text-color-secondary">(opcional)</small>
+                                </p:outputLabel>
+                                <p:inputText id="materno" value="#{u.materno}" maxlength="100" styleClass="w-full"/>
+                            </div>
+                            <div class="field col-12 md:col-6">
+                                <p:outputLabel for="correo" value="Correo institucional" styleClass="block font-medium mb-2"/>
+                                <p:inputText id="correo" type="email" value="#{u.correo}" readonly="true" styleClass="w-full"/>
+                                <small class="block mt-1 text-color-secondary">Vinculado a tu cuenta institucional.</small>
+                            </div>
+                        </div>
+
+                        <p:divider align="left"><b>Información académica</b></p:divider>
+
+                        <div class="formgrid grid">
+                            <div class="field col-12 md:col-6">
+                                <p:outputLabel for="#{rol eq 'student' ? 'carrera' : 'carreraLectura'}" value="Carrera" styleClass="block font-medium mb-2"/>
+                                <!-- El estudiante de la demostración puede elegir carrera; los demás la ven solo de lectura. -->
+                                <p:selectOneMenu id="carrera" value="systems" rendered="#{rol eq 'student'}" styleClass="w-full">
+                                    <f:selectItem itemValue="" itemLabel="Selecciona tu carrera" noSelectionOption="true"/>
+                                    <f:selectItem itemValue="systems" itemLabel="Ingeniería en Sistemas Computacionales"/>
+                                    <f:selectItem itemValue="industrial" itemLabel="Ingeniería Industrial"/>
+                                    <f:selectItem itemValue="civil" itemLabel="Ingeniería Civil"/>
+                                </p:selectOneMenu>
+                                <p:inputText id="carreraLectura" value="#{u.carrera}" readonly="true"
+                                             rendered="#{rol ne 'student'}" styleClass="w-full"/>
+                            </div>
                             <ui:fragment rendered="#{rol eq 'student'}">
-                                <select required="required">
-                                    <option value="">Selecciona tu carrera</option>
-                                    <option value="systems" selected="selected">Ingeniería en Sistemas Computacionales</option>
-                                    <option value="industrial">Ingeniería Industrial</option>
-                                    <option value="civil">Ingeniería Civil</option>
-                                </select>
+                                <div class="field col-12 md:col-6">
+                                    <p:outputLabel for="semestre" value="Semestre" styleClass="block font-medium mb-2"/>
+                                    <p:selectOneMenu id="semestre" value="#{u.semestre}" styleClass="w-full">
+                                        <f:selectItem itemValue="" itemLabel="Selecciona tu semestre" noSelectionOption="true"/>
+                                        <f:selectItems value="#{[1,2,3,4,5,6,7,8,9,10,11,12,13,14]}" var="n"
+                                                       itemValue="#{n}" itemLabel="#{n}.º semestre"/>
+                                    </p:selectOneMenu>
+                                </div>
+                                <div class="field col-12 md:col-6">
+                                    <p:outputLabel for="control" value="Número de control" styleClass="block font-medium mb-2"/>
+                                    <p:inputText id="control" value="#{u.control}" readonly="true" styleClass="w-full"/>
+                                    <small class="block mt-1 text-color-secondary">Se obtiene del registro institucional.</small>
+                                </div>
                             </ui:fragment>
-                            <ui:fragment rendered="#{rol ne 'student'}">
-                                <input readonly="readonly" value="#{rol eq 'coordinator' ? 'Ingeniería en Sistemas Computacionales' : 'Carrera pendiente de confirmar'}"/>
-                            </ui:fragment>
-                        </label>
-                        <ui:fragment rendered="#{rol eq 'student'}">
-                            <label class="field">
-                                Semestre
-                                <select required="required">
-                                    <option value="">Selecciona tu semestre</option>
-                                    <option value="1">1.º semestre</option>
-                                    <option value="2">2.º semestre</option>
-                                    <option value="3">3.º semestre</option>
-                                    <option value="4">4.º semestre</option>
-                                    <option value="5">5.º semestre</option>
-                                    <option value="6">6.º semestre</option>
-                                    <option value="7" selected="selected">7.º semestre</option>
-                                    <option value="8">8.º semestre</option>
-                                    <option value="9">9.º semestre</option>
-                                    <option value="10">10.º semestre</option>
-                                    <option value="11">11.º semestre</option>
-                                    <option value="12">12.º semestre</option>
-                                    <option value="13">13.º semestre</option>
-                                    <option value="14">14.º semestre</option>
-                                </select>
-                            </label>
-                            <label class="field">
-                                Número de control
-                                <input readonly="readonly" value="00000001"/>
-                                <small>Se obtiene del registro institucional.</small>
-                            </label>
-                        </ui:fragment>
-                        <label class="field">
-                            Tipo de cuenta
-                            <input readonly="readonly" value="#{etiquetaRol}"/>
-                        </label>
-                    </div>
-                </div>
-                <div class="form-footer">
-                    <div aria-live="polite">
-                        <p class="helper-text">Vista de diseño: guardar los cambios se conectará al servicio en un sprint posterior.</p>
-                    </div>
-                    <button class="button button-primary" type="submit" disabled="disabled">
-                        <svg class="icono" width="17" height="17" aria-hidden="true"><use href="#i-save"/></svg>
-                        Guardar cambios
-                    </button>
-                </div>
-            </form>
+                            <div class="field col-12 md:col-6">
+                                <p:outputLabel for="tipoCuenta" value="Tipo de cuenta" styleClass="block font-medium mb-2"/>
+                                <p:inputText id="tipoCuenta" value="#{u.etiquetaRol}" readonly="true" styleClass="w-full"/>
+                            </div>
+                        </div>
+
+                        <p:divider/>
+                        <div class="flex justify-content-between align-items-center flex-wrap gap-3">
+                            <small class="text-color-secondary">Vista de diseño: guardar los cambios se conectará al servicio en un sprint posterior.</small>
+                            <p:commandButton value="Guardar cambios" icon="pi pi-save" disabled="true"/>
+                        </div>
+                    </h:form>
+                </p:card>
+            </div>
         </div>
     </ui:define>
 </ui:composition>

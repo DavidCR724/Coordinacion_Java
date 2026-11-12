@@ -1,52 +1,51 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
   COMPONENTE: formulario del periodo de atención de un trámite (PeriodForm en periods/page.tsx).
-  Parámetros (ui:param):
-      codigo      -> siglas (BM, CH...)
-      nombre      -> nombre del trámite
-      disponible  -> true | false (color de la insignia)
-      etiqueta    -> Disponible | Próximamente | Periodo cerrado
-      apertura    -> fecha ISO (2026-08-17), para <input type="date">
-      cierre      -> fecha ISO
+  Es un p:card con su propio h:form. Se usa dentro de <ui:repeat var="t"> sobre #{tramitesDemo}.
+  Campos de "t": codigo, nombre, disponible, etiqueta, aperturaIso, cierreIso.
+  Fechas con p:inputText type="date" (el selector nativo, con el estilo del tema): los datos de
+  ejemplo son texto ISO (2026-08-17); con el bean se puede cambiar a p:datePicker y LocalDate.
   Aún no guarda nada: el botón está deshabilitado hasta que exista el servicio.
 -->
 <ui:composition xmlns="http://www.w3.org/1999/xhtml"
-                xmlns:ui="jakarta.faces.facelets">
-    <form class="panel period-form" action="#" onsubmit="return false;">
-        <div class="section-heading">
-            <div class="period-title">
-                <span class="procedure-symbol">#{codigo}</span>
-                <div>
-                    <h2>#{nombre}</h2>
-                    <span class="availability-badge #{disponible ? 'available' : ''}">#{etiqueta}</span>
+                xmlns:h="jakarta.faces.html"
+                xmlns:f="jakarta.faces.core"
+                xmlns:ui="jakarta.faces.facelets"
+                xmlns:pt="jakarta.faces.passthrough"
+                xmlns:p="primefaces">
+    <p:card styleClass="mb-4">
+        <h:form>
+            <div class="flex justify-content-between align-items-center flex-wrap gap-3 mb-3">
+                <div class="flex align-items-center gap-3">
+                    <p:avatar label="#{t.codigo}" size="large" styleClass="app-avatar"/>
+                    <div>
+                        <h2 class="text-xl m-0 mb-1">#{t.nombre}</h2>
+                        <p:tag value="#{t.etiqueta}" rounded="true"
+                               severity="#{t.disponible ? 'success' : (t.id eq 'course-enrollment' ? 'warning' : 'danger')}"/>
+                    </div>
+                </div>
+                <div class="flex align-items-center gap-2">
+                    <p:toggleSwitch id="habilitado" value="#{true}"/>
+                    <p:outputLabel for="habilitado" value="Habilitado"/>
                 </div>
             </div>
-            <label class="checkbox-label">
-                <input type="checkbox" checked="checked"/>
-                Habilitado
-            </label>
-        </div>
-        <div class="form-section">
-            <div class="form-grid">
-                <label class="field">
-                    Fecha de apertura
-                    <input type="date" required="required" value="#{apertura}"/>
-                </label>
-                <label class="field">
-                    Fecha de cierre
-                    <input type="date" required="required" min="#{apertura}" value="#{cierre}"/>
-                </label>
+            <div class="formgrid grid">
+                <div class="field col-12 md:col-6">
+                    <p:outputLabel for="apertura" value="Fecha de apertura" styleClass="block font-medium mb-2"/>
+                    <p:inputText id="apertura" type="date" value="#{t.aperturaIso}" required="true" styleClass="w-full"/>
+                </div>
+                <div class="field col-12 md:col-6">
+                    <p:outputLabel for="cierre" value="Fecha de cierre" styleClass="block font-medium mb-2"/>
+                    <p:inputText id="cierre" type="date" value="#{t.cierreIso}" required="true" styleClass="w-full"
+                                 pt:min="#{t.aperturaIso}"/>
+                </div>
             </div>
-            <p class="helper-text">El periodo incluye los días de apertura y cierre.</p>
-        </div>
-        <div class="form-footer">
-            <div aria-live="polite">
-                <p class="helper-text">Vista de diseño: guardar el periodo se conectará al servicio en un sprint posterior.</p>
+            <small class="text-color-secondary">El periodo incluye los días de apertura y cierre.</small>
+            <p:divider/>
+            <div class="flex justify-content-between align-items-center flex-wrap gap-3">
+                <small class="text-color-secondary">Vista de diseño: guardar el periodo se conectará al servicio en un sprint posterior.</small>
+                <p:commandButton value="Guardar periodo" icon="pi pi-save" disabled="true"/>
             </div>
-            <button class="button button-primary" type="submit" disabled="disabled">
-                <svg class="icono" width="16" height="16" aria-hidden="true"><use href="#i-save"/></svg>
-                Guardar periodo
-            </button>
-        </div>
-    </form>
+        </h:form>
+    </p:card>
 </ui:composition>

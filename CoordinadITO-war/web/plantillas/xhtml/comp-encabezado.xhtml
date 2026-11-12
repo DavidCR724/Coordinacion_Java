@@ -6,19 +6,20 @@
       tituloPagina  -> el <h1>
       descripcion   -> texto bajo el título
       conAccion     -> true si la vista define un botón en el hueco "accion"
-  Hueco (ui:define) opcional: accion -> botón o enlace a la derecha del título.
-  Se usa con <ui:decorate> cuando hay botón y con <ui:include> cuando no.
+  Hueco (ui:define) opcional: accion -> botón o enlace a la derecha del título
+  (normalmente un p:linkButton). Se usa con <ui:decorate> cuando hay botón y con
+  <ui:include> cuando no. La maquetación es de PrimeFlex.
 -->
 <ui:composition xmlns="http://www.w3.org/1999/xhtml"
                 xmlns:ui="jakarta.faces.facelets">
-    <header class="page-heading">
+    <header class="flex flex-column md:flex-row md:align-items-end justify-content-between gap-3 mb-5">
         <div>
             <p class="eyebrow">#{eyebrow}</p>
-            <h1>#{tituloPagina}</h1>
-            <p class="page-description">#{descripcion}</p>
+            <h1 class="text-4xl font-bold mt-2 mb-2">#{tituloPagina}</h1>
+            <p class="m-0 text-color-secondary text-lg">#{descripcion}</p>
         </div>
         <ui:fragment rendered="#{conAccion}">
-            <div class="page-heading-action">
+            <div class="flex align-items-center gap-2 flex-wrap">
                 <ui:insert name="accion"/>
             </div>
         </ui:fragment>

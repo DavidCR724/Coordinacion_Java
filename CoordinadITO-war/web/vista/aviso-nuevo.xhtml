@@ -1,0 +1,170 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  VISTA: publicar un aviso oficial (solo coordinación). HU 5.3.
+  Campos (tabla AVISO): título (150), contenido, inicio y fin de vigencia; y las carreras a las
+  que va dirigido (AVISO_CARRERA). Solo se pueden elegir las carreras asignadas a la
+  coordinadora (COORDINACION_CARRERA): las demás aparecen deshabilitadas.
+  - La vista previa (comp-tarjeta-aviso) se actualiza por AJAX mientras se escribe.
+  - "Publicar aviso" valida en el servidor (obligatorios, longitud, fechas) y, sin bean todavía,
+    solo cambia a la pantalla de confirmación (viewScope.avisoPublicado).
+-->
+<ui:composition template="/plantillas/xhtml/plantilla-panel.xhtml"
+                xmlns="http://www.w3.org/1999/xhtml"
+                xmlns:h="jakarta.faces.html"
+                xmlns:f="jakarta.faces.core"
+                xmlns:ui="jakarta.faces.facelets"
+                xmlns:c="jakarta.tags.core"
+                xmlns:p="primefaces">
+
+    <ui:define name="metadatos">
+        <f:metadata>
+            <f:viewParam name="rol" value="#{viewScope.rol}"/>
+        </f:metadata>
+    </ui:define>
+
+    <ui:param name="seccion" value="avisos"/>
+    <ui:param name="rotulo" value="Publicar aviso"/>
+
+    <ui:define name="titulo">Publicar aviso</ui:define>
+
+    <ui:define name="contenido">
+        <c:set var="rol" value="#{viewScope.rol eq 'coordinator' or viewScope.rol eq 'head' or viewScope.rol eq 'administrator' ? viewScope.rol : 'student'}"/>
+
+        <ui:fragment rendered="#{rol ne 'coordinator'}">
+            <ui:include src="/plantillas/xhtml/comp-estado-vacio.xhtml">
+                <ui:param name="icono" value="megaphone"/>
+                <ui:param name="tituloVacio" value="Espacio de coordinación"/>
+                <ui:param name="descripcion" value="Solo la coordinación de cada carrera publica avisos oficiales."/>
+                <ui:param name="destino" value="/vista/inicio"/>
+                <ui:param name="accion" value="Volver al inicio"/>
+            </ui:include>
+        </ui:fragment>
+
+        <ui:fragment rendered="#{rol eq 'coordinator'}">
+            <p:linkButton outcome="/vista/avisos" includeViewParams="true" value="Volver a avisos"
+                          icon="pi pi-arrow-left" styleClass="ui-button-flat mb-3 -ml-3"/>
+            <ui:include src="/plantillas/xhtml/comp-encabezado.xhtml">
+                <ui:param name="eyebrow" value="COMUNICACIÓN"/>
+                <ui:param name="tituloPagina" value="Publicar un aviso"/>
+                <ui:param name="descripcion" value="Escríbelo una vez: lo verán todos los estudiantes de las carreras que elijas."/>
+            </ui:include>
+
+            <h:panelGroup id="panelAvisoNuevo" layout="block">
+                <!-- ===== Confirmación ===== -->
+                <ui:fragment rendered="#{viewScope.avisoPublicado}">
+                    <ui:decorate template="/plantillas/xhtml/comp-aviso.xhtml">
+                        <ui:param name="tipo" value="exito"/>
+                        <ui:param name="tituloAviso" value="Aviso publicado"/>
+                        <ui:param name="texto" value="«#{viewScope.tituloAviso}» ya aparece en el inicio de los estudiantes y se dejará de mostrar al terminar su vigencia."/>
+                        <ui:param name="conAccion" value="true"/>
+                        <ui:define name="accion">
+                            <div class="flex gap-2 flex-wrap">
+                                <p:linkButton outcome="/vista/avisos" includeViewParams="true" value="Ver avisos publicados" icon="pi pi-list"/>
+                                <p:linkButton outcome="/vista/aviso-nuevo" includeViewParams="true" value="Publicar otro"
+                                              icon="pi pi-plus" styleClass="ui-button-outlined"/>
+                            </div>
+                        </ui:define>
+                    </ui:decorate>
+                </ui:fragment>
+
+                <!-- ===== Formulario + vista previa ===== -->
+                <ui:fragment rendered="#{not viewScope.avisoPublicado}">
+                    <div class="grid">
+                        <div class="col-12 lg:col-7">
+                            <p:card>
+                                <h:form id="formAviso">
+                                    <div class="field">
+                                        <p:outputLabel for="tituloAviso" value="Título" styleClass="block font-medium mb-2"/>
+                                        <p:inputText id="tituloAviso" value="#{viewScope.tituloAviso}" maxlength="150" styleClass="w-full"
+                                                     required="true" requiredMessage="Escribe el título del aviso."
+                                                     placeholder="Ej. Bajas de materia hasta el 13 de noviembre">
+                                            <f:validateLength maximum="150"/>
+                                            <p:ajax event="input" delay="300" process="@this" update="mensajeTitulo :vistaPrevia"/>
+                                        </p:inputText>
+                                        <p:message id="mensajeTitulo" for="tituloAviso" display="text"/>
+                                    </div>
+
+                                    <div class="field">
+                                        <p:outputLabel for="contenidoAviso" value="Contenido" styleClass="block font-medium mb-2"/>
+                                        <p:inputTextarea id="contenidoAviso" value="#{viewScope.contenidoAviso}" rows="6" autoResize="true"
+                                                         maxlength="2000" counter="contadorAviso" counterTemplate="{0} caracteres disponibles"
+                                                         styleClass="w-full" required="true" requiredMessage="Escribe el texto del aviso."
+                                                         placeholder="Qué deben saber los estudiantes, fechas y dónde acudir.">
+                                            <p:ajax event="input" delay="400" process="@this" update="mensajeContenido :vistaPrevia"/>
+                                        </p:inputTextarea>
+                                        <h:outputText id="contadorAviso" styleClass="text-sm text-color-secondary"/>
+                                        <p:message id="mensajeContenido" for="contenidoAviso" display="text"/>
+                                    </div>
+
+                                    <div class="field">
+                                        <p:outputLabel for="carrerasAviso" value="Dirigido a" styleClass="block font-medium mb-2"/>
+                                        <p:selectManyCheckbox id="carrerasAviso" value="#{viewScope.carrerasAviso}" layout="responsive" columns="2"
+                                                              required="true" requiredMessage="Elige al menos una carrera.">
+                                            <f:selectItems value="#{carrerasDemo}" var="car" itemValue="#{car.clave}"
+                                                           itemLabel="#{car.nombre}" itemDisabled="#{car.clave ne 'ISC'}"/>
+                                            <p:ajax process="@this" update="mensajeCarreras :vistaPrevia"/>
+                                        </p:selectManyCheckbox>
+                                        <small class="text-color-secondary">Solo puedes elegir las carreras que tienes asignadas.</small>
+                                        <p:message id="mensajeCarreras" for="carrerasAviso" display="text"/>
+                                    </div>
+
+                                    <div class="formgrid grid">
+                                        <div class="field col-12 md:col-6">
+                                            <p:outputLabel for="inicioAviso" value="Mostrar desde" styleClass="block font-medium mb-2"/>
+                                            <p:datePicker id="inicioAviso" value="#{viewScope.inicioAviso}" pattern="dd/MM/yyyy" locale="es"
+                                                          showIcon="true" styleClass="w-full" inputStyleClass="w-full"
+                                                          required="true" requiredMessage="Indica desde cuándo se muestra.">
+                                                <!-- Al elegir el inicio se redibuja "hasta" para que su mindate sea ese día. -->
+                                                <p:ajax event="dateSelect" process="@this" update="mensajeInicio finAviso :vistaPrevia"/>
+                                            </p:datePicker>
+                                            <p:message id="mensajeInicio" for="inicioAviso" display="text"/>
+                                        </div>
+                                        <div class="field col-12 md:col-6">
+                                            <p:outputLabel for="finAviso" value="Mostrar hasta" styleClass="block font-medium mb-2"/>
+                                            <p:datePicker id="finAviso" value="#{viewScope.finAviso}" pattern="dd/MM/yyyy" locale="es"
+                                                          showIcon="true" styleClass="w-full" inputStyleClass="w-full"
+                                                          mindate="#{viewScope.inicioAviso}"
+                                                          required="true" requiredMessage="Indica hasta cuándo se muestra.">
+                                                <p:ajax event="dateSelect" process="@this" update="mensajeFin :vistaPrevia"/>
+                                            </p:datePicker>
+                                            <p:message id="mensajeFin" for="finAviso" display="text"/>
+                                        </div>
+                                    </div>
+
+                                    <p:divider/>
+                                    <div class="flex justify-content-end gap-2 flex-wrap">
+                                        <p:linkButton outcome="/vista/avisos" includeViewParams="true" value="Cancelar" styleClass="ui-button-flat"/>
+                                        <p:commandButton value="Publicar aviso" icon="pi pi-send" update=":panelAvisoNuevo">
+                                            <f:setPropertyActionListener target="#{viewScope.avisoPublicado}" value="#{true}"/>
+                                        </p:commandButton>
+                                    </div>
+                                </h:form>
+                            </p:card>
+                        </div>
+
+                        <div class="col-12 lg:col-5">
+                            <div class="vista-previa">
+                                <p class="eyebrow mb-2"><i class="pi pi-eye mr-1" aria-hidden="true"></i> Así lo verán los estudiantes</p>
+                                <h:panelGroup id="vistaPrevia" layout="block">
+                                    <ui:include src="/plantillas/xhtml/comp-tarjeta-aviso.xhtml">
+                                        <ui:param name="aviso" value="#{{
+                                            'titulo': viewScope.tituloAviso,
+                                            'contenido': viewScope.contenidoAviso,
+                                            'autor': usuariosDemo.coordinator.nombreCompleto,
+                                            'carreras': viewScope.carrerasAviso,
+                                            'inicio': empty viewScope.inicioAviso ? '—' : viewScope.inicioAviso.dayOfMonth += '/' += viewScope.inicioAviso.monthValue += '/' += viewScope.inicioAviso.year,
+                                            'fin': empty viewScope.finAviso ? '—' : viewScope.finAviso.dayOfMonth += '/' += viewScope.finAviso.monthValue += '/' += viewScope.finAviso.year,
+                                            'vigente': true, 'icono': 'megaphone', 'tono': 'tono-naranja'}}"/>
+                                    </ui:include>
+                                </h:panelGroup>
+                                <small class="text-color-secondary">
+                                    Aparecerá en el inicio y en «Avisos de la carrera» mientras esté vigente.
+                                </small>
+                            </div>
+                        </div>
+                    </div>
+                </ui:fragment>
+            </h:panelGroup>
+        </ui:fragment>
+    </ui:define>
+</ui:composition>

@@ -1,0 +1,166 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  VISTA: roles y carreras asignadas (solo administración). HU 6.3.
+  El rol de coordinación o jefatura se otorga de forma explícita a una cuenta institucional,
+  junto con las carreras que atiende (USUARIO.rol + COORDINACION_CARRERA). Nunca se deduce
+  del formato del correo.
+  - p:dataTable de #{cuentasDemo} con búsqueda global y filtro por rol.
+  - "Editar" / "Asignar rol" abren un p:dialog con el formulario. El botón de la tabla guarda
+    la cuenta elegida en viewScope.cuentaSel (f:setPropertyActionListener) y actualiza el diálogo.
+  - Guardar está deshabilitado hasta que exista UsuarioControl (que además escribe en AUDITORIA).
+-->
+<ui:composition template="/plantillas/xhtml/plantilla-panel.xhtml"
+                xmlns="http://www.w3.org/1999/xhtml"
+                xmlns:h="jakarta.faces.html"
+                xmlns:f="jakarta.faces.core"
+                xmlns:ui="jakarta.faces.facelets"
+                xmlns:c="jakarta.tags.core"
+                xmlns:p="primefaces">
+
+    <ui:define name="metadatos">
+        <f:metadata>
+            <f:viewParam name="rol" value="#{viewScope.rol}"/>
+        </f:metadata>
+    </ui:define>
+
+    <ui:param name="seccion" value="roles"/>
+    <ui:param name="rotulo" value="Roles y carreras"/>
+
+    <ui:define name="titulo">Roles y carreras</ui:define>
+
+    <ui:define name="contenido">
+        <c:set var="rol" value="#{viewScope.rol eq 'coordinator' or viewScope.rol eq 'head' or viewScope.rol eq 'administrator' ? viewScope.rol : 'student'}"/>
+
+        <ui:fragment rendered="#{rol ne 'administrator'}">
+            <ui:include src="/plantillas/xhtml/comp-estado-vacio.xhtml">
+                <ui:param name="icono" value="shield"/>
+                <ui:param name="tituloVacio" value="Espacio de administración"/>
+                <ui:param name="descripcion" value="Los roles de coordinación y jefatura los asigna administración."/>
+                <ui:param name="destino" value="/vista/inicio"/>
+                <ui:param name="accion" value="Volver al inicio"/>
+            </ui:include>
+        </ui:fragment>
+
+        <ui:fragment rendered="#{rol eq 'administrator'}">
+            <ui:decorate template="/plantillas/xhtml/comp-encabezado.xhtml">
+                <ui:param name="eyebrow" value="IDENTIDAD Y ACCESO"/>
+                <ui:param name="tituloPagina" value="Roles y carreras"/>
+                <ui:param name="descripcion" value="Quién atiende la bandeja de cada carrera y quién consulta el seguimiento."/>
+                <ui:param name="conAccion" value="true"/>
+                <ui:define name="accion">
+                    <h:form>
+                        <p:commandButton value="Asignar rol" icon="pi pi-user-plus" size="large"
+                                         process="@this" update=":formRolCuenta:dlgRol" oncomplete="PF('dlgRol').show()">
+                            <f:setPropertyActionListener target="#{viewScope.cuentaSel}" value="#{null}"/>
+                        </p:commandButton>
+                    </h:form>
+                </ui:define>
+            </ui:decorate>
+
+            <h:form id="formCuentas">
+                <p:dataTable id="tablaCuentas" value="#{facesContext.attributes.computeIfAbsent('tablaCuentas', k -> cuentasDemo)}" var="cta" rowKey="#{cta.correo}" reflow="true"
+                             widgetVar="tablaCuentas">
+                    <f:facet name="header">
+                        <div class="flex justify-content-between align-items-center flex-wrap gap-2">
+                            <span class="ui-input-icon-left">
+                                <i class="pi pi-search"/>
+                                <p:inputText id="globalFilter" placeholder="Buscar por nombre o correo" style="width: 18rem;"
+                                             oninput="PF('tablaCuentas').filter()"/>
+                            </span>
+                            <span class="text-sm text-color-secondary">#{cuentasDemo.size()} cuentas con acceso al portal de atención</span>
+                        </div>
+                    </f:facet>
+                    <p:column headerText="Cuenta" filterBy="#{cta.nombre} #{cta.correo}" filterMatchMode="contains" filterStyle="display: none" sortBy="#{cta.nombre}">
+                        <div class="flex align-items-center gap-2">
+                            <p:avatar label="#{cta.iniciales}" shape="circle" styleClass="#{cta.rol eq 'ESTUDIANTE' ? '' : 'app-avatar'}"/>
+                            <div>
+                                <strong class="block">#{cta.nombre}</strong>
+                                <small class="text-color-secondary">#{cta.correo}</small>
+                            </div>
+                        </div>
+                    </p:column>
+                    <p:column headerText="Rol" filterBy="#{cta.rol}" filterMatchMode="exact" style="width: 13rem;">
+                        <f:facet name="filter">
+                            <p:selectOneMenu onchange="PF('tablaCuentas').filter()" styleClass="w-full">
+                                <f:selectItem itemLabel="Todos" itemValue="#{null}" noSelectionOption="true"/>
+                                <f:selectItem itemLabel="Coordinación" itemValue="COORDINADOR"/>
+                                <f:selectItem itemLabel="Jefatura" itemValue="JEFE"/>
+                                <f:selectItem itemLabel="Administración" itemValue="ADMINISTRADOR"/>
+                                <f:selectItem itemLabel="Sin rol de atención" itemValue="ESTUDIANTE"/>
+                            </p:selectOneMenu>
+                        </f:facet>
+                        <p:tag rounded="true"
+                               value="#{cta.rol eq 'COORDINADOR' ? 'Coordinación' : (cta.rol eq 'JEFE' ? 'Jefatura' : (cta.rol eq 'ADMINISTRADOR' ? 'Administración' : 'Sin rol de atención'))}"
+                               severity="#{cta.rol eq 'COORDINADOR' ? 'info' : (cta.rol eq 'JEFE' ? 'warning' : (cta.rol eq 'ADMINISTRADOR' ? 'success' : null))}"
+                               styleClass="#{cta.rol eq 'ESTUDIANTE' ? 'tag-gris' : ''}"/>
+                    </p:column>
+                    <p:column headerText="Carreras">
+                        <div class="flex gap-1 flex-wrap">
+                            <ui:repeat value="#{cta.carreras}" var="clave"><p:chip label="#{clave}" styleClass="chip-chico"/></ui:repeat>
+                            <ui:fragment rendered="#{empty cta.carreras}"><span class="text-color-secondary">—</span></ui:fragment>
+                        </div>
+                    </p:column>
+                    <p:column headerText="Desde" style="width: 9rem;">#{empty cta.desde ? '—' : cta.desde}</p:column>
+                    <p:column style="width: 4rem;" ariaHeaderText="Acciones">
+                        <p:commandButton icon="pi pi-pencil" title="Editar rol de #{cta.nombre}" ariaLabel="Editar rol de #{cta.nombre}"
+                                         styleClass="ui-button-flat rounded-button"
+                                         process="@this" update=":formRolCuenta:dlgRol" oncomplete="PF('dlgRol').show()">
+                            <f:setPropertyActionListener target="#{viewScope.cuentaSel}" value="#{cta}"/>
+                        </p:commandButton>
+                    </p:column>
+                </p:dataTable>
+            </h:form>
+
+            <p class="text-color-secondary mt-3">
+                <i class="pi pi-info-circle mr-1" aria-hidden="true"></i>
+                Una cuenta sin rol de atención no entra a la bandeja aunque su correo parezca de personal. Cada alta, cambio o
+                baja de rol queda en la bitácora de auditoría.
+            </p>
+
+            <!-- ============ Diálogo: asignar / editar rol ============ -->
+            <h:form id="formRolCuenta">
+                <p:dialog id="dlgRol" header="#{empty viewScope.cuentaSel ? 'Asignar rol' : 'Editar rol'}" widgetVar="dlgRol" modal="true"
+                          responsive="true" width="560" closeOnEscape="true" resizable="false">
+                    <h:panelGroup id="dlgContenido" layout="block">
+                        <c:set var="sel" value="#{viewScope.cuentaSel}"/>
+                        <div class="field">
+                            <p:outputLabel for="correoRol" value="Cuenta institucional" styleClass="block font-medium mb-2"/>
+                            <p:inputText id="correoRol" value="#{sel.correo}" readonly="#{not empty sel}" styleClass="w-full"
+                                         placeholder="nombre@itoaxaca.edu.mx"/>
+                            <ui:fragment rendered="#{not empty sel}">
+                                <small class="text-color-secondary">#{sel.nombre}</small>
+                            </ui:fragment>
+                        </div>
+                        <div class="field">
+                            <p:outputLabel for="rolCuenta" value="Rol" styleClass="block font-medium mb-2"/>
+                            <p:selectOneButton id="rolCuenta" value="#{sel.rol}">
+                                <f:selectItem itemValue="COORDINADOR" itemLabel="Coordinación"/>
+                                <f:selectItem itemValue="JEFE" itemLabel="Jefatura"/>
+                                <f:selectItem itemValue="ADMINISTRADOR" itemLabel="Administración"/>
+                                <f:selectItem itemValue="ESTUDIANTE" itemLabel="Sin rol"/>
+                            </p:selectOneButton>
+                        </div>
+                        <div class="field">
+                            <p:outputLabel for="carrerasCuenta" value="Carreras que atiende" styleClass="block font-medium mb-2"/>
+                            <p:selectCheckboxMenu id="carrerasCuenta" value="#{sel.carreras}" multiple="true" styleClass="w-full"
+                                                  emptyLabel="Elige una o varias carreras" updateLabel="true">
+                                <f:selectItems value="#{carrerasDemo}" var="car" itemValue="#{car.clave}" itemLabel="#{car.nombre}"/>
+                            </p:selectCheckboxMenu>
+                            <small class="text-color-secondary">Coordinación: sus carreras. Jefatura: normalmente todas.</small>
+                        </div>
+                        <ui:include src="/plantillas/xhtml/comp-aviso.xhtml">
+                            <ui:param name="tipo" value="info"/>
+                            <ui:param name="icono" value="history"/>
+                            <ui:param name="tituloAviso" value="Queda registrado"/>
+                            <ui:param name="texto" value="El cambio se guarda en la bitácora de auditoría con tu cuenta, la fecha y el origen."/>
+                        </ui:include>
+                    </h:panelGroup>
+                    <f:facet name="footer">
+                        <p:commandButton value="Cancelar" type="button" styleClass="ui-button-flat" onclick="PF('dlgRol').hide()"/>
+                        <p:commandButton value="Guardar" icon="pi pi-save" disabled="true" title="Se conectará al servicio en un sprint posterior"/>
+                    </f:facet>
+                </p:dialog>
+            </h:form>
+        </ui:fragment>
+    </ui:define>
+</ui:composition>
