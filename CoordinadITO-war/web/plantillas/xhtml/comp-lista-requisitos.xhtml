@@ -1,24 +1,15 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
-  COMPONENTE: los tres requisitos de un trámite, como <li> con palomita.
+  COMPONENTE: requisitos de un trámite, como lista con palomita (PrimeIcon pi-check).
   Parámetros (ui:param):
-      idTramite -> course-drop | schedule-change | course-enrollment | program-withdrawal
-      tamano    -> tamaño del icono (14, 16...)
-  Los textos viven aquí, en una sola cadena de condicionales, porque todavía no hay
-  base de datos: cuando exista, esta lista se generará con <ui:repeat> sobre el catálogo.
+      requisitos -> lista de textos (campo "requisitos" de un trámite en datos-demo.xhtml)
+  Para mostrar solo algunos, la vista pasa una sublista: #{t.requisitos.subList(0, 2)}.
 -->
 <ui:composition xmlns="http://www.w3.org/1999/xhtml"
                 xmlns:ui="jakarta.faces.facelets">
-    <li>
-        <svg class="icono" width="#{tamano}" height="#{tamano}" aria-hidden="true"><use href="#i-check"/></svg>
-        <span>#{idTramite eq 'course-drop' ? 'Identificar la materia y el grupo de tu carga actual.' : (idTramite eq 'schedule-change' ? 'Estar inscrito en la materia que deseas cambiar.' : (idTramite eq 'course-enrollment' ? 'Indicar la clave y el grupo de la materia.' : 'Indicar el periodo para el que solicitas la baja.'))}</span>
-    </li>
-    <li>
-        <svg class="icono" width="#{tamano}" height="#{tamano}" aria-hidden="true"><use href="#i-check"/></svg>
-        <span>#{idTramite eq 'course-drop' ? 'Indicar el motivo de la baja.' : (idTramite eq 'schedule-change' ? 'Conocer el grupo y el horario al que deseas ingresar.' : (idTramite eq 'course-enrollment' ? 'Revisar los prerrequisitos de tu plan de estudios.' : 'Explicar el motivo de la pausa académica.'))}</span>
-    </li>
-    <li>
-        <svg class="icono" width="#{tamano}" height="#{tamano}" aria-hidden="true"><use href="#i-check"/></svg>
-        <span>#{idTramite eq 'course-drop' ? 'Confirmar con coordinación las condiciones académicas aplicables.' : (idTramite eq 'schedule-change' ? 'Describir el motivo del cambio para su evaluación.' : (idTramite eq 'course-enrollment' ? 'El alta está sujeta a la revisión de coordinación.' : 'Consultar sus efectos y condiciones de reingreso con coordinación.'))}</span>
-    </li>
+    <ul class="lista-requisitos">
+        <ui:repeat value="#{requisitos}" var="requisito">
+            <li><i class="pi pi-check-circle" aria-hidden="true"></i><span>#{requisito}</span></li>
+        </ui:repeat>
+    </ul>
 </ui:composition>

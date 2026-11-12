@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  VISTA: primer acceso del estudiante (plantilla-simple). HU 6.4.
+  Si el alumno no aparece en el padrón cargado, en su primer ingreso declara carrera y semestre
+  antes de poder registrar solicitudes. Los datos quedan marcados como "autodeclarados" hasta
+  que llegue el padrón institucional.
+  Sin bean todavía: los valores se guardan en viewScope y, si pasan la validación del
+  servidor (obligatorios y semestre de 1 a 14), el botón lleva al inicio del estudiante.
+-->
+<ui:composition template="/plantillas/xhtml/plantilla-simple.xhtml"
+                xmlns="http://www.w3.org/1999/xhtml"
+                xmlns:h="jakarta.faces.html"
+                xmlns:f="jakarta.faces.core"
+                xmlns:ui="jakarta.faces.facelets"
+                xmlns:p="primefaces">
+
+    <ui:param name="ancho" value="amplio"/>
+    <ui:define name="titulo">Completa tu expediente</ui:define>
+
+    <ui:define name="contenido">
+        <p:card>
+            <div class="flex align-items-center gap-3 mb-4">
+                <p:avatar label="#{usuariosDemo.student.iniciales}" size="large" shape="circle" styleClass="app-avatar"/>
+                <div>
+                    <p class="eyebrow">PRIMER ACCESO</p>
+                    <h1 class="text-2xl font-bold m-0 mt-1">Hola, #{usuariosDemo.student.nombres}. Completa tu expediente.</h1>
+                </div>
+            </div>
+            <p class="text-color-secondary mt-0 mb-4">
+                Aún no tenemos tus datos del padrón institucional. Indícanos tu carrera y tu semestre para
+                que la coordinación correcta reciba tus solicitudes. Solo te lo pediremos esta vez.
+            </p>
+
+            <h:form id="formPrimerAcceso">
+                <div class="formgrid grid">
+                    <div class="field col-12">
+                        <p:outputLabel value="Cuenta institucional" styleClass="block font-medium mb-2"/>
+                        <span class="ui-input-icon-left w-full">
+                            <i class="pi pi-envelope"/>
+                            <p:inputText value="#{usuariosDemo.student.correo}" readonly="true" styleClass="w-full"/>
+                        </span>
+                    </div>
+                    <div class="field col-12 md:col-8">
+                        <p:outputLabel for="carrera" value="Carrera" styleClass="block font-medium mb-2"/>
+                        <p:selectOneMenu id="carrera" value="#{viewScope.carrera}" required="true"
+                                         requiredMessage="Selecciona tu carrera." styleClass="w-full">
+                            <f:selectItem itemValue="#{null}" itemLabel="Selecciona tu carrera" noSelectionOption="true"/>
+                            <f:selectItems value="#{carrerasDemo}" var="car" itemValue="#{car.clave}" itemLabel="#{car.nombre}"/>
+                        </p:selectOneMenu>
+                        <p:message for="carrera" display="text"/>
+                    </div>
+                    <div class="field col-12 md:col-4">
+                        <p:outputLabel for="semestre" value="Semestre" styleClass="block font-medium mb-2"/>
+                        <p:spinner id="semestre" value="#{viewScope.semestre}" min="1" max="14" required="true"
+                                   requiredMessage="Indica tu semestre." styleClass="w-full" inputStyleClass="w-full"
+                                   placeholder="1 a 14"/>
+                        <p:message for="semestre" display="text"/>
+                    </div>
+                </div>
+
+                <ui:include src="/plantillas/xhtml/comp-aviso.xhtml">
+                    <ui:param name="tipo" value="info"/>
+                    <ui:param name="icono" value="id-card"/>
+                    <ui:param name="tituloAviso" value="Datos autodeclarados"/>
+                    <ui:param name="texto" value="Se mostrarán así en tu perfil hasta que administración cargue el padrón del semestre. Si hay diferencias, se conservará el dato institucional."/>
+                </ui:include>
+
+                <div class="flex justify-content-between align-items-center flex-wrap gap-3 mt-4">
+                    <h:link outcome="/vista/login" styleClass="text-color-secondary">No soy yo, salir</h:link>
+                    <p:commandButton value="Guardar y continuar" icon="pi pi-arrow-right" iconPos="right" size="large"
+                                     action="/vista/inicio?faces-redirect=true&amp;rol=student" update="@form"/>
+                </div>
+            </h:form>
+        </p:card>
+    </ui:define>
+</ui:composition>

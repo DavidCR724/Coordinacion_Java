@@ -1,0 +1,133 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  VISTA: prioridad por tipo de trámite (solo administración). HU 3.2.
+  Cada trámite del catálogo (#{tramitesDemo}) tiene una prioridad (ENUM PRIORIDAD:
+  BAJA, MEDIA, ALTA, CRITICA) que heredan las solicitudes nuevas. Cambiarla no altera las
+  solicitudes ya registradas.
+  La columna "Nueva prioridad" guarda la elección en viewScope ('p-' + id del trámite) y, por
+  AJAX, la tabla muestra cómo quedaría. Guardar está deshabilitado hasta que exista TramiteControl.
+-->
+<ui:composition template="/plantillas/xhtml/plantilla-panel.xhtml"
+                xmlns="http://www.w3.org/1999/xhtml"
+                xmlns:h="jakarta.faces.html"
+                xmlns:f="jakarta.faces.core"
+                xmlns:ui="jakarta.faces.facelets"
+                xmlns:c="jakarta.tags.core"
+                xmlns:p="primefaces">
+
+    <ui:define name="metadatos">
+        <f:metadata>
+            <f:viewParam name="rol" value="#{viewScope.rol}"/>
+        </f:metadata>
+    </ui:define>
+
+    <ui:param name="seccion" value="prioridades"/>
+    <ui:param name="rotulo" value="Prioridades"/>
+
+    <ui:define name="titulo">Prioridades</ui:define>
+
+    <ui:define name="contenido">
+        <c:set var="rol" value="#{viewScope.rol eq 'coordinator' or viewScope.rol eq 'head' or viewScope.rol eq 'administrator' ? viewScope.rol : 'student'}"/>
+
+        <ui:fragment rendered="#{rol ne 'administrator'}">
+            <ui:include src="/plantillas/xhtml/comp-estado-vacio.xhtml">
+                <ui:param name="icono" value="shield"/>
+                <ui:param name="tituloVacio" value="Espacio de administración"/>
+                <ui:param name="descripcion" value="La prioridad de cada trámite la define administración."/>
+                <ui:param name="destino" value="/vista/inicio"/>
+                <ui:param name="accion" value="Volver al inicio"/>
+            </ui:include>
+        </ui:fragment>
+
+        <ui:fragment rendered="#{rol eq 'administrator'}">
+            <ui:include src="/plantillas/xhtml/comp-encabezado.xhtml">
+                <ui:param name="eyebrow" value="ORDEN DE ATENCIÓN"/>
+                <ui:param name="tituloPagina" value="Prioridad por tipo de trámite"/>
+                <ui:param name="descripcion" value="Un criterio institucional para decidir qué se atiende primero en la bandeja."/>
+            </ui:include>
+
+            <div class="grid">
+                <div class="col-12 xl:col-8">
+                    <h:form id="formPrioridades">
+                        <p:dataTable id="tablaPrioridades" value="#{tramitesDemo}" var="t" rowKey="#{t.id}" reflow="true">
+                            <p:column headerText="Trámite">
+                                <div class="flex align-items-center gap-2">
+                                    <p:avatar label="#{t.codigo}" styleClass="app-avatar"/>
+                                    <strong>#{t.nombre}</strong>
+                                </div>
+                            </p:column>
+                            <p:column headerText="Actual" style="width: 6.5rem;">
+                                <ui:include src="/plantillas/xhtml/comp-insignia-prioridad.xhtml">
+                                    <ui:param name="prioridad" value="#{t.prioridad}"/>
+                                </ui:include>
+                            </p:column>
+                            <p:column headerText="Nueva prioridad" style="width: 10.5rem;">
+                                <p:selectOneMenu value="#{viewScope['p-'.concat(t.id)]}" styleClass="w-full">
+                                    <f:selectItem itemValue="#{null}" itemLabel="Sin cambio" noSelectionOption="true"/>
+                                    <f:selectItem itemValue="CRITICA" itemLabel="Crítica"/>
+                                    <f:selectItem itemValue="ALTA" itemLabel="Alta"/>
+                                    <f:selectItem itemValue="MEDIA" itemLabel="Media"/>
+                                    <f:selectItem itemValue="BAJA" itemLabel="Baja"/>
+                                    <p:ajax update=":formPrioridades:tablaPrioridades :formPrioridades:resumen"/>
+                                </p:selectOneMenu>
+                            </p:column>
+                            <p:column headerText="Quedaría" style="width: 6.5rem;">
+                                <c:set var="nueva" value="#{viewScope['p-'.concat(t.id)]}"/>
+                                <ui:fragment rendered="#{not empty nueva and nueva ne t.prioridad}">
+                                    <ui:include src="/plantillas/xhtml/comp-insignia-prioridad.xhtml">
+                                        <ui:param name="prioridad" value="#{nueva}"/>
+                                    </ui:include>
+                                </ui:fragment>
+                                <ui:fragment rendered="#{empty nueva or nueva eq t.prioridad}">
+                                    <span class="text-color-secondary">—</span>
+                                </ui:fragment>
+                            </p:column>
+                            <p:column headerText="Abiertas" style="width: 5.5rem;" styleClass="text-center">
+                                <span title="Solicitudes abiertas: conservan su prioridad">#{t.abiertas}</span>
+                            </p:column>
+                        </p:dataTable>
+
+                        <h:panelGroup id="resumen" layout="block" styleClass="flex justify-content-between align-items-center flex-wrap gap-3 mt-3">
+                            <c:set var="cambios" value="#{tramitesDemo.stream().filter(t -> not empty viewScope['p-'.concat(t.id)] and viewScope['p-'.concat(t.id)] ne t.prioridad).count()}"/>
+                            <small class="text-color-secondary">
+                                #{cambios eq 0 ? 'Sin cambios pendientes.' : (cambios eq 1 ? '1 cambio pendiente.' : cambios.toString().concat(' cambios pendientes.'))}
+                                Vista de diseño: guardar se conectará al servicio en un sprint posterior.
+                            </small>
+                            <p:commandButton value="Guardar prioridades" icon="pi pi-save" disabled="true"/>
+                        </h:panelGroup>
+                    </h:form>
+                </div>
+
+                <div class="col-12 xl:col-4">
+                    <ui:include src="/plantillas/xhtml/comp-aviso.xhtml">
+                        <ui:param name="tipo" value="advertencia"/>
+                        <ui:param name="icono" value="history"/>
+                        <ui:param name="tituloAviso" value="Solo para solicitudes nuevas"/>
+                        <ui:param name="texto" value="Las solicitudes heredan la prioridad de su trámite al registrarse. Las que ya están abiertas conservan la que tenían."/>
+                    </ui:include>
+                    <p:card styleClass="mt-3">
+                        <f:facet name="title">Qué significa cada nivel</f:facet>
+                        <ul class="lista-niveles">
+                            <li>
+                                <ui:include src="/plantillas/xhtml/comp-insignia-prioridad.xhtml"><ui:param name="prioridad" value="CRITICA"/></ui:include>
+                                <span>Afecta la permanencia del alumno (bajas temporales).</span>
+                            </li>
+                            <li>
+                                <ui:include src="/plantillas/xhtml/comp-insignia-prioridad.xhtml"><ui:param name="prioridad" value="ALTA"/></ui:include>
+                                <span>Cambia su carga académica del semestre en curso.</span>
+                            </li>
+                            <li>
+                                <ui:include src="/plantillas/xhtml/comp-insignia-prioridad.xhtml"><ui:param name="prioridad" value="MEDIA"/></ui:include>
+                                <span>Ajustes que tienen alternativa (horarios, grupos).</span>
+                            </li>
+                            <li>
+                                <ui:include src="/plantillas/xhtml/comp-insignia-prioridad.xhtml"><ui:param name="prioridad" value="BAJA"/></ui:include>
+                                <span>Consultas sin fecha límite.</span>
+                            </li>
+                        </ul>
+                    </p:card>
+                </div>
+            </div>
+        </ui:fragment>
+    </ui:define>
+</ui:composition>

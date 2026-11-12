@@ -5,31 +5,43 @@
   Equivale a app/layout.tsx del front en React.
   Las páginas la usan con <ui:composition template="..."> y rellenan los
   huecos <ui:insert> con <ui:define>:
-      titulo -> texto de <title>
-      cuerpo -> todo lo que va dentro de <body>
+      metadatos -> <f:metadata> con los f:viewParam de la vista (plantilla-panel lo define)
+      titulo    -> texto de <title>
+      cuerpo    -> todo lo que va dentro de <body>
+
+  FRONT CON PRIMEFACES
+  - PrimeFaces agrega solo su CSS/JS y el tema (web.xml: primefaces.THEME = coordinadito,
+    que es Saga con la paleta del ITO; ver resources/primefaces-coordinadito).
+  - PrimeFlex (webjar en WEB-INF/lib) da las utilidades de maquetación: flex, grid, gap, márgenes...
+  - Los iconos son PrimeIcons (clases "pi pi-home", "pi pi-user"...), incluidos en PrimeFaces.
+  - coordinadito.css solo guarda lo que ninguna de las dos librerías trae (marco del panel,
+    colores de marca). Va en el facet "last" para cargarse después del tema.
 -->
 <html lang="es"
       xmlns="http://www.w3.org/1999/xhtml"
       xmlns:h="jakarta.faces.html"
+      xmlns:f="jakarta.faces.core"
       xmlns:ui="jakarta.faces.facelets">
+    <!-- Debe quedar fuera de h:head para que f:metadata sea hijo directo de la vista. -->
+    <ui:insert name="metadatos"/>
     <h:head>
-        <meta charset="UTF-8"/>
-        <meta name="viewport" content="width=device-width, initial-scale=1"/>
-        <!-- Tema claro fijo: evita que el navegador oscurezca controles y barras de desplazamiento. -->
-        <meta name="color-scheme" content="light"/>
+        <f:facet name="first">
+            <meta charset="UTF-8"/>
+            <meta name="viewport" content="width=device-width, initial-scale=1"/>
+            <meta name="color-scheme" content="light"/>
+        </f:facet>
         <title><ui:insert name="titulo">Trámites de Coordinación ITO</ui:insert></title>
-        <!-- Tipografía Geist (la del diseño original). Si no hay internet, se usa Arial. -->
+        <!-- Tipografía Geist (la del diseño original). Si no hay internet, se usa la del sistema. -->
         <link rel="preconnect" href="https://fonts.googleapis.com"/>
         <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="crossorigin"/>
         <link rel="stylesheet"
-              href="https://fonts.googleapis.com/css2?family=Geist:wght@100..900&amp;family=Geist+Mono:wght@100..900&amp;display=swap"/>
-        <!-- Recursos JSF: library="css" apunta a la carpeta resources/css. El orden importa. -->
-        <h:outputStylesheet library="css" name="reset.css"/>
-        <h:outputStylesheet library="css" name="estilos.css"/>
+              href="https://fonts.googleapis.com/css2?family=Geist:wght@100..900&amp;display=swap"/>
+        <f:facet name="last">
+            <h:outputStylesheet library="webjars" name="primeflex/3.3.1/primeflex.min.css"/>
+            <h:outputStylesheet library="css" name="coordinadito.css"/>
+        </f:facet>
     </h:head>
     <h:body>
-        <!-- Sprite de iconos: se define una sola vez y se reutiliza con <use href="#i-..."/>. -->
-        <ui:include src="/plantillas/xhtml/iconos.xhtml"/>
         <ui:insert name="cuerpo">Contenido de la página</ui:insert>
     </h:body>
 </html>

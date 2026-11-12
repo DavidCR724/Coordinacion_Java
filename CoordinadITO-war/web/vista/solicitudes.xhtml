@@ -4,14 +4,22 @@
   Qué ve cada rol (igual que visibleRequests() en el front):
       student       -> sus 2 solicitudes (1042 y 1031), sin columna de estudiante, botón "Nueva solicitud"
       coordinator   -> las 3 de su carrera (1043, 1042, 1031), con columna de estudiante
+      head          -> todas las solicitudes de todas las carreras (solo consulta)
       administrator -> ninguna: aviso de estado vacío
+  La tabla es un p:dataTable (comp-tabla-solicitudes): busca, filtra por estado y ordena.
 -->
 <ui:composition template="/plantillas/xhtml/plantilla-panel.xhtml"
                 xmlns="http://www.w3.org/1999/xhtml"
-                xmlns:h="jakarta.faces.html"
                 xmlns:f="jakarta.faces.core"
                 xmlns:ui="jakarta.faces.facelets"
-                xmlns:c="jakarta.tags.core">
+                xmlns:c="jakarta.tags.core"
+                xmlns:p="primefaces">
+
+    <ui:define name="metadatos">
+        <f:metadata>
+            <f:viewParam name="rol" value="#{viewScope.rol}"/>
+        </f:metadata>
+    </ui:define>
 
     <ui:param name="seccion" value="solicitudes"/>
     <ui:param name="rotulo" value="Solicitudes"/>
@@ -19,102 +27,55 @@
     <ui:define name="titulo">Solicitudes</ui:define>
 
     <ui:define name="contenido">
-        <c:set var="rol" value="#{param.rol eq 'coordinator' or param.rol eq 'administrator' ? param.rol : 'student'}"/>
+        <c:set var="rol" value="#{viewScope.rol eq 'coordinator' or viewScope.rol eq 'head' or viewScope.rol eq 'administrator' ? viewScope.rol : 'student'}"/>
 
         <ui:decorate template="/plantillas/xhtml/comp-encabezado.xhtml">
             <ui:param name="eyebrow" value="CADA PASO CUENTA"/>
-            <ui:param name="tituloPagina" value="#{rol eq 'student' ? 'Mis solicitudes' : 'Solicitudes de mi carrera'}"/>
+            <ui:param name="tituloPagina" value="#{rol eq 'student' ? 'Mis solicitudes' : (rol eq 'head' ? 'Solicitudes de todas las carreras' : 'Solicitudes de mi carrera')}"/>
             <ui:param name="descripcion" value="Consulta el estado, los comentarios y la resolución de cada trámite."/>
             <ui:param name="conAccion" value="#{rol eq 'student'}"/>
             <ui:define name="accion">
-                <h:link outcome="/vista/tramites" styleClass="button button-primary">
-                    <f:param name="rol" value="#{param.rol}" disable="#{empty param.rol}"/>
-                    <svg class="icono" width="17" height="17" aria-hidden="true"><use href="#i-plus"/></svg>
-                    Nueva solicitud
-                </h:link>
+                <p:linkButton outcome="/vista/tramites" includeViewParams="true" value="Nueva solicitud"
+                              icon="pi pi-plus" size="large"/>
             </ui:define>
         </ui:decorate>
 
         <!-- Estudiante -->
         <ui:fragment rendered="#{rol eq 'student'}">
-            <ui:decorate template="/plantillas/xhtml/comp-tabla-solicitudes.xhtml">
+            <ui:include src="/plantillas/xhtml/comp-tabla-solicitudes.xhtml">
+                <ui:param name="solicitudes" value="#{solicitudesDemo.stream().filter(s -> s.control eq usuariosDemo.student.control).toList()}"/>
                 <ui:param name="conEstudiante" value="false"/>
                 <ui:param name="conFiltros" value="true"/>
-                <ui:param name="totalFilas" value="2"/>
-                <ui:define name="filas">
-                    <ui:include src="/plantillas/xhtml/comp-fila-solicitud.xhtml">
-                        <ui:param name="folio" value="1042"/>
-                        <ui:param name="tramite" value="Cambio de horario"/>
-                        <ui:param name="registro" value="23 oct 2026"/>
-                        <ui:param name="codigoEstado" value="in-review"/>
-                        <ui:param name="actualizacion" value="27 oct 2026"/>
-                        <ui:param name="conEstudiante" value="false"/>
-                    </ui:include>
-                    <ui:include src="/plantillas/xhtml/comp-fila-solicitud.xhtml">
-                        <ui:param name="folio" value="1031"/>
-                        <ui:param name="tramite" value="Baja de materia"/>
-                        <ui:param name="registro" value="20 oct 2026"/>
-                        <ui:param name="codigoEstado" value="completed"/>
-                        <ui:param name="actualizacion" value="26 oct 2026"/>
-                        <ui:param name="conEstudiante" value="false"/>
-                    </ui:include>
-                </ui:define>
-            </ui:decorate>
+            </ui:include>
         </ui:fragment>
 
         <!-- Coordinación -->
         <ui:fragment rendered="#{rol eq 'coordinator'}">
-            <ui:decorate template="/plantillas/xhtml/comp-tabla-solicitudes.xhtml">
+            <ui:include src="/plantillas/xhtml/comp-tabla-solicitudes.xhtml">
+                <ui:param name="solicitudes" value="#{solicitudesDemo.stream().filter(s -> s.carrera eq usuariosDemo.coordinator.carrera).toList()}"/>
                 <ui:param name="conEstudiante" value="true"/>
                 <ui:param name="conFiltros" value="true"/>
-                <ui:param name="totalFilas" value="3"/>
-                <ui:define name="filas">
-                    <ui:include src="/plantillas/xhtml/comp-fila-solicitud.xhtml">
-                        <ui:param name="folio" value="1043"/>
-                        <ui:param name="tramite" value="Baja de materia"/>
-                        <ui:param name="estudiante" value="Daniel Pérez García"/>
-                        <ui:param name="control" value="00000002"/>
-                        <ui:param name="registro" value="27 oct 2026"/>
-                        <ui:param name="codigoEstado" value="received"/>
-                        <ui:param name="actualizacion" value="27 oct 2026"/>
-                        <ui:param name="conEstudiante" value="true"/>
-                    </ui:include>
-                    <ui:include src="/plantillas/xhtml/comp-fila-solicitud.xhtml">
-                        <ui:param name="folio" value="1042"/>
-                        <ui:param name="tramite" value="Cambio de horario"/>
-                        <ui:param name="estudiante" value="Sofía Hernández López"/>
-                        <ui:param name="control" value="00000001"/>
-                        <ui:param name="registro" value="23 oct 2026"/>
-                        <ui:param name="codigoEstado" value="in-review"/>
-                        <ui:param name="actualizacion" value="27 oct 2026"/>
-                        <ui:param name="conEstudiante" value="true"/>
-                    </ui:include>
-                    <ui:include src="/plantillas/xhtml/comp-fila-solicitud.xhtml">
-                        <ui:param name="folio" value="1031"/>
-                        <ui:param name="tramite" value="Baja de materia"/>
-                        <ui:param name="estudiante" value="Sofía Hernández López"/>
-                        <ui:param name="control" value="00000001"/>
-                        <ui:param name="registro" value="20 oct 2026"/>
-                        <ui:param name="codigoEstado" value="completed"/>
-                        <ui:param name="actualizacion" value="26 oct 2026"/>
-                        <ui:param name="conEstudiante" value="true"/>
-                    </ui:include>
-                </ui:define>
-            </ui:decorate>
+            </ui:include>
+        </ui:fragment>
+
+        <!-- Jefatura: todas, solo consulta -->
+        <ui:fragment rendered="#{rol eq 'head'}">
+            <ui:include src="/plantillas/xhtml/comp-tabla-solicitudes.xhtml">
+                <ui:param name="solicitudes" value="#{solicitudesDemo}"/>
+                <ui:param name="conEstudiante" value="true"/>
+                <ui:param name="conFiltros" value="true"/>
+            </ui:include>
         </ui:fragment>
 
         <!-- Administración: no tiene solicitudes propias. -->
         <ui:fragment rendered="#{rol eq 'administrator'}">
-            <section class="panel request-list-panel">
-                <ui:include src="/plantillas/xhtml/comp-estado-vacio.xhtml">
-                    <ui:param name="icono" value="inbox"/>
-                    <ui:param name="tituloVacio" value="Tu siguiente paso comienza aquí"/>
-                    <ui:param name="descripcion" value="Cuando registres un trámite, podrás consultar aquí su folio, estado y seguimiento."/>
-                    <ui:param name="destino" value="/vista/tramites"/>
-                    <ui:param name="accion" value="Explorar trámites"/>
-                </ui:include>
-                <div class="table-footer">0 solicitudes</div>
-            </section>
+            <ui:include src="/plantillas/xhtml/comp-estado-vacio.xhtml">
+                <ui:param name="icono" value="inbox"/>
+                <ui:param name="tituloVacio" value="Tu siguiente paso comienza aquí"/>
+                <ui:param name="descripcion" value="Cuando registres un trámite, podrás consultar aquí su folio, estado y seguimiento."/>
+                <ui:param name="destino" value="/vista/tramites"/>
+                <ui:param name="accion" value="Explorar trámites"/>
+            </ui:include>
         </ui:fragment>
     </ui:define>
 </ui:composition>

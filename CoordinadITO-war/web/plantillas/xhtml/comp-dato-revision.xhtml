@@ -1,15 +1,17 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
-  COMPONENTE: una fila "etiqueta / valor" de una lista de definición (<dl class="review-values">).
-  Se usa en la revisión del formulario y en el detalle de una solicitud.
+  COMPONENTE: un par "etiqueta / valor" (revisión del formulario y detalle de una solicitud).
+  Ocupa media fila en escritorio y la fila completa en móvil (columnas de PrimeFlex);
+  la vista lo coloca dentro de un <div class="grid">.
   Parámetros (ui:param):
-      etiqueta -> el <dt>
-      valor    -> el <dd>; si llega vacío se muestra "Sin información"
+      etiqueta -> el título del dato
+      valor    -> el dato; si llega vacío se muestra "Sin información"
+      completo -> (opcional) true para ocupar toda la fila (textos largos, como el motivo)
 -->
 <ui:composition xmlns="http://www.w3.org/1999/xhtml"
                 xmlns:ui="jakarta.faces.facelets">
-    <div>
-        <dt>#{etiqueta}</dt>
-        <dd>#{empty valor ? 'Sin información' : valor}</dd>
+    <div class="col-12 #{completo ? '' : 'md:col-6'}">
+        <span class="dato-etiqueta">#{etiqueta}</span>
+        <span class="dato-valor">#{empty valor ? 'Sin información' : valor}</span>
     </div>
 </ui:composition>

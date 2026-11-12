@@ -1,0 +1,161 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  VISTA: panel de seguimiento, volumen de solicitudes (solo jefatura). HU 7.1.
+  - El periodo se elige con comp-filtro-periodo (viewScope.periodo); al cambiarlo, el bloque
+    "tablero" se vuelve a dibujar por AJAX.
+  - Datos: #{volumenDemo[periodo]} (datos-demo.xhtml): conteo por tipo de trámite y estado, y por
+    carrera. Los totales se calculan aquí con streams de EL (sum()).
+  - Gráficas con comp-grafica-barras (p:chart / Chart.js) y tabla con p:dataTable con fila de totales.
+  La exportación a hoja de cálculo (HU 7.4) es trabajo futuro y no se incluye.
+-->
+<ui:composition template="/plantillas/xhtml/plantilla-panel.xhtml"
+                xmlns="http://www.w3.org/1999/xhtml"
+                xmlns:h="jakarta.faces.html"
+                xmlns:f="jakarta.faces.core"
+                xmlns:ui="jakarta.faces.facelets"
+                xmlns:c="jakarta.tags.core"
+                xmlns:p="primefaces">
+
+    <ui:define name="metadatos">
+        <f:metadata>
+            <f:viewParam name="rol" value="#{viewScope.rol}"/>
+        </f:metadata>
+    </ui:define>
+
+    <ui:param name="seccion" value="volumen"/>
+    <ui:param name="rotulo" value="Volumen de solicitudes"/>
+
+    <ui:define name="titulo">Volumen de solicitudes</ui:define>
+
+    <ui:define name="contenido">
+        <c:set var="rol" value="#{viewScope.rol eq 'coordinator' or viewScope.rol eq 'head' or viewScope.rol eq 'administrator' ? viewScope.rol : 'student'}"/>
+
+        <ui:fragment rendered="#{rol ne 'head'}">
+            <ui:include src="/plantillas/xhtml/comp-estado-vacio.xhtml">
+                <ui:param name="icono" value="chart-bar"/>
+                <ui:param name="tituloVacio" value="Panel de jefatura"/>
+                <ui:param name="descripcion" value="El seguimiento del volumen de solicitudes de todas las carreras corresponde a la jefatura."/>
+                <ui:param name="destino" value="/vista/inicio"/>
+                <ui:param name="accion" value="Volver al inicio"/>
+            </ui:include>
+        </ui:fragment>
+
+        <ui:fragment rendered="#{rol eq 'head'}">
+            <ui:decorate template="/plantillas/xhtml/comp-encabezado.xhtml">
+                <ui:param name="eyebrow" value="PANEL DE SEGUIMIENTO"/>
+                <ui:param name="tituloPagina" value="Volumen de solicitudes"/>
+                <ui:param name="descripcion" value="La carga real del proceso: cuántas solicitudes, de qué tipo, de qué carrera y en qué estado."/>
+                <ui:param name="conAccion" value="true"/>
+                <ui:define name="accion">
+                    <ui:include src="/plantillas/xhtml/comp-filtro-periodo.xhtml">
+                        <ui:param name="actualizar" value=":tablero"/>
+                    </ui:include>
+                </ui:define>
+            </ui:decorate>
+
+            <h:panelGroup id="tablero" layout="block">
+                <c:set var="periodo" value="#{empty viewScope.periodo ? '2026-2' : viewScope.periodo}"/>
+                <c:set var="vol" value="#{volumenDemo[periodo]}"/>
+                <c:set var="recibidas" value="#{vol.filas.stream().map(f -> f.recibidas).sum()}"/>
+                <c:set var="enRevision" value="#{vol.filas.stream().map(f -> f.enRevision).sum()}"/>
+                <c:set var="finalizadas" value="#{vol.filas.stream().map(f -> f.finalizadas).sum()}"/>
+                <c:set var="rechazadas" value="#{vol.filas.stream().map(f -> f.rechazadas).sum()}"/>
+                <c:set var="total" value="#{recibidas + enRevision + finalizadas + rechazadas}"/>
+
+                <!-- ===== Métricas ===== -->
+                <div class="grid mb-2">
+                    <div class="col-12 sm:col-6 xl:col-3">
+                        <ui:include src="/plantillas/xhtml/comp-tarjeta-metrica.xhtml">
+                            <ui:param name="etiqueta" value="Solicitudes registradas"/>
+                            <ui:param name="valor" value="#{total}"/>
+                            <ui:param name="nota" value="#{periodosDemo.stream().filter(p -> p.id eq periodo).findFirst().get().etiqueta}"/>
+                            <ui:param name="icono" value="file"/>
+                        </ui:include>
+                    </div>
+                    <div class="col-12 sm:col-6 xl:col-3">
+                        <ui:include src="/plantillas/xhtml/comp-tarjeta-metrica.xhtml">
+                            <ui:param name="etiqueta" value="Abiertas"/>
+                            <ui:param name="valor" value="#{recibidas + enRevision}"/>
+                            <ui:param name="nota" value="#{recibidas} recibidas · #{enRevision} en revisión"/>
+                            <ui:param name="icono" value="clock"/>
+                            <ui:param name="tono" value="tono-naranja"/>
+                        </ui:include>
+                    </div>
+                    <div class="col-12 sm:col-6 xl:col-3">
+                        <ui:include src="/plantillas/xhtml/comp-tarjeta-metrica.xhtml">
+                            <ui:param name="etiqueta" value="Finalizadas"/>
+                            <ui:param name="valor" value="#{finalizadas}"/>
+                            <ui:param name="nota" value="#{total eq 0 ? '' : (finalizadas * 100 / total).intValue()}% del total"/>
+                            <ui:param name="icono" value="check"/>
+                            <ui:param name="tono" value="tono-verde"/>
+                        </ui:include>
+                    </div>
+                    <div class="col-12 sm:col-6 xl:col-3">
+                        <ui:include src="/plantillas/xhtml/comp-tarjeta-metrica.xhtml">
+                            <ui:param name="etiqueta" value="Rechazadas"/>
+                            <ui:param name="valor" value="#{rechazadas}"/>
+                            <ui:param name="nota" value="#{total eq 0 ? '' : (rechazadas * 100 / total).intValue()}% del total"/>
+                            <ui:param name="icono" value="times"/>
+                            <ui:param name="tono" value="tono-marino"/>
+                        </ui:include>
+                    </div>
+                </div>
+
+                <!-- ===== Gráficas ===== -->
+                <div class="grid">
+                    <div class="col-12 xl:col-7">
+                        <p:card styleClass="h-full">
+                            <f:facet name="title">Por tipo de trámite y estado</f:facet>
+                            <ui:include src="/plantillas/xhtml/comp-grafica-barras.xhtml">
+                                <ui:param name="etiquetas" value="#{vol.filas.stream().map(f -> f.tipo).toList()}"/>
+                                <ui:param name="series" value="#{[
+                                    {'etiqueta': 'Recibidas', 'valores': vol.filas.stream().map(f -> f.recibidas).toList(), 'color': '#2b6cb0'},
+                                    {'etiqueta': 'En revisión', 'valores': vol.filas.stream().map(f -> f.enRevision).toList(), 'color': '#ff8c1a'},
+                                    {'etiqueta': 'Finalizadas', 'valores': vol.filas.stream().map(f -> f.finalizadas).toList(), 'color': '#2e7d32'},
+                                    {'etiqueta': 'Rechazadas', 'valores': vol.filas.stream().map(f -> f.rechazadas).toList(), 'color': '#b23b3b'}]}"/>
+                                <ui:param name="horizontal" value="true"/>
+                                <ui:param name="apilada" value="true"/>
+                                <ui:param name="descripcion" value="Solicitudes por tipo de trámite, apiladas por estado"/>
+                            </ui:include>
+                        </p:card>
+                    </div>
+                    <div class="col-12 xl:col-5">
+                        <p:card styleClass="h-full">
+                            <f:facet name="title">Por carrera</f:facet>
+                            <ui:include src="/plantillas/xhtml/comp-grafica-barras.xhtml">
+                                <ui:param name="etiquetas" value="#{vol.carreras.stream().map(c -> c.clave).toList()}"/>
+                                <ui:param name="series" value="#{[{'etiqueta': 'Solicitudes', 'valores': vol.carreras.stream().map(c -> c.total).toList(), 'color': '#12233f'}]}"/>
+                                <ui:param name="descripcion" value="Solicitudes por carrera"/>
+                            </ui:include>
+                        </p:card>
+                    </div>
+                </div>
+
+                <!-- ===== Tabla ===== -->
+                <h:form styleClass="mt-3">
+                    <p:dataTable value="#{facesContext.attributes.computeIfAbsent('tablaVolumen', k -> vol.filas)}" var="f" reflow="true" styleClass="tabla-volumen">
+                        <p:column headerText="Tipo de trámite" sortBy="#{f.tipo}">#{f.tipo}</p:column>
+                        <p:column headerText="Recibidas" styleClass="text-right">#{f.recibidas}</p:column>
+                        <p:column headerText="En revisión" styleClass="text-right">#{f.enRevision}</p:column>
+                        <p:column headerText="Finalizadas" styleClass="text-right">#{f.finalizadas}</p:column>
+                        <p:column headerText="Rechazadas" styleClass="text-right">#{f.rechazadas}</p:column>
+                        <p:column headerText="Total" styleClass="text-right font-bold">#{f.recibidas + f.enRevision + f.finalizadas + f.rechazadas}</p:column>
+                        <p:columnGroup type="footer">
+                            <p:row>
+                                <p:column footerText="Total del periodo" style="text-align: left;"/>
+                                <p:column footerText="#{recibidas}" styleClass="text-right"/>
+                                <p:column footerText="#{enRevision}" styleClass="text-right"/>
+                                <p:column footerText="#{finalizadas}" styleClass="text-right"/>
+                                <p:column footerText="#{rechazadas}" styleClass="text-right"/>
+                                <p:column footerText="#{total}" styleClass="text-right"/>
+                            </p:row>
+                        </p:columnGroup>
+                    </p:dataTable>
+                </h:form>
+                <p class="text-color-secondary text-sm mt-3">
+                    Cuenta solo las solicitudes registradas en el portal en el periodo elegido.
+                </p>
+            </h:panelGroup>
+        </ui:fragment>
+    </ui:define>
+</ui:composition>

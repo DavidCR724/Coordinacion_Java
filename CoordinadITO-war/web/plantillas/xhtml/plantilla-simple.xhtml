@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  PLANTILLA SIMPLE: pantallas sueltas, sin menú lateral (error, acceso denegado, primer acceso).
+  Igual que plantilla-panel, se apoya en plantilla-base (plantillas anidadas).
+  Dibuja el logotipo arriba, una columna centrada para el contenido y un pie.
+
+  Huecos que rellena cada vista:
+      metadatos  -> (opcional) <f:metadata> con los f:viewParam de la vista
+      titulo     -> texto de <title>
+      contenido  -> lo que va en la columna central (normalmente un p:card)
+  Parámetros (ui:param):
+      ancho      -> (opcional) "amplio" para una columna de 720 px en lugar de 520 px
+  Incluye datos-demo.xhtml para que las vistas puedan usar los datos de ejemplo (carreras...).
+-->
+<ui:composition template="/plantillas/xhtml/plantilla-base.xhtml"
+                xmlns="http://www.w3.org/1999/xhtml"
+                xmlns:ui="jakarta.faces.facelets">
+
+    <ui:define name="titulo"><ui:insert name="titulo">Trámites ITO</ui:insert> · Trámites ITO</ui:define>
+
+    <ui:define name="cuerpo">
+        <ui:include src="/plantillas/xhtml/datos-demo.xhtml"/>
+
+        <main class="simple">
+            <header class="simple-encabezado">
+                <ui:include src="/plantillas/xhtml/comp-marca.xhtml">
+                    <ui:param name="oscuro" value="true"/>
+                    <ui:param name="destino" value="/vista/login"/>
+                </ui:include>
+            </header>
+
+            <section class="simple-columna #{ancho eq 'amplio' ? 'simple-amplia' : ''}">
+                <ui:insert name="contenido">Contenido</ui:insert>
+            </section>
+
+            <footer class="simple-pie">
+                Instituto Tecnológico de Oaxaca · Tecnológico Nacional de México
+            </footer>
+        </main>
+    </ui:define>
+</ui:composition>

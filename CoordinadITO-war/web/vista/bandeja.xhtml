@@ -1,15 +1,21 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
   VISTA: bandeja de atención (solo coordinación). Equivale a app/dashboard/review/page.tsx.
-  Muestra todas las solicitudes de la carrera de la coordinadora (ISC):
-  1043, 1042 y 1031. La 1044 es de Ingeniería Industrial y por eso NO aparece.
+  Muestra las solicitudes de la carrera de la coordinadora (ISC): 1043, 1042 y 1031,
+  filtrando #{solicitudesDemo} por carrera. La tabla (p:dataTable) busca, filtra y ordena.
 -->
 <ui:composition template="/plantillas/xhtml/plantilla-panel.xhtml"
                 xmlns="http://www.w3.org/1999/xhtml"
-                xmlns:h="jakarta.faces.html"
                 xmlns:f="jakarta.faces.core"
                 xmlns:ui="jakarta.faces.facelets"
-                xmlns:c="jakarta.tags.core">
+                xmlns:c="jakarta.tags.core"
+                xmlns:p="primefaces">
+
+    <ui:define name="metadatos">
+        <f:metadata>
+            <f:viewParam name="rol" value="#{viewScope.rol}"/>
+        </f:metadata>
+    </ui:define>
 
     <ui:param name="seccion" value="bandeja"/>
     <ui:param name="rotulo" value="Bandeja de atención"/>
@@ -17,7 +23,7 @@
     <ui:define name="titulo">Bandeja de atención</ui:define>
 
     <ui:define name="contenido">
-        <c:set var="rol" value="#{param.rol eq 'coordinator' or param.rol eq 'administrator' ? param.rol : 'student'}"/>
+        <c:set var="rol" value="#{viewScope.rol eq 'coordinator' or viewScope.rol eq 'head' or viewScope.rol eq 'administrator' ? viewScope.rol : 'student'}"/>
 
         <ui:fragment rendered="#{rol ne 'coordinator'}">
             <ui:include src="/plantillas/xhtml/comp-estado-vacio.xhtml">
@@ -36,51 +42,17 @@
                 <ui:param name="descripcion" value="Todas las solicitudes de tu carrera, con un historial claro para cada caso."/>
             </ui:include>
 
-            <div class="career-scope">
-                <svg class="icono" width="20" height="20" aria-hidden="true"><use href="#i-cap"/></svg>
-                <span>Ingeniería en Sistemas Computacionales</span>
-                <span class="scope-label">Carrera asignada</span>
+            <div class="mb-3">
+                <p:chip label="#{usuariosDemo.coordinator.carrera} · Carrera asignada" icon="pi pi-graduation-cap"/>
             </div>
 
-            <ui:decorate template="/plantillas/xhtml/comp-tabla-solicitudes.xhtml">
+            <ui:include src="/plantillas/xhtml/comp-tabla-solicitudes.xhtml">
+                <ui:param name="solicitudes" value="#{solicitudesDemo.stream().filter(s -> s.carrera eq usuariosDemo.coordinator.carrera).toList()}"/>
                 <ui:param name="conEstudiante" value="true"/>
                 <ui:param name="conFiltros" value="true"/>
-                <ui:param name="totalFilas" value="3"/>
-                <ui:define name="filas">
-                    <ui:include src="/plantillas/xhtml/comp-fila-solicitud.xhtml">
-                        <ui:param name="folio" value="1043"/>
-                        <ui:param name="tramite" value="Baja de materia"/>
-                        <ui:param name="estudiante" value="Daniel Pérez García"/>
-                        <ui:param name="control" value="00000002"/>
-                        <ui:param name="registro" value="27 oct 2026"/>
-                        <ui:param name="codigoEstado" value="received"/>
-                        <ui:param name="actualizacion" value="27 oct 2026"/>
-                        <ui:param name="conEstudiante" value="true"/>
-                    </ui:include>
-                    <ui:include src="/plantillas/xhtml/comp-fila-solicitud.xhtml">
-                        <ui:param name="folio" value="1042"/>
-                        <ui:param name="tramite" value="Cambio de horario"/>
-                        <ui:param name="estudiante" value="Sofía Hernández López"/>
-                        <ui:param name="control" value="00000001"/>
-                        <ui:param name="registro" value="23 oct 2026"/>
-                        <ui:param name="codigoEstado" value="in-review"/>
-                        <ui:param name="actualizacion" value="27 oct 2026"/>
-                        <ui:param name="conEstudiante" value="true"/>
-                    </ui:include>
-                    <ui:include src="/plantillas/xhtml/comp-fila-solicitud.xhtml">
-                        <ui:param name="folio" value="1031"/>
-                        <ui:param name="tramite" value="Baja de materia"/>
-                        <ui:param name="estudiante" value="Sofía Hernández López"/>
-                        <ui:param name="control" value="00000001"/>
-                        <ui:param name="registro" value="20 oct 2026"/>
-                        <ui:param name="codigoEstado" value="completed"/>
-                        <ui:param name="actualizacion" value="26 oct 2026"/>
-                        <ui:param name="conEstudiante" value="true"/>
-                    </ui:include>
-                </ui:define>
-            </ui:decorate>
+            </ui:include>
 
-            <p class="helper-text section-note">
+            <p class="text-color-secondary mt-3">
                 Abre una solicitud para registrar su revisión, emitir una resolución y consultar la
                 constancia de cada cambio.
             </p>

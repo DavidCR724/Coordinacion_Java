@@ -1,29 +1,26 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
   COMPONENTE: estado vacío o acceso no permitido (equivale a components/ui/empty-state.tsx).
+  Es un p:card centrado con icono, texto y (opcional) un p:linkButton.
   Parámetros (ui:param):
-      icono        -> nombre del icono del sprite (por omisión "inbox")
+      icono        -> nombre del PrimeIcon sin "pi-" (por omisión "inbox")
       tituloVacio  -> título
       descripcion  -> texto de apoyo
       destino      -> (opcional) outcome del botón, p. ej. /vista/inicio
       accion       -> (opcional) texto del botón
 -->
 <ui:composition xmlns="http://www.w3.org/1999/xhtml"
-                xmlns:h="jakarta.faces.html"
-                xmlns:f="jakarta.faces.core"
-                xmlns:ui="jakarta.faces.facelets">
-    <div class="empty-state">
-        <span class="empty-icon">
-            <svg class="icono" width="27" height="27" aria-hidden="true"><use href="#i-#{empty icono ? 'inbox' : icono}"/></svg>
+                xmlns:ui="jakarta.faces.facelets"
+                xmlns:p="primefaces">
+    <p:card styleClass="text-center py-5">
+        <span class="icono-circulo mb-3" style="width: 4rem; height: 4rem; font-size: 1.6rem;">
+            <i class="pi pi-#{empty icono ? 'inbox' : icono}" aria-hidden="true"></i>
         </span>
-        <h3>#{tituloVacio}</h3>
-        <p>#{descripcion}</p>
+        <h3 class="text-xl mt-2 mb-2">#{tituloVacio}</h3>
+        <p class="text-color-secondary mt-0 mb-4 mx-auto" style="max-width: 32rem;">#{descripcion}</p>
         <ui:fragment rendered="#{not empty destino and not empty accion}">
-            <h:link outcome="#{destino}" styleClass="button button-secondary">
-                <f:param name="rol" value="#{param.rol}" disable="#{empty param.rol}"/>
-                #{accion}
-                <svg class="icono" width="16" height="16" aria-hidden="true"><use href="#i-arrow"/></svg>
-            </h:link>
+            <p:linkButton outcome="#{destino}" includeViewParams="true" value="#{accion}"
+                          icon="pi pi-arrow-right" iconPos="right" styleClass="ui-button-outlined"/>
         </ui:fragment>
-    </div>
+    </p:card>
 </ui:composition>

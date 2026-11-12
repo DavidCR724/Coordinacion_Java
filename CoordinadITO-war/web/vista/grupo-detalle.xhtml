@@ -1,0 +1,187 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  VISTA: detalle de una solicitud de apertura de grupo y sus adhesiones. HU 4.2, 4.3 y 4.4.
+  Parámetros de la URL: ?id=G-112 | G-118 | G-121 | G-097 | G-103  y  ?rol=...
+  Quién ve qué:
+      student     -> solicitudes de su carrera (ISC); número de adhesiones, estado, historial y el
+                     botón "Adherirme" / "Retirar mi adhesión" (HU 4.2: no dos veces, puede retirarse).
+      coordinator -> solicitudes de su carrera, con la lista de alumnos adheridos.
+      head        -> cualquier carrera, con la lista de alumnos adheridos (HU 4.4).
+      administrator o id inexistente -> "Solicitud no disponible".
+  Sin bean todavía: adherirse o retirarse cambia viewScope.adherido por AJAX y el contador se
+  recalcula en la vista; al recargar la página vuelve al dato de ejemplo.
+-->
+<ui:composition template="/plantillas/xhtml/plantilla-panel.xhtml"
+                xmlns="http://www.w3.org/1999/xhtml"
+                xmlns:h="jakarta.faces.html"
+                xmlns:f="jakarta.faces.core"
+                xmlns:ui="jakarta.faces.facelets"
+                xmlns:c="jakarta.tags.core"
+                xmlns:p="primefaces">
+
+    <ui:define name="metadatos">
+        <f:metadata>
+            <f:viewParam name="rol" value="#{viewScope.rol}"/>
+            <f:viewParam name="id" value="#{viewScope.id}"/>
+        </f:metadata>
+    </ui:define>
+
+    <ui:param name="seccion" value="grupos"/>
+    <ui:param name="rotulo" value="Solicitud de grupo"/>
+
+    <ui:define name="titulo">Solicitud de apertura de grupo</ui:define>
+
+    <ui:define name="contenido">
+        <c:set var="rol" value="#{viewScope.rol eq 'coordinator' or viewScope.rol eq 'head' or viewScope.rol eq 'administrator' ? viewScope.rol : 'student'}"/>
+        <c:set var="g" value="#{gruposDemo.stream().filter(x -> x.id eq viewScope.id).findFirst().orElse(null)}"/>
+        <c:set var="visible" value="#{not empty g and (rol eq 'head' or ((rol eq 'student' or rol eq 'coordinator') and g.claveCarrera eq 'ISC'))}"/>
+        <c:set var="activa" value="#{g.codigoEstado eq 'received' or g.codigoEstado eq 'in-review'}"/>
+
+        <ui:fragment rendered="#{not visible}">
+            <ui:include src="/plantillas/xhtml/comp-estado-vacio.xhtml">
+                <ui:param name="icono" value="shield"/>
+                <ui:param name="tituloVacio" value="Solicitud no disponible"/>
+                <ui:param name="descripcion" value="No encontramos esta solicitud de apertura entre las que corresponden a tu carrera."/>
+                <ui:param name="destino" value="/vista/grupos"/>
+                <ui:param name="accion" value="Ver solicitudes de grupo"/>
+            </ui:include>
+        </ui:fragment>
+
+        <ui:fragment rendered="#{visible}">
+            <p:linkButton outcome="/vista/grupos" includeViewParams="true" value="Volver a grupos"
+                          icon="pi pi-arrow-left" styleClass="ui-button-flat mb-3 -ml-3"/>
+
+            <ui:decorate template="/plantillas/xhtml/comp-encabezado.xhtml">
+                <ui:param name="eyebrow" value="#{g.id} · APERTURA DE GRUPO"/>
+                <ui:param name="tituloPagina" value="#{g.materia}"/>
+                <ui:param name="descripcion" value="#{g.clave} · #{g.semestre}.º semestre · #{g.carrera}"/>
+                <ui:param name="conAccion" value="true"/>
+                <ui:define name="accion">
+                    <ui:include src="/plantillas/xhtml/comp-insignia-estado.xhtml">
+                        <ui:param name="codigoEstado" value="#{g.codigoEstado}"/>
+                    </ui:include>
+                </ui:define>
+            </ui:decorate>
+
+            <div class="grid">
+                <!-- ===== Columna principal ===== -->
+                <div class="col-12 lg:col-8">
+                    <p:card styleClass="mb-4">
+                        <f:facet name="title">Datos de la solicitud</f:facet>
+                        <div class="grid">
+                            <ui:include src="/plantillas/xhtml/comp-dato-revision.xhtml">
+                                <ui:param name="etiqueta" value="Iniciada por"/>
+                                <ui:param name="valor" value="#{g.promotor}"/>
+                            </ui:include>
+                            <ui:include src="/plantillas/xhtml/comp-dato-revision.xhtml">
+                                <ui:param name="etiqueta" value="Fecha de registro"/>
+                                <ui:param name="valor" value="#{g.registro}"/>
+                            </ui:include>
+                            <ui:include src="/plantillas/xhtml/comp-dato-revision.xhtml">
+                                <ui:param name="etiqueta" value="Motivo"/>
+                                <ui:param name="valor" value="#{g.motivo}"/>
+                                <ui:param name="completo" value="true"/>
+                            </ui:include>
+                        </div>
+                    </p:card>
+
+                    <!-- Lista de adheridos: solo coordinación y jefatura (HU 4.4) -->
+                    <ui:fragment rendered="#{rol ne 'student'}">
+                        <p:card styleClass="mb-4">
+                            <f:facet name="title">Alumnos adheridos</f:facet>
+                            <h:form>
+                                <p:dataTable value="#{facesContext.attributes.computeIfAbsent('tablaAdheridos', k -> g.alumnos)}" var="a" reflow="true" size="small">
+                                    <p:column headerText="Alumno" sortBy="#{a.nombre}">
+                                        <div class="flex align-items-center gap-2">
+                                            <p:avatar label="#{a.nombre.substring(0, 1)}" shape="circle" size="normal"/>
+                                            #{a.nombre}
+                                        </div>
+                                    </p:column>
+                                    <p:column headerText="Número de control" style="width: 11rem;">#{a.control}</p:column>
+                                    <p:column headerText="Semestre" sortBy="#{a.semestre}" style="width: 7rem;">#{a.semestre}.º</p:column>
+                                    <p:column headerText="Se adhirió" style="width: 9rem;">#{a.fecha}</p:column>
+                                    <f:facet name="footer">
+                                        Se muestran las primeras #{g.alumnos.size()} de #{g.adhesiones} adhesiones (datos de ejemplo).
+                                    </f:facet>
+                                </p:dataTable>
+                            </h:form>
+                        </p:card>
+                    </ui:fragment>
+
+                    <p:card>
+                        <f:facet name="title">Historial</f:facet>
+                        <ui:include src="/plantillas/xhtml/comp-evento-historial.xhtml">
+                            <ui:param name="eventos" value="#{g.historial}"/>
+                        </ui:include>
+                    </p:card>
+                </div>
+
+                <!-- ===== Columna lateral: contador y adhesión ===== -->
+                <div class="col-12 lg:col-4">
+                    <h:form id="formAdhesion">
+                        <h:panelGroup id="panelAdhesion" layout="block">
+                            <c:set var="adherido" value="#{empty viewScope.adherido ? g.adherido : viewScope.adherido}"/>
+                            <c:set var="total" value="#{g.adhesiones - (g.adherido ? 1 : 0) + (adherido ? 1 : 0)}"/>
+                            <p:card styleClass="text-center mb-4">
+                                <span class="icono-circulo tono-marino mb-2"><i class="pi pi-users" aria-hidden="true"></i></span>
+                                <p class="metrica-valor m-0" style="font-size: 3rem;">#{total}</p>
+                                <p class="text-color-secondary mt-1 mb-3">#{total eq 1 ? 'alumno adherido' : 'alumnos adheridos'}</p>
+
+                                <ui:fragment rendered="#{rol eq 'student'}">
+                                    <ui:fragment rendered="#{adherido}">
+                                        <p:tag value="#{g.propia ? 'Tú iniciaste esta solicitud' : 'Estás adherido'}" icon="pi pi-check"
+                                               severity="success" rounded="true" styleClass="mb-3"/>
+                                    </ui:fragment>
+                                    <ui:fragment rendered="#{activa}">
+                                        <p:commandButton value="Adherirme a esta solicitud" icon="pi pi-user-plus" styleClass="w-full"
+                                                         rendered="#{not adherido}" update="panelAdhesion">
+                                            <f:setPropertyActionListener target="#{viewScope.adherido}" value="#{true}"/>
+                                        </p:commandButton>
+                                        <p:commandButton value="Retirar mi adhesión" icon="pi pi-user-minus"
+                                                         styleClass="w-full ui-button-outlined ui-button-danger"
+                                                         rendered="#{adherido}" update="panelAdhesion">
+                                            <f:setPropertyActionListener target="#{viewScope.adherido}" value="#{false}"/>
+                                            <p:confirm header="Retirar adhesión" icon="pi pi-exclamation-triangle"
+                                                       message="Dejarás de contar en esta solicitud y de recibir sus avisos. ¿Continuar?"/>
+                                        </p:commandButton>
+                                        <small class="block text-color-secondary mt-3">
+                                            Recibirás un aviso cada vez que la solicitud cambie de estado.
+                                        </small>
+                                    </ui:fragment>
+                                    <ui:fragment rendered="#{not activa}">
+                                        <small class="block text-color-secondary">Esta solicitud ya se resolvió y no admite nuevas adhesiones.</small>
+                                    </ui:fragment>
+                                </ui:fragment>
+
+                                <ui:fragment rendered="#{rol ne 'student'}">
+                                    <p:divider/>
+                                    <div class="flex justify-content-between text-sm mb-2">
+                                        <span class="text-color-secondary">Última actualización</span>
+                                        <strong>#{g.actualizacion}</strong>
+                                    </div>
+                                    <div class="flex justify-content-between text-sm">
+                                        <span class="text-color-secondary">Carrera</span>
+                                        <strong>#{g.claveCarrera}</strong>
+                                    </div>
+                                </ui:fragment>
+                            </p:card>
+                        </h:panelGroup>
+
+                        <p:confirmDialog global="true" responsive="true" width="380">
+                            <p:commandButton value="Sí, retirarme" type="button" styleClass="ui-confirmdialog-yes ui-button-danger" icon="pi pi-check"/>
+                            <p:commandButton value="Cancelar" type="button" styleClass="ui-confirmdialog-no ui-button-flat"/>
+                        </p:confirmDialog>
+                    </h:form>
+
+                    <ui:fragment rendered="#{rol ne 'student' and activa}">
+                        <ui:include src="/plantillas/xhtml/comp-aviso.xhtml">
+                            <ui:param name="tipo" value="info"/>
+                            <ui:param name="tituloAviso" value="Decidir la apertura"/>
+                            <ui:param name="texto" value="La resolución (abrir o no el grupo) se registrará con el cambio de estado, igual que en las demás solicitudes, cuando exista GrupoControl."/>
+                        </ui:include>
+                    </ui:fragment>
+                </div>
+            </div>
+        </ui:fragment>
+    </ui:define>
+</ui:composition>

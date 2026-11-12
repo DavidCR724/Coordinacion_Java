@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  COMPONENTE: mensaje en línea (callout) con icono, título, texto y, si se quiere, un botón.
+  Sirve para avisar algo dentro de una pantalla: "ya existe una solicitud para esta materia",
+  "tus datos se guardaron", "esta cuenta no tiene rol"...
+  Se diferencia de p:staticMessage en que admite título + texto largo + acción propia.
+  Parámetros (ui:param):
+      tipo         -> info | exito | advertencia | error   (por omisión info)
+      icono        -> (opcional) PrimeIcon sin "pi-"; por omisión uno según el tipo
+      tituloAviso  -> título en negritas
+      texto        -> texto de apoyo
+      conAccion    -> true si la vista define el hueco "accion"
+  Hueco (ui:define) opcional: accion -> botón o enlace. Con botón se usa <ui:decorate>;
+  sin botón basta <ui:include>.
+-->
+<ui:composition xmlns="http://www.w3.org/1999/xhtml"
+                xmlns:ui="jakarta.faces.facelets">
+    <div class="aviso-linea aviso-#{empty tipo ? 'info' : tipo}" role="#{tipo eq 'error' or tipo eq 'advertencia' ? 'alert' : 'status'}">
+        <i class="pi pi-#{not empty icono ? icono : (tipo eq 'exito' ? 'check-circle' : (tipo eq 'advertencia' ? 'exclamation-triangle' : (tipo eq 'error' ? 'times-circle' : 'info-circle')))} aviso-linea-icono"
+           aria-hidden="true"></i>
+        <div class="flex-1">
+            <strong class="block">#{tituloAviso}</strong>
+            <ui:fragment rendered="#{not empty texto}"><p class="m-0 mt-1">#{texto}</p></ui:fragment>
+            <ui:fragment rendered="#{conAccion}">
+                <div class="mt-3"><ui:insert name="accion"/></div>
+            </ui:fragment>
+        </div>
+    </div>
+</ui:composition>

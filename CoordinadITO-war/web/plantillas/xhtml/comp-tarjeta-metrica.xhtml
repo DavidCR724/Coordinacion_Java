@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  COMPONENTE: tarjeta de métrica (número grande con icono). Es un p:card.
+  Parámetros (ui:param):
+      etiqueta -> qué se cuenta ("Solicitudes en curso")
+      valor    -> el número, ya formateado ("01")
+      nota     -> texto pequeño bajo el número
+      icono    -> PrimeIcon sin "pi-" (file, inbox, check...)
+      tono     -> (opcional) tono-naranja | tono-marino | tono-verde; por omisión azul
+  La vista decide el ancho con las columnas de PrimeFlex (col-12 md:col-4...).
+-->
+<ui:composition xmlns="http://www.w3.org/1999/xhtml"
+                xmlns:ui="jakarta.faces.facelets"
+                xmlns:p="primefaces">
+    <p:card styleClass="h-full">
+        <div class="flex justify-content-between align-items-start gap-3">
+            <div>
+                <p class="mt-0 mb-2 text-color-secondary font-medium">#{etiqueta}</p>
+                <span class="metrica-valor">#{valor}</span>
+                <small class="block mt-2 text-color-secondary">#{nota}</small>
+            </div>
+            <span class="icono-circulo #{tono}"><i class="pi pi-#{icono}" aria-hidden="true"></i></span>
+        </div>
+    </p:card>
+</ui:composition>

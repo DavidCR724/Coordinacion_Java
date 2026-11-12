@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  COMPONENTE: un aviso oficial de la carrera (tablas AVISO + AVISO_CARRERA, HU 5.3). Es un p:card.
+  Se usa dentro de <ui:repeat var="aviso"> sobre #{comunicadosDemo}, y también como vista
+  previa en aviso-nuevo (ahí "aviso" es un mapa armado con lo que se va escribiendo).
+  Campos de "aviso": titulo, contenido, autor, carreras (lista de claves), inicio, fin,
+                     publicado, vigente, icono, tono.
+  Parámetro (ui:param):
+      compacto -> true para recortar el texto a 3 líneas (bloque de "avisos vigentes" del inicio)
+-->
+<ui:composition xmlns="http://www.w3.org/1999/xhtml"
+                xmlns:ui="jakarta.faces.facelets"
+                xmlns:p="primefaces">
+    <p:card styleClass="mb-3 tarjeta-aviso #{aviso.vigente ? '' : 'aviso-concluido'}">
+        <div class="flex gap-3 align-items-start">
+            <span class="icono-circulo chico #{aviso.tono}">
+                <i class="pi pi-#{empty aviso.icono ? 'megaphone' : aviso.icono}" aria-hidden="true"></i>
+            </span>
+            <div class="flex-1 min-w-0">
+                <div class="flex justify-content-between align-items-start gap-2 flex-wrap">
+                    <h3 class="text-lg m-0">#{empty aviso.titulo ? 'Título del aviso' : aviso.titulo}</h3>
+                    <p:tag value="#{aviso.vigente ? 'Vigente' : 'Concluido'}" rounded="true"
+                           severity="#{aviso.vigente ? 'success' : null}" styleClass="#{aviso.vigente ? '' : 'tag-gris'}"/>
+                </div>
+                <p class="mt-2 mb-3 #{compacto ? 'texto-3-lineas' : ''}" style="white-space: pre-wrap;">#{empty aviso.contenido ? 'El texto del aviso aparecerá aquí.' : aviso.contenido}</p>
+                <div class="flex align-items-center gap-2 flex-wrap text-sm text-color-secondary">
+                    <ui:repeat value="#{aviso.carreras}" var="clave">
+                        <p:chip label="#{clave}" styleClass="chip-chico"/>
+                    </ui:repeat>
+                    <span><i class="pi pi-calendar mr-1" aria-hidden="true"></i>Vigente del #{aviso.inicio} al #{aviso.fin}</span>
+                    <span>· #{aviso.autor}</span>
+                </div>
+            </div>
+        </div>
+    </p:card>
+</ui:composition>

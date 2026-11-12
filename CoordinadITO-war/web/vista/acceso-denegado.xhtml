@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  VISTA: acceso denegado (plantilla-simple). HU 6.1 y 6.3.
+  La mostrará SesionControl cuando la cuenta no pueda entrar. El motivo llega en la URL:
+      ?motivo=dominio  -> cuenta ajena a @itoaxaca.edu.mx (HU 6.1)
+      ?motivo=baja     -> cuenta institucional dada de baja (HU 6.1)
+      ?motivo=rol      -> cuenta sin el rol que pide la pantalla (HU 6.3); es el valor por omisión
+  web.xml también la registra para el código 403.
+  Ejemplos: /vista/acceso-denegado.xhtml?motivo=dominio
+-->
+<ui:composition template="/plantillas/xhtml/plantilla-simple.xhtml"
+                xmlns="http://www.w3.org/1999/xhtml"
+                xmlns:f="jakarta.faces.core"
+                xmlns:ui="jakarta.faces.facelets"
+                xmlns:c="jakarta.tags.core"
+                xmlns:p="primefaces">
+
+    <ui:define name="metadatos">
+        <f:metadata>
+            <f:viewParam name="motivo" value="#{viewScope.motivo}"/>
+        </f:metadata>
+    </ui:define>
+
+    <ui:define name="titulo">Acceso denegado</ui:define>
+
+    <ui:define name="contenido">
+        <c:set var="motivo" value="#{viewScope.motivo eq 'dominio' or viewScope.motivo eq 'baja' ? viewScope.motivo : 'rol'}"/>
+
+        <p:card styleClass="py-3">
+            <div class="text-center">
+                <span class="icono-circulo mb-3" style="width: 4.5rem; height: 4.5rem; font-size: 1.8rem; background: #fdecea; color: #c62828;">
+                    <i class="pi #{motivo eq 'rol' ? 'pi-lock' : 'pi-ban'}" aria-hidden="true"></i>
+                </span>
+                <p class="eyebrow">ACCESO DENEGADO</p>
+                <h1 class="text-3xl font-bold mt-2 mb-2">
+                    #{motivo eq 'dominio' ? 'Esta cuenta no es institucional'
+                      : (motivo eq 'baja' ? 'Tu cuenta ya no está activa' : 'No tienes permiso para esta sección')}
+                </h1>
+                <p class="text-color-secondary text-lg mt-0 mb-4">
+                    #{motivo eq 'dominio' ? 'Solo se puede entrar con una cuenta @itoaxaca.edu.mx.'
+                      : (motivo eq 'baja' ? 'La institución dio de baja tu cuenta de correo, por eso ya no puedes entrar al portal.'
+                      : 'Tu cuenta entró correctamente, pero esta pantalla es de otro rol.')}
+                </p>
+            </div>
+
+            <ui:include src="/plantillas/xhtml/comp-aviso.xhtml">
+                <ui:param name="tipo" value="info"/>
+                <ui:param name="tituloAviso" value="¿Qué puedo hacer?"/>
+                <ui:param name="texto" value="#{motivo eq 'dominio' ? 'Cierra la sesión de tu cuenta personal y vuelve a entrar con tu correo institucional (número de control @itoaxaca.edu.mx).'
+                                                : (motivo eq 'baja' ? 'Acude al Centro de Cómputo para revisar el estado de tu cuenta institucional.'
+                                                : 'Los roles de coordinación y jefatura los asigna administración. Si crees que deberías tener acceso, solicítalo a tu jefatura.')}"/>
+            </ui:include>
+
+            <div class="flex justify-content-center gap-2 flex-wrap mt-4">
+                <p:linkButton outcome="#{motivo eq 'rol' ? '/vista/inicio' : '/vista/login'}"
+                              value="#{motivo eq 'rol' ? 'Ir a mi espacio' : 'Entrar con otra cuenta'}"
+                              icon="pi #{motivo eq 'rol' ? 'pi-home' : 'pi-sign-in'}"/>
+            </div>
+        </p:card>
+    </ui:define>
+</ui:composition>

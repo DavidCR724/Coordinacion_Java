@@ -1,25 +1,29 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
-  COMPONENTE: un evento de la línea de tiempo de una solicitud (<li> de ol.timeline).
-  Parámetros (ui:param):
-      ultimo       -> true para el evento más reciente (punto resaltado)
-      codigoEstado -> received | in-review | completed | rejected
-      fechaIso     -> valor del atributo datetime
-      fecha        -> fecha ya formateada, p. ej. "27 oct 2026, 9:15 a.m."
-      comentario   -> texto del evento
-      actor        -> quién lo registró
-      transicion   -> (opcional) "Recibida → En revisión"
+  COMPONENTE: historial de una solicitud como línea de tiempo (p:chronoline de PrimeFaces).
+  Parámetro (ui:param):
+      eventos -> lista de eventos, del más reciente al más antiguo. Cada evento tiene:
+                 codigoEstado, fecha, actor, comentario, transicion (puede ir vacía)
+  El marcador de cada evento es un icono del color de su estado.
 -->
 <ui:composition xmlns="http://www.w3.org/1999/xhtml"
-                xmlns:ui="jakarta.faces.facelets">
-    <li class="#{ultimo ? 'latest' : ''}">
-        <span class="timeline-dot"><ui:fragment rendered="#{ultimo}"><span></span></ui:fragment></span>
-        <div>
-            <ui:include src="/plantillas/xhtml/comp-insignia-estado.xhtml"/>
-            <time datetime="#{fechaIso}">#{fecha}</time>
-            <p>#{comentario}</p>
-            <strong>#{actor}</strong>
-            <ui:fragment rendered="#{not empty transicion}"><small>#{transicion}</small></ui:fragment>
+                xmlns:f="jakarta.faces.core"
+                xmlns:ui="jakarta.faces.facelets"
+                xmlns:p="primefaces">
+    <p:chronoline value="#{eventos}" var="evento" styleClass="historial">
+        <f:facet name="marker">
+            <span class="icono-circulo chico #{evento.codigoEstado eq 'completed' ? 'tono-verde' : (evento.codigoEstado eq 'in-review' ? 'tono-naranja' : (evento.codigoEstado eq 'rejected' ? 'tono-marino' : ''))}">
+                <i class="pi #{evento.codigoEstado eq 'received' ? 'pi-inbox' : (evento.codigoEstado eq 'in-review' ? 'pi-clock' : (evento.codigoEstado eq 'completed' ? 'pi-check' : 'pi-times'))}" aria-hidden="true"></i>
+            </span>
+        </f:facet>
+        <div class="pb-4">
+            <ui:include src="/plantillas/xhtml/comp-insignia-estado.xhtml">
+                <ui:param name="codigoEstado" value="#{evento.codigoEstado}"/>
+            </ui:include>
+            <small class="block mt-2 text-color-secondary">#{evento.fecha}</small>
+            <p class="my-2">#{evento.comentario}</p>
+            <strong class="text-sm">#{evento.actor}</strong>
+            <small class="block text-color-secondary">#{evento.transicion}</small>
         </div>
-    </li>
+    </p:chronoline>
 </ui:composition>

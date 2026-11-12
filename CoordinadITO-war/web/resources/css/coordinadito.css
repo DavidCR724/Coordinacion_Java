@@ -1,0 +1,259 @@
+/*
+ * CoordinadITO · estilos propios.
+ * Sustituye a reset.css + estilos.css. Lo visual de los componentes (botones, tablas,
+ * campos, etiquetas...) lo pone el tema de PrimeFaces y la maquetación la ponen las clases
+ * de PrimeFlex (flex, grid, gap-3, mb-4...). Aquí solo queda:
+ *   1. Paleta y tipografía del ITO.
+ *   2. Marco del panel (barra lateral, barra superior, franja de prueba, pie).
+ *   3. Piezas de marca que no existen en PrimeFaces (logotipo, "eyebrow", tarjetas métricas).
+ *   4. Pantalla de inicio de sesión.
+ */
+
+/* ===== 1. Paleta y tipografía ===== */
+:root {
+    --ito-navy: #12233f;
+    --ito-blue: #2b6cb0;
+    --ito-orange: #ff8c1a;
+    --ito-orange-light: #f5b27a;
+    --ito-cream: #f7f5f1;
+    --ito-orange-soft: #fff3e7;
+    --ito-blue-soft: #edf3f9;
+    --ito-muted: #637083;
+    /* Variables que usan PrimeFlex y el tema */
+    --surface-ground: var(--ito-cream);
+    --text-color: var(--ito-navy);
+    --text-color-secondary: var(--ito-muted);
+    --primary-color: var(--ito-blue);
+    --border-radius: 10px;
+}
+html { font-size: 14px; }
+body {
+    margin: 0;
+    background: var(--ito-cream);
+    color: var(--ito-navy);
+    font-family: "Geist", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+}
+body .ui-widget, body .ui-widget input, body .ui-widget select, body .ui-widget textarea, body .ui-widget button {
+    font-family: inherit;
+    font-size: 1rem;
+}
+h1, h2, h3 { color: var(--ito-navy); letter-spacing: -0.01em; }
+a { color: var(--ito-blue); }
+:focus-visible { outline: 3px solid var(--ito-orange); outline-offset: 2px; }
+
+.skip-link { position: absolute; left: -999px; top: 0; z-index: 2000; background: #fff; padding: .5rem 1rem; }
+.skip-link:focus { left: 1rem; top: 1rem; }
+
+/* ===== 2. Marco del panel ===== */
+.app-shell { display: flex; min-height: 100vh; }
+.app-sidebar {
+    flex-direction: column;
+    flex: 0 0 260px;
+    width: 260px;
+    height: 100vh;
+    position: sticky;
+    top: 0;
+    overflow-y: auto;
+    padding: 1.25rem 1rem;
+    background: var(--ito-navy);
+    color: #dfe5ee;
+}
+.app-shell.sidebar-colapsada .app-sidebar { display: none !important; }
+.app-body { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; }
+.app-contenido { flex: 1 1 auto; width: 100%; max-width: 1240px; margin: 0 auto; padding: 2rem 1.5rem 3rem; }
+.app-contenido:focus { outline: none; }
+
+.sidebar-workspace {
+    display: flex; align-items: center; gap: .5rem;
+    margin: 1.25rem 0 .75rem; padding: .6rem .75rem;
+    border: 1px solid rgba(255, 255, 255, .12); border-radius: 8px;
+    font-size: .85rem;
+}
+.workspace-dot { width: .5rem; height: .5rem; border-radius: 50%; background: var(--ito-orange); display: inline-block; flex: none; }
+
+/* Menú lateral (p:tieredMenu) sobre fondo azul marino.
+   Los selectores empiezan con "body" para ganarle en especificidad al tema. */
+body .menu-lateral.ui-menu { width: 100%; background: transparent; border: 0; padding: 0; }
+.menu-lateral-titulo { color: #8e9bb0; font-size: .72rem; font-weight: 600; letter-spacing: .12em; margin: .5rem .75rem; }
+body .menu-lateral.ui-menu .ui-menu-list .ui-widget-header {
+    background: transparent; border: 0; margin: 0; padding: .75rem .75rem .5rem;
+}
+body .menu-lateral.ui-menu .ui-menu-list .ui-widget-header h3 {
+    color: #8e9bb0; font-size: .72rem; font-weight: 600; letter-spacing: .12em; margin: 0;
+}
+body .menu-lateral.ui-menu .ui-menu-list .ui-menuitem { margin-bottom: .15rem; }
+body .menu-lateral.ui-menu .ui-menu-list .ui-menuitem .ui-menuitem-link {
+    display: flex; align-items: center; color: #dfe5ee; border-radius: 8px; padding: .75rem;
+}
+body .menu-lateral.ui-menu .ui-menu-list .ui-menuitem .ui-menuitem-link .ui-menuitem-icon,
+body .menu-lateral.ui-menu .ui-menu-list .ui-menuitem .ui-menuitem-link .ui-menuitem-text { color: inherit; }
+body .menu-lateral.ui-menu .ui-menu-list .ui-menuitem .ui-menuitem-link:hover,
+body .menu-lateral.ui-menu .ui-menu-list .ui-menuitem .ui-menuitem-link:focus { background: rgba(255, 255, 255, .08); color: #fff; box-shadow: none; }
+body .menu-lateral.ui-menu .ui-menu-list .menu-activo > .ui-menuitem-link { background: rgba(255, 140, 26, .16); color: #fff; box-shadow: inset 3px 0 0 var(--ito-orange); }
+/* El contador (badge) va dentro de la opción, alineado a la derecha, no flotando encima */
+body .menu-lateral.ui-menu .ui-menu-list .ui-menuitem { position: relative; }
+body .menu-lateral.ui-menu .ui-menu-list .ui-menuitem .ui-badge {
+    position: absolute; top: 50%; right: .75rem; transform: translateY(-50%);
+    background: var(--ito-orange); color: var(--ito-navy);
+}
+
+/* p:linkButton es un <a> dentro del botón: sin subrayado y con el color del botón */
+body .ui-linkbutton a { text-decoration: none; color: inherit; }
+
+.sidebar-help {
+    margin: 1.5rem 0 1rem; padding: 1rem;
+    border-radius: 12px; background: rgba(255, 255, 255, .06);
+}
+.sidebar-help h3 { color: #fff; font-size: 1rem; margin: .75rem 0 .25rem; }
+.sidebar-help p { margin: 0 0 .75rem; font-size: .85rem; color: #b8c2d3; }
+.sidebar-help a { color: var(--ito-orange-light); font-weight: 600; text-decoration: none; }
+.sidebar-help .pi-graduation-cap { color: var(--ito-orange); }
+.sidebar-salir { display: flex; align-items: center; gap: .6rem; padding: .75rem; border-radius: 8px; color: #dfe5ee; text-decoration: none; }
+.sidebar-salir:hover { background: rgba(255, 255, 255, .08); color: #fff; }
+.sidebar-footer { margin: 1rem .75rem 0; font-size: .75rem; color: #8e9bb0; }
+
+/* Menú móvil (p:sidebar) con el mismo aspecto */
+.ui-sidebar.app-sidebar-movil { background: var(--ito-navy); color: #dfe5ee; width: 280px; }
+.ui-sidebar.app-sidebar-movil .ui-sidebar-close { color: #fff; }
+
+/* Barra superior (p:toolbar) */
+.ui-toolbar.app-topbar {
+    position: sticky; top: 0; z-index: 900;
+    border: 0; border-bottom: 1px solid #e2dfd8; border-radius: 0;
+    background: rgba(255, 255, 255, .92); backdrop-filter: blur(6px);
+    padding: .6rem 1.5rem;
+}
+.ui-breadcrumb.app-migas { border: 0; background: transparent; padding: 0 0 0 .5rem; }
+.ui-breadcrumb.app-migas li:last-child .ui-menuitem-text { font-weight: 600; color: var(--ito-navy); }
+.app-campana { position: relative; display: inline-flex; align-items: center; justify-content: center; width: 2.5rem; height: 2.5rem; border-radius: 50%; color: var(--ito-navy); }
+.app-campana:hover { background: var(--ito-blue-soft); }
+.app-campana .app-campana-globo { position: absolute; top: .1rem; right: .1rem; }
+.app-usuario { display: flex; align-items: center; gap: .6rem; text-decoration: none; color: var(--ito-navy); }
+.ui-avatar.app-avatar { background: var(--ito-navy); color: #fff; font-weight: 600; }
+
+/* Franja "Vista de prueba" */
+.app-franja-prueba {
+    display: flex; align-items: center; justify-content: space-between; gap: 1rem; flex-wrap: wrap;
+    padding: .5rem 1.5rem; background: var(--ito-orange-soft); border-bottom: 1px solid #f6dcc2;
+    font-size: .9rem;
+}
+.app-pie { display: flex; justify-content: space-between; gap: 1rem; flex-wrap: wrap; padding: 1rem 1.5rem; border-top: 1px solid #e2dfd8; color: var(--ito-muted); font-size: .85rem; }
+
+/* ===== 3. Piezas de marca ===== */
+.marca { display: flex; align-items: center; gap: .75rem; text-decoration: none; color: #fff; }
+.marca-simbolo {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 2.4rem; height: 2.4rem; border-radius: 8px;
+    background: #fff; color: var(--ito-navy); font-weight: 800; font-size: 1rem; letter-spacing: -0.04em;
+}
+.marca-simbolo span { color: var(--ito-orange); }
+.marca-texto { display: flex; flex-direction: column; font-weight: 700; line-height: 1.2; }
+.marca-texto small { font-weight: 400; font-size: .75rem; opacity: .75; }
+.marca-oscura { color: var(--ito-navy); }
+.marca-oscura .marca-simbolo { background: var(--ito-navy); color: #fff; }
+
+/* Texto pequeño en mayúsculas sobre los títulos */
+.eyebrow { display: block; margin: 0; font-size: .75rem; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; color: var(--ito-blue); }
+
+/* Icono en círculo (estados vacíos, métricas, encabezados de sección) */
+.icono-circulo {
+    display: inline-flex; align-items: center; justify-content: center; flex: none;
+    width: 3rem; height: 3rem; border-radius: 50%;
+    background: var(--ito-blue-soft); color: var(--ito-blue); font-size: 1.25rem;
+}
+.icono-circulo.tono-naranja { background: var(--ito-orange-soft); color: #c96500; }
+.icono-circulo.tono-marino { background: #e6e9ef; color: var(--ito-navy); }
+.icono-circulo.tono-verde { background: #e8f5e9; color: #2e7d32; }
+.icono-circulo.chico { width: 2.25rem; height: 2.25rem; font-size: 1rem; }
+
+/* Tarjetas: un poco más redondeadas que el tema */
+body .ui-card { border-radius: 14px; box-shadow: 0 1px 2px rgba(18, 35, 63, .06); border: 1px solid #e2dfd8; }
+body .ui-card .ui-card-title { font-size: 1.15rem; }
+
+/* Número grande de las métricas */
+.metrica-valor { font-size: 2.25rem; font-weight: 700; line-height: 1.1; color: var(--ito-navy); }
+
+/* Bandeja de entrada (inicio del estudiante) */
+.mensaje { display: flex; gap: 1rem; align-items: flex-start; padding: 1rem; border-radius: 10px; text-decoration: none; color: inherit; }
+.mensaje:hover { background: var(--ito-blue-soft); }
+.mensaje.sin-leer { background: #fbfaf7; }
+.mensaje h3 { margin: .25rem 0; font-size: 1rem; }
+.mensaje p { margin: 0 0 .35rem; color: var(--ito-muted); }
+
+/* Línea de tiempo (p:chronoline): sin columna opuesta, el texto ocupa todo el ancho */
+body .historial .ui-chronoline-event .ui-chronoline-event-opposite { display: none; }
+.historial .ui-chronoline-event-content { padding-left: 1rem; }
+
+/* Lista de requisitos */
+.lista-requisitos { list-style: none; padding: 0; margin: 0; }
+.lista-requisitos li { display: flex; gap: .6rem; align-items: flex-start; margin-bottom: .6rem; }
+.lista-requisitos .pi { color: #2e7d32; margin-top: .15rem; }
+
+/* Pares etiqueta / valor (revisión y detalle de solicitud) */
+.dato-etiqueta { display: block; font-size: .8rem; color: var(--ito-muted); margin-bottom: .2rem; }
+.dato-valor { display: block; font-weight: 600; white-space: pre-wrap; word-break: break-word; }
+
+/* Folio grande del paso "éxito" */
+.folio-grande { font-size: 2rem; font-weight: 800; letter-spacing: .02em; }
+
+/* Tabla de solicitudes: enlace con folio debajo */
+.enlace-solicitud { font-weight: 600; text-decoration: none; }
+.enlace-solicitud small { display: block; font-weight: 400; color: var(--ito-muted); }
+
+/* ===== 4. Inicio de sesión ===== */
+.login { display: grid; grid-template-columns: 1fr; min-height: 100vh; }
+@media (min-width: 992px) { .login { grid-template-columns: minmax(420px, 5fr) 6fr; } }
+.login-principal { display: flex; flex-direction: column; padding: 2rem; background: #fff; }
+.login-formulario { width: 100%; max-width: 400px; margin: auto; padding: 2rem 0; }
+.login-lateral {
+    display: flex; flex-direction: column; justify-content: center; gap: 1.25rem;
+    padding: 3rem; background: var(--ito-navy); color: #dfe5ee;
+}
+.login-lateral h2 { color: #fff; font-size: 3rem; line-height: 1.1; margin: 0; }
+.login-lateral h2 span { color: var(--ito-orange); }
+.login-lateral .eyebrow { color: var(--ito-orange-light); }
+.login-lateral .ui-card { background: rgba(255, 255, 255, .06); border-color: rgba(255, 255, 255, .14); color: #dfe5ee; max-width: 460px; }
+.login-lateral .ui-card strong { color: #fff; }
+
+/* ===== 5. Piezas de las iteraciones 2 a 4 ===== */
+
+/* plantilla-simple: columna centrada sin menú (error, acceso denegado, primer acceso) */
+.simple { min-height: 100vh; display: flex; flex-direction: column; align-items: center; padding: 2rem 1rem; background: var(--ito-cream); }
+.simple-encabezado { width: 100%; max-width: 720px; margin-bottom: 2.5rem; }
+.simple-columna { width: 100%; max-width: 520px; margin: auto 0; }
+.simple-columna.simple-amplia { max-width: 720px; }
+.simple-pie { margin-top: 2.5rem; font-size: .8rem; color: var(--ito-muted); text-align: center; }
+
+/* comp-aviso: mensaje en línea */
+.aviso-linea { display: flex; gap: .85rem; align-items: flex-start; padding: 1rem 1.1rem; border-radius: 12px; border: 1px solid; }
+.aviso-linea-icono { font-size: 1.25rem; margin-top: .1rem; }
+.aviso-info { background: var(--ito-blue-soft); border-color: #cddcec; color: var(--ito-navy); }
+.aviso-info .aviso-linea-icono { color: var(--ito-blue); }
+.aviso-exito { background: #edf7ee; border-color: #c8e6c9; color: #1b4d20; }
+.aviso-exito .aviso-linea-icono { color: #2e7d32; }
+.aviso-advertencia { background: var(--ito-orange-soft); border-color: #f6dcc2; color: #6b3a00; }
+.aviso-advertencia .aviso-linea-icono { color: #c96500; }
+.aviso-error { background: #fdecea; border-color: #f5c6c2; color: #7a1d1d; }
+.aviso-error .aviso-linea-icono { color: #c62828; }
+
+/* Etiqueta neutra (prioridad baja, aviso concluido, cuenta sin rol) y chips pequeños */
+body .ui-tag.tag-gris { background: #e6e9ef; color: var(--ito-navy); }
+body .ui-chip.chip-chico { padding: 0 .55rem; font-size: .78rem; font-weight: 600; background: #eef1f5; }
+body .ui-chip.chip-chico .ui-chip-text { margin: .2rem 0; line-height: 1.2; }
+
+/* Avisos oficiales */
+.tarjeta-aviso.aviso-concluido { opacity: .75; }
+.texto-3-lineas { display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+@media (min-width: 992px) { .vista-previa { position: sticky; top: 5.5rem; } }
+
+/* Gráficas (p:chart) */
+.grafica { position: relative; width: 100%; }
+
+/* Lista de niveles de prioridad */
+.lista-niveles { list-style: none; padding: 0; margin: 0; }
+.lista-niveles li { display: flex; gap: .75rem; align-items: center; margin-bottom: .8rem; }
+.lista-niveles li .ui-tag { flex: 0 0 6.5rem; justify-content: center; }
+
+/* p:datePicker con botón de calendario a lo ancho: campo y botón en la misma línea */
+body .ui-calendar.w-full.ui-trigger-calendar { display: flex; }
+body .ui-calendar.w-full.ui-trigger-calendar > input { flex: 1 1 auto; width: auto; min-width: 0; }
