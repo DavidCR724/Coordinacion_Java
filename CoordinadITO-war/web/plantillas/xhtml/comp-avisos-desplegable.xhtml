@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  COMPONENTE: "Avisos de tu carrera" como un buzón desplegable (HU 5.3: el alumno ve los avisos
+  al entrar). Va hasta arriba del inicio del estudiante y en vista/avisos.
+      - Cabecera: un sobre; si hay avisos sin abrir, un globo con el número; si no, el sobre
+        queda sin número. La lista siempre empieza plegada; se despliega al tocar la cabecera.
+      - Cada aviso muestra su título; al tocarlo se despliega el texto y queda como leído
+        (AvisoService.marcarLeido → tabla AVISO_LECTURA). Los leídos siguen en la lista, en gris.
+  Bean: avisosControl (@ViewScoped): vigentes, noLeidos, desplegado, alternar(), abrir(id), abierto.
+  Parámetro (ui:param):
+      conEnlace      -> true muestra "Ver avisos anteriores" hacia /vista/avisos
+      siempreAbierto -> true en vista/avisos: la lista no se pliega
+  Todo por AJAX dentro de su propio formulario: no recarga la página.
+-->
+<ui:composition xmlns="http://www.w3.org/1999/xhtml"
+                xmlns:h="jakarta.faces.html"
+                xmlns:f="jakarta.faces.core"
+                xmlns:ui="jakarta.faces.facelets"
+                xmlns:p="primefaces"
+                xmlns:pt="jakarta.faces.passthrough">
+    <h:form id="formBuzon" styleClass="mb-4">
+        <h:panelGroup id="buzonAvisos" layout="block"
+                      styleClass="buzon-avisos #{avisosControl.noLeidos gt 0 ? 'con-pendientes' : ''}">
+            <p:commandLink action="#{avisosControl.alternar}" process="@this" update="buzonAvisos" disabled="#{siempreAbierto}"
+                           styleClass="buzon-cabecera" pt:aria-expanded="#{avisosControl.desplegado}">
+                <span class="buzon-sobre">
+                    <i class="pi pi-envelope" aria-hidden="true"></i>
+                    <h:outputText value="#{avisosControl.noLeidos gt 9 ? '9+' : avisosControl.noLeidos}" styleClass="app-globo"
+                                  rendered="#{avisosControl.noLeidos gt 0}"/>
+                </span>
+                <span class="flex-1 min-w-0">
+                    <strong class="block">Avisos de tu carrera</strong>
+                    <small class="text-color-secondary">
+                        #{empty avisosControl.vigentes ? 'No hay avisos vigentes'
+                          : (avisosControl.noLeidos eq 0 ? 'Todo leído'
+                          : (avisosControl.noLeidos eq 1 ? '1 aviso sin leer' : avisosControl.noLeidos.toString().concat(' avisos sin leer')))}
+                    </small>
+                </span>
+                <ui:fragment rendered="#{not siempreAbierto}"><i class="pi #{avisosControl.desplegado ? 'pi-chevron-up' : 'pi-chevron-down'} text-color-secondary" aria-hidden="true"></i></ui:fragment>
+            </p:commandLink>
+
+            <ui:fragment rendered="#{siempreAbierto or avisosControl.desplegado}">
+                <ul class="buzon-lista">
+                    <ui:repeat value="#{avisosControl.vigentes}" var="aviso">
+                        <li class="buzon-aviso #{aviso.leido ? 'leido' : ''} #{avisosControl.abierto eq aviso.id ? 'abierto' : ''}">
+                            <p:commandLink action="#{avisosControl.abrir(aviso.id)}" process="@this" update="@form:buzonAvisos"
+                                           styleClass="buzon-aviso-titulo">
+                                <span class="punto-nuevo" aria-hidden="true"></span>
+                                <span class="flex-1 min-w-0">
+                                    <span class="block titulo">#{aviso.titulo}</span>
+                                    <small>#{aviso.autor} · #{aviso.publicado}</small>
+                                </span>
+                                <h:outputText value="Nuevo" styleClass="etiqueta-nuevo" rendered="#{not aviso.leido}"/>
+                                <i class="pi #{avisosControl.abierto eq aviso.id ? 'pi-minus' : 'pi-plus'}" aria-hidden="true"></i>
+                            </p:commandLink>
+                            <ui:fragment rendered="#{avisosControl.abierto eq aviso.id}">
+                                <div class="buzon-aviso-cuerpo">
+                                    <p style="white-space: pre-wrap;">#{aviso.contenido}</p>
+                                    <small class="text-color-secondary">
+                                        <i class="pi pi-calendar mr-1" aria-hidden="true"></i>Vigente hasta el #{aviso.fin}
+                                    </small>
+                                </div>
+                            </ui:fragment>
+                        </li>
+                    </ui:repeat>
+                </ul>
+                <ui:fragment rendered="#{conEnlace}">
+                    <h:link outcome="/vista/avisos" styleClass="buzon-enlace">Ver avisos anteriores <i class="pi pi-arrow-right text-sm" aria-hidden="true"></i></h:link>
+                </ui:fragment>
+            </ui:fragment>
+        </h:panelGroup>
+    </h:form>
+</ui:composition>

@@ -35,6 +35,14 @@
         <servlet-name>Faces Servlet</servlet-name>
         <servlet-class>jakarta.faces.webapp.FacesServlet</servlet-class>
         <load-on-startup>1</load-on-startup>
+        <!-- Necesario para p:fileUpload (adjuntos de las solicitudes, HU 1.5):
+             hasta 10 MB por archivo (el padrón, HU 8.1; los adjuntos se limitan a 5 MB en la vista
+             y en el EJB) y hasta 26 MB por petición. -->
+        <multipart-config>
+            <max-file-size>10485760</max-file-size>
+            <max-request-size>27262976</max-request-size>
+            <file-size-threshold>1048576</file-size-threshold>
+        </multipart-config>
     </servlet>
     <servlet-mapping>
         <servlet-name>Faces Servlet</servlet-name>

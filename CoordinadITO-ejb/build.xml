@@ -65,4 +65,13 @@
     nbproject/build-impl.xml file. 
 
     -->
+    <!--
+      Migraciones automáticas (MigracionesService): los scripts de ../bd viajan dentro del EJB.
+      Una sola copia del SQL: la de bd/, la misma que usan configurar-local.ps1 y Supabase.
+    -->
+    <target name="-post-compile">
+        <copy todir="${build.classes.dir}/bd">
+            <fileset dir="../bd" includes="0*.sql"/>
+        </copy>
+    </target>
 </project>

@@ -1,0 +1,90 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  COMPONENTE: cita presencial de una solicitud (HU 9.2), en la columna lateral del detalle.
+  Bean: citaControl (trabaja sobre la solicitud de detalleSolicitudControl).
+      Coordinación -> «Pedir cita presencial» con el motivo (SolicitudService.requerirCita).
+      Estudiante   -> elige un horario libre de la coordinación de su carrera; puede cambiarlo o
+                      cancelarlo hasta 12 horas antes (AgendaService.agendar / cancelarCita).
+      Todos        -> la cita vigente: día, hora, lugar y quién atiende.
+  Cada acción vuelve a dibujar :detalle (estado, mensajes y bitácora al día).
+-->
+<ui:composition xmlns="http://www.w3.org/1999/xhtml"
+                xmlns:h="jakarta.faces.html"
+                xmlns:f="jakarta.faces.core"
+                xmlns:ui="jakarta.faces.facelets"
+                xmlns:c="jakarta.tags.core"
+                xmlns:p="primefaces">
+    <c:set var="cita" value="#{citaControl.cita}"/>
+    <!-- Si solo hay la opción de pedirla (coordinación, sin cita pedida), va plegada como «Subir
+         prioridad»: es excepcional y no debe competir con «Atender». Con cita pedida o agendada, abierta. -->
+    <c:set var="soloPedir" value="#{citaControl.puedePedir and empty cita and not detalleSolicitudControl.sol.citaRequerida}"/>
+    <p:panel header="Cita presencial" toggleable="#{soloPedir}" collapsed="#{soloPedir}" styleClass="mb-4 tarjeta-cita panel-plegable">
+
+        <!-- Cita vigente -->
+        <ui:fragment rendered="#{not empty cita}">
+            <div class="mb-3">
+                <p:tag value="#{cita.etiquetaEstado}" severity="success" rounded="true" styleClass="mb-2"/>
+                <strong class="block text-lg">#{cita.cuando}</strong>
+                <span class="block text-color-secondary">#{cita.lugar}</span>
+                <small class="block text-color-secondary">Te atiende #{cita.atiende}</small>
+            </div>
+        </ui:fragment>
+
+        <!-- Coordinación: pedirla -->
+        <ui:fragment rendered="#{citaControl.puedePedir}">
+            <h:form id="formPedirCita">
+                <p:outputLabel for="motivoCita" value="¿Para qué necesitas verlo?" styleClass="block font-medium mb-2"/>
+                <p:inputTextarea id="motivoCita" value="#{citaControl.motivo}" rows="3" maxlength="500" styleClass="w-full"
+                                 placeholder="Ej. Traer el original del certificado médico."/>
+                <ui:fragment rendered="#{citaControl.sinHorariosLibres}">
+                    <p class="text-sm m-0 mt-2 p-2 border-round" style="background: var(--yellow-50, #fffbeb); color: var(--yellow-900, #78350f);">
+                        <i class="pi pi-exclamation-triangle mr-1" aria-hidden="true"></i>
+                        No tienes horarios libres en los próximos 14 días: publícalos en
+                        <h:link outcome="/vista/agenda" value="Agenda"/> para que el alumno pueda elegir uno.
+                    </p>
+                </ui:fragment>
+                <p:commandButton id="pedirCita" value="Pedir cita presencial" icon="pi pi-calendar-plus" styleClass="w-full mt-2"
+                                 action="#{citaControl.pedir}" process="@form" update="@form"/>
+            </h:form>
+        </ui:fragment>
+        <ui:fragment rendered="#{rol ne 'student' and detalleSolicitudControl.sol.citaRequerida and empty cita}">
+            <p class="text-color-secondary m-0">Se pidió al alumno agendar una cita; aún no elige horario.</p>
+            <ui:fragment rendered="#{rol eq 'coordinator' and citaControl.sinHorariosLibres}">
+                <p class="text-sm m-0 mt-2 p-2 border-round" style="background: var(--yellow-50, #fffbeb); color: var(--yellow-900, #78350f);">
+                    <i class="pi pi-exclamation-triangle mr-1" aria-hidden="true"></i>
+                    No tienes horarios libres publicados: el alumno no puede elegir hasta que los publiques en
+                    <h:link outcome="/vista/agenda" value="Agenda"/>.
+                </p>
+            </ui:fragment>
+        </ui:fragment>
+
+        <!-- Estudiante: agendar o cambiar -->
+        <ui:fragment rendered="#{citaControl.puedeAgendar}">
+            <ui:fragment rendered="#{empty cita}">
+                <p class="mt-0">Coordinación necesita verte en persona. Elige un horario:</p>
+            </ui:fragment>
+            <h:form id="formAgendar">
+                <ui:fragment rendered="#{empty citaControl.horarios}">
+                    <p class="text-color-secondary">Por ahora no hay horarios libres. Vuelve a revisar más tarde.</p>
+                </ui:fragment>
+                <p:dataList value="#{citaControl.horarios}" var="h" type="none" rendered="#{not empty citaControl.horarios}"
+                            paginator="#{citaControl.horarios.size() gt 6}" rows="6" paginatorAlwaysVisible="false"
+                            styleClass="lista-horarios">
+                    <div class="flex justify-content-between align-items-center gap-2 py-2">
+                        <div>
+                            <strong class="block">#{h.cuando}</strong>
+                            <small class="text-color-secondary">#{h.lugar}</small>
+                        </div>
+                        <p:commandButton value="#{empty cita ? 'Elegir' : 'Cambiar'}" styleClass="ui-button-outlined ui-button-sm"
+                                         action="#{citaControl.agendar(h.idBloque)}" process="@this" update=":detalle"/>
+                    </div>
+                </p:dataList>
+                <ui:fragment rendered="#{not empty cita}">
+                    <p:commandButton id="cancelarCita" value="Cancelar mi cita" icon="pi pi-times"
+                                     styleClass="w-full mt-3 ui-button-outlined ui-button-danger"
+                                     action="#{citaControl.cancelar}" process="@this" update=":detalle"/>
+                </ui:fragment>
+            </h:form>
+        </ui:fragment>
+    </p:panel>
+</ui:composition>

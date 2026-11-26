@@ -1,0 +1,84 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  VISTA: catálogo de trámites (solo jefatura: es común a todas las carreras). HU 8.3.
+  Todos los trámites con su prioridad, días esperados, estado y solicitudes abiertas.
+  «Nuevo trámite» y el lápiz llevan a tramite-editar; la papelera elimina un trámite que aún no
+  tiene solicitudes (si ya tiene, TramiteService lo rechaza y pide desactivarlo).
+  Bean: catalogoAdminControl.
+-->
+<ui:composition template="/plantillas/xhtml/plantilla-panel.xhtml"
+                xmlns="http://www.w3.org/1999/xhtml"
+                xmlns:h="jakarta.faces.html"
+                xmlns:f="jakarta.faces.core"
+                xmlns:ui="jakarta.faces.facelets"
+                xmlns:c="jakarta.tags.core"
+                xmlns:p="primefaces">
+
+    <ui:param name="seccion" value="catalogo"/>
+    <ui:param name="rotulo" value="Catálogo de trámites"/>
+
+    <ui:define name="titulo">Catálogo de trámites</ui:define>
+
+    <ui:define name="contenido">
+        <c:set var="rol" value="#{sesionControl.rol}"/>
+
+        <ui:fragment rendered="#{rol ne 'head'}">
+            <ui:include src="/plantillas/xhtml/comp-estado-vacio.xhtml">
+                <ui:param name="icono" value="shield"/>
+                <ui:param name="tituloVacio" value="Sin acceso a esta sección"/>
+                <ui:param name="descripcion" value="El catálogo de trámites es común a todas las carreras: lo configura jefatura."/>
+                <ui:param name="destino" value="/vista/inicio"/>
+                <ui:param name="accion" value="Volver al inicio"/>
+            </ui:include>
+        </ui:fragment>
+
+        <ui:fragment rendered="#{rol eq 'head'}">
+            <ui:decorate template="/plantillas/xhtml/comp-encabezado.xhtml">
+                <ui:param name="tituloPagina" value="Catálogo de trámites"/>
+                <ui:param name="descripcion" value="Qué se puede solicitar, con qué formulario, prioridad y tiempo esperado."/>
+                <ui:param name="conAccion" value="true"/>
+                <ui:define name="accion">
+                    <p:linkButton outcome="/vista/tramite-editar" value="Nuevo trámite" icon="pi pi-plus" size="large"/>
+                </ui:define>
+            </ui:decorate>
+
+            <h:form id="formCatalogo">
+                <p:dataTable id="tablaCatalogo" value="#{catalogoAdminControl.tramites}" var="t" rowKey="#{t.id}" reflow="true"
+                             emptyMessage="El catálogo está vacío.">
+                    <p:column headerText="Trámite" sortBy="#{t.nombre}">
+                        <h:link outcome="/vista/tramite-editar" styleClass="enlace-solicitud">
+                            <f:param name="id" value="#{t.id}"/>
+                            #{t.nombre}
+                            <small>#{t.codigo}#{t.colectivo ? ' · apertura de grupo' : ''}#{t.documentoRequerido ? ' · pide documento' : ''}</small>
+                        </h:link>
+                    </p:column>
+                    <p:column headerText="Prioridad" style="width: 8rem;">
+                        <ui:include src="/plantillas/xhtml/comp-insignia-prioridad.xhtml">
+                            <ui:param name="prioridad" value="#{t.prioridad}"/>
+                        </ui:include>
+                    </p:column>
+                    <p:column headerText="Días esperados" styleClass="text-right" style="width: 9rem;">#{t.diasEsperados}</p:column>
+                    <p:column headerText="Disponibilidad" style="width: 11rem;">
+                        <p:tag value="#{t.etiqueta}" severity="#{t.severidad}" rounded="true"/>
+                    </p:column>
+                    <p:column headerText="Abiertas" styleClass="text-right" style="width: 7rem;">#{t.abiertas}</p:column>
+                    <p:column style="width: 7rem;" ariaHeaderText="Acciones">
+                        <p:linkButton outcome="/vista/tramite-editar" icon="pi pi-pencil" title="Editar #{t.nombre}"
+                                      styleClass="ui-button-flat rounded-button">
+                            <f:param name="id" value="#{t.id}"/>
+                        </p:linkButton>
+                        <p:commandButton icon="pi pi-trash" title="Eliminar #{t.nombre}" styleClass="ui-button-flat ui-button-danger rounded-button"
+                                         action="#{catalogoAdminControl.eliminar(t)}" process="@this" update="tablaCatalogo">
+                            <p:confirm header="Eliminar trámite" icon="pi pi-exclamation-triangle"
+                                       message="Solo se puede eliminar si nadie lo ha solicitado; si no, desactívalo. ¿Continuar?"/>
+                        </p:commandButton>
+                    </p:column>
+                </p:dataTable>
+                <p:confirmDialog global="true" responsive="true" width="380">
+                    <p:commandButton value="Sí, eliminar" type="button" styleClass="ui-confirmdialog-yes ui-button-danger" icon="pi pi-check"/>
+                    <p:commandButton value="Cancelar" type="button" styleClass="ui-confirmdialog-no ui-button-flat"/>
+                </p:confirmDialog>
+            </h:form>
+        </ui:fragment>
+    </ui:define>
+</ui:composition>

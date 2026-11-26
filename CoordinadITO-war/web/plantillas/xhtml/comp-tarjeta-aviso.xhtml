@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
   COMPONENTE: un aviso oficial de la carrera (tablas AVISO + AVISO_CARRERA, HU 5.3). Es un p:card.
-  Se usa dentro de <ui:repeat var="aviso"> sobre #{comunicadosDemo}, y también como vista
-  previa en aviso-nuevo (ahí "aviso" es un mapa armado con lo que se va escribiendo).
+  Se usa dentro de <ui:repeat var="aviso"> sobre una lista de ComunicadoVista (avisosControl), y
+  como vista previa en aviso-nuevo (avisosControl.previa, armada con lo que se va escribiendo).
   Campos de "aviso": titulo, contenido, autor, carreras (lista de claves), inicio, fin,
                      publicado, vigente, icono, tono.
   Parámetro (ui:param):
@@ -19,8 +19,8 @@
             <div class="flex-1 min-w-0">
                 <div class="flex justify-content-between align-items-start gap-2 flex-wrap">
                     <h3 class="text-lg m-0">#{empty aviso.titulo ? 'Título del aviso' : aviso.titulo}</h3>
-                    <p:tag value="#{aviso.vigente ? 'Vigente' : 'Concluido'}" rounded="true"
-                           severity="#{aviso.vigente ? 'success' : null}" styleClass="#{aviso.vigente ? '' : 'tag-gris'}"/>
+                    <p:tag value="#{aviso.estado}" rounded="true"
+                           severity="#{aviso.vigente ? 'success' : (aviso.programado ? 'info' : null)}" styleClass="#{aviso.vigente or aviso.programado ? '' : 'tag-gris'}"/>
                 </div>
                 <p class="mt-2 mb-3 #{compacto ? 'texto-3-lineas' : ''}" style="white-space: pre-wrap;">#{empty aviso.contenido ? 'El texto del aviso aparecerá aquí.' : aviso.contenido}</p>
                 <div class="flex align-items-center gap-2 flex-wrap text-sm text-color-secondary">

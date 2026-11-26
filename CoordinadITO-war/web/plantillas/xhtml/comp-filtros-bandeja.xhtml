@@ -1,0 +1,90 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  COMPONENTE: filtros de la bandeja de coordinación (HU 3.1 y 3.4). Solo lo usa bandeja.xhtml.
+  A la vista quedan los dos que se usan todos los días: buscar y «Activas / Finalizadas».
+  Lo demás (trámite, prioridad, fechas, orden) va en «Más filtros», plegado; el botón dice
+  cuántos de esos filtros están puestos, para que nunca filtre "a escondidas".
+  Cada cambio vuelve a consultar la base (bandejaControl.buscar) por AJAX. El texto busca en folio
+  (ITO-0042 = folio exacto), nombre, apellido, número de control y correo del alumno.
+-->
+<ui:composition xmlns="http://www.w3.org/1999/xhtml"
+                xmlns:h="jakarta.faces.html"
+                xmlns:f="jakarta.faces.core"
+                xmlns:ui="jakarta.faces.facelets"
+                xmlns:p="primefaces">
+    <h:form id="formFiltros" styleClass="mb-3">
+        <div class="barra-filtros">
+            <span class="ui-input-icon-left barra-filtros-buscar">
+                <i class="pi pi-search"/>
+                <p:inputText id="texto" value="#{bandejaControl.texto}" styleClass="w-full" ariaLabel="Buscar"
+                             placeholder="Buscar por folio, nombre, número de control o correo">
+                    <p:ajax event="keyup" delay="400" listener="#{bandejaControl.buscar}"
+                            update=":tablaBandeja :resumenBandeja"/>
+                </p:inputText>
+            </span>
+            <!-- Activas = abiertas (lo que hay que atender); Finalizadas = historial. -->
+            <p:selectOneButton id="estado" value="#{bandejaControl.estado}" unselectable="false" styleClass="selector-vista">
+                <f:selectItem itemLabel="Activas" itemValue="activas"/>
+                <f:selectItem itemLabel="Finalizadas" itemValue="finalizadas"/>
+                <p:ajax listener="#{bandejaControl.buscar}" update=":tablaBandeja :resumenBandeja"/>
+            </p:selectOneButton>
+            <p:commandButton id="masFiltros" icon="pi #{bandejaControl.masFiltros ? 'pi-chevron-up' : 'pi-sliders-h'}"
+                             value="Más filtros#{bandejaControl.filtrosActivos gt 0 ? ' ('.concat(bandejaControl.filtrosActivos).concat(')') : ''}"
+                             styleClass="#{bandejaControl.filtrosActivos gt 0 ? '' : 'ui-button-outlined'}"
+                             action="#{bandejaControl.alternarFiltros}" process="@this" update="@form"/>
+        </div>
+
+        <h:panelGroup layout="block" styleClass="mas-filtros" rendered="#{bandejaControl.masFiltros}">
+            <div class="formgrid grid align-items-end">
+                <div class="field col-12 sm:col-6 xl:col-3">
+                    <p:outputLabel for="tramite" value="Trámite" styleClass="block font-medium mb-2"/>
+                    <p:selectOneMenu id="tramite" value="#{bandejaControl.idTramite}" styleClass="w-full">
+                        <f:selectItem itemLabel="Todos los trámites" itemValue="#{null}"/>
+                        <f:selectItems value="#{bandejaControl.tramites}" var="t" itemValue="#{t.id}" itemLabel="#{t.nombre}"/>
+                        <p:ajax listener="#{bandejaControl.buscar}" update="@form :tablaBandeja :resumenBandeja"/>
+                    </p:selectOneMenu>
+                </div>
+                <div class="field col-12 sm:col-6 xl:col-2">
+                    <p:outputLabel for="prioridad" value="Prioridad mínima" styleClass="block font-medium mb-2"/>
+                    <p:selectOneMenu id="prioridad" value="#{bandejaControl.prioridadMinima}" styleClass="w-full">
+                        <f:selectItem itemLabel="Cualquiera" itemValue="#{null}"/>
+                        <f:selectItem itemLabel="Media o más" itemValue="MEDIA"/>
+                        <f:selectItem itemLabel="Alta o más" itemValue="ALTA"/>
+                        <f:selectItem itemLabel="Crítica" itemValue="CRITICA"/>
+                        <p:ajax listener="#{bandejaControl.buscar}" update="@form :tablaBandeja :resumenBandeja"/>
+                    </p:selectOneMenu>
+                </div>
+                <!-- HU 3.4: rango de fechas de registro. HU 3.1: alternar el orden. -->
+                <div class="field col-6 xl:col-2">
+                    <p:outputLabel for="desde" value="Registradas desde" styleClass="block font-medium mb-2"/>
+                    <p:datePicker id="desde" value="#{bandejaControl.desde}" pattern="dd/MM/yyyy" locale="es" styleClass="w-full"
+                                  inputStyleClass="w-full" showIcon="true" maxdate="#{bandejaControl.hasta}">
+                        <p:ajax event="dateSelect" listener="#{bandejaControl.buscar}" update="@form :tablaBandeja :resumenBandeja"/>
+                        <p:ajax event="change" listener="#{bandejaControl.buscar}" update="@form :tablaBandeja :resumenBandeja"/>
+                    </p:datePicker>
+                </div>
+                <div class="field col-6 xl:col-2">
+                    <p:outputLabel for="hasta" value="Hasta" styleClass="block font-medium mb-2"/>
+                    <p:datePicker id="hasta" value="#{bandejaControl.hasta}" pattern="dd/MM/yyyy" locale="es" styleClass="w-full"
+                                  inputStyleClass="w-full" showIcon="true" mindate="#{bandejaControl.desde}">
+                        <p:ajax event="dateSelect" listener="#{bandejaControl.buscar}" update="@form :tablaBandeja :resumenBandeja"/>
+                        <p:ajax event="change" listener="#{bandejaControl.buscar}" update="@form :tablaBandeja :resumenBandeja"/>
+                    </p:datePicker>
+                </div>
+                <div class="field col-12 sm:col-8 xl:col-2">
+                    <p:outputLabel for="orden" value="Ordenar por" styleClass="block font-medium mb-2"/>
+                    <p:selectOneButton id="orden" value="#{bandejaControl.orden}" unselectable="false" styleClass="selector-vista">
+                        <f:selectItem itemLabel="Prioridad" itemValue="prioridad"/>
+                        <f:selectItem itemLabel="Antigüedad" itemValue="fecha"/>
+                        <p:ajax listener="#{bandejaControl.buscar}" update="@form :tablaBandeja :resumenBandeja"/>
+                    </p:selectOneButton>
+                </div>
+                <div class="field col-12 sm:col-4 xl:col-1">
+                    <p:commandButton icon="pi pi-filter-slash" value="Limpiar" styleClass="ui-button-flat ui-button-secondary"
+                                     action="#{bandejaControl.limpiar}" process="@this"
+                                     update="@form :tablaBandeja :resumenBandeja"/>
+                </div>
+            </div>
+        </h:panelGroup>
+    </h:form>
+</ui:composition>

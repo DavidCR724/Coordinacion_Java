@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  COMPONENTE: «Mis solicitudes» del estudiante (HU 2.3). Es la misma sección en el inicio y en
+  vista/solicitudes: título con «Nueva solicitud», selector Activas / Finalizadas y la lista de
+  tarjetas. Una sola copia de la interfaz.
+  Bean: solicitudesControl (@ViewScoped) → listado (ListaSolicitudes).
+  Parámetros (ui:param):
+      principal -> true: el título es el h1 de la página; si no, un h2 dentro del inicio
+  El formulario tiene id fijo (formMisSolicitudes) para que los contadores del inicio cambien la
+  vista desde fuera (update=":formMisSolicitudes"). Solo puede haber uno por página.
+-->
+<ui:composition xmlns="http://www.w3.org/1999/xhtml"
+                xmlns:h="jakarta.faces.html"
+                xmlns:ui="jakarta.faces.facelets"
+                xmlns:p="primefaces">
+    <section id="mis-solicitudes" class="bloque-inicio" aria-labelledby="titulo-mis-solicitudes">
+        <div class="bloque-cabecera mb-3">
+            <ui:fragment rendered="#{principal}"><h1 id="titulo-mis-solicitudes" class="titulo-seccion-principal">Mis solicitudes</h1></ui:fragment>
+            <ui:fragment rendered="#{not principal}"><h2 id="titulo-mis-solicitudes">Mis solicitudes</h2></ui:fragment>
+            <p:linkButton outcome="/vista/tramites" value="Nueva solicitud" icon="pi pi-plus"/>
+        </div>
+        <h:form id="formMisSolicitudes">
+            <div class="mb-3">
+                <ui:include src="/plantillas/xhtml/comp-selector-vista.xhtml">
+                    <ui:param name="valor" value="#{solicitudesControl.listado.vista}"/>
+                    <ui:param name="activas" value="#{solicitudesControl.listado.numeroActivas}"/>
+                    <ui:param name="finalizadas" value="#{solicitudesControl.listado.numeroFinalizadas}"/>
+                    <ui:param name="actualizar" value="@form"/>
+                </ui:include>
+            </div>
+            <ui:include src="/plantillas/xhtml/comp-lista-solicitudes.xhtml">
+                <ui:param name="solicitudes" value="#{solicitudesControl.listado.visibles}"/>
+                <ui:param name="vacio" value="#{solicitudesControl.listado.finalizadas ? 'Aún no tienes trámites finalizados.' : 'No tienes trámites en curso. Cuando registres uno, lo verás aquí.'}"/>
+            </ui:include>
+        </h:form>
+    </section>
+</ui:composition>

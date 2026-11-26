@@ -4,6 +4,7 @@
   Parámetro (ui:param):
       eventos -> lista de eventos, del más reciente al más antiguo. Cada evento tiene:
                  codigoEstado, fecha, actor, comentario, transicion (puede ir vacía)
+                 codigoEstado = "prioridad" es una elevación de prioridad (HU 3.3)
   El marcador de cada evento es un icono del color de su estado.
 -->
 <ui:composition xmlns="http://www.w3.org/1999/xhtml"
@@ -12,18 +13,25 @@
                 xmlns:p="primefaces">
     <p:chronoline value="#{eventos}" var="evento" styleClass="historial">
         <f:facet name="marker">
-            <span class="icono-circulo chico #{evento.codigoEstado eq 'completed' ? 'tono-verde' : (evento.codigoEstado eq 'in-review' ? 'tono-naranja' : (evento.codigoEstado eq 'rejected' ? 'tono-marino' : ''))}">
-                <i class="pi #{evento.codigoEstado eq 'received' ? 'pi-inbox' : (evento.codigoEstado eq 'in-review' ? 'pi-clock' : (evento.codigoEstado eq 'completed' ? 'pi-check' : 'pi-times'))}" aria-hidden="true"></i>
+            <span class="icono-circulo chico #{evento.codigoEstado eq 'prioridad' ? 'tono-rojo' : ''} #{evento.codigoEstado eq 'completed' ? 'tono-verde' : (evento.codigoEstado eq 'in-review' or evento.codigoEstado eq 'waiting' ? 'tono-naranja' : (evento.codigoEstado eq 'rejected' ? 'tono-marino' : ''))}">
+                <i class="pi #{evento.codigoEstado eq 'prioridad' ? 'pi-angle-double-up' : (evento.codigoEstado eq 'received' ? 'pi-inbox' : (evento.codigoEstado eq 'in-review' ? 'pi-clock' : (evento.codigoEstado eq 'waiting' ? 'pi-question-circle' : (evento.codigoEstado eq 'completed' ? 'pi-check' : 'pi-times'))))}" aria-hidden="true"></i>
             </span>
         </f:facet>
         <div class="pb-4">
-            <ui:include src="/plantillas/xhtml/comp-insignia-estado.xhtml">
-                <ui:param name="codigoEstado" value="#{evento.codigoEstado}"/>
-            </ui:include>
+            <ui:fragment rendered="#{evento.codigoEstado eq 'prioridad'}">
+                <p:tag value="Prioridad elevada" severity="danger" icon="pi pi-angle-double-up" rounded="true"/>
+            </ui:fragment>
+            <ui:fragment rendered="#{evento.codigoEstado ne 'prioridad'}">
+                <ui:include src="/plantillas/xhtml/comp-insignia-estado.xhtml">
+                    <ui:param name="codigoEstado" value="#{evento.codigoEstado}"/>
+                </ui:include>
+            </ui:fragment>
             <small class="block mt-2 text-color-secondary">#{evento.fecha}</small>
-            <p class="my-2">#{evento.comentario}</p>
+            <ui:fragment rendered="#{not empty evento.comentario}"><p class="my-2">#{evento.comentario}</p></ui:fragment>
             <strong class="text-sm">#{evento.actor}</strong>
-            <small class="block text-color-secondary">#{evento.transicion}</small>
+            <ui:fragment rendered="#{not empty evento.transicion}">
+                <small class="block text-color-secondary">#{evento.transicion}</small>
+            </ui:fragment>
         </div>
     </p:chronoline>
 </ui:composition>

@@ -1,12 +1,10 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
-  VISTA: historial de notificaciones del estudiante. HU 5.2.
-  - Ordenadas de la más reciente a la más antigua (#{avisosDemo} ya viene así).
-  - Cada una enlaza a la solicitud que la originó (comp-fila-notificacion).
-  - Las no leídas se distinguen (fondo y globo "Nueva"); el filtro "Sin leer" y el botón
-    "Marcar todo como leído" funcionan por AJAX guardando el estado en viewScope
-    (filtroNotificaciones, todasLeidas). Con NotificacionControl se guardará leida_en.
-  Otros roles ven un estado vacío (sus avisos llegan a la bandeja o al inicio).
+  VISTA: historial de notificaciones. HU 5.1 y 5.2.
+  Bean: notificacionesControl (@ViewScoped) → NotificacionService.recientes(usuario, 100).
+  - De la más reciente a la más antigua; cada una enlaza a la solicitud que la originó.
+  - Las no leídas se distinguen (fondo y globo "Nueva"). "Marcar todo como leído" guarda LEIDA_EN.
+  - Estudiantes, coordinación y jefatura reciben avisos.
 -->
 <ui:composition template="/plantillas/xhtml/plantilla-panel.xhtml"
                 xmlns="http://www.w3.org/1999/xhtml"
@@ -18,7 +16,6 @@
 
     <ui:define name="metadatos">
         <f:metadata>
-            <f:viewParam name="rol" value="#{viewScope.rol}"/>
         </f:metadata>
     </ui:define>
 
@@ -28,47 +25,34 @@
     <ui:define name="titulo">Notificaciones</ui:define>
 
     <ui:define name="contenido">
-        <c:set var="rol" value="#{viewScope.rol eq 'coordinator' or viewScope.rol eq 'head' or viewScope.rol eq 'administrator' ? viewScope.rol : 'student'}"/>
+        <c:set var="rol" value="#{sesionControl.rol}"/>
 
-        <ui:fragment rendered="#{rol ne 'student'}">
-            <ui:include src="/plantillas/xhtml/comp-estado-vacio.xhtml">
-                <ui:param name="icono" value="bell"/>
-                <ui:param name="tituloVacio" value="Historial del estudiante"/>
-                <ui:param name="descripcion" value="Aquí cada estudiante consulta los avisos sobre sus solicitudes. Tus pendientes aparecen en el inicio."/>
-                <ui:param name="destino" value="/vista/inicio"/>
-                <ui:param name="accion" value="Volver al inicio"/>
-            </ui:include>
-        </ui:fragment>
-
-        <ui:fragment rendered="#{rol eq 'student'}">
+        <ui:fragment rendered="#{true}">
             <ui:include src="/plantillas/xhtml/comp-encabezado.xhtml">
-                <ui:param name="eyebrow" value="TU HISTORIAL"/>
                 <ui:param name="tituloPagina" value="Notificaciones"/>
-                <ui:param name="descripcion" value="Todos los avisos sobre tus solicitudes, aunque ya no tengas el correo."/>
+                <ui:param name="descripcion" value="#{rol eq 'student' ? 'Todos los avisos sobre tus solicitudes, aunque ya no tengas el correo.' : 'Solicitudes nuevas y respuestas de alumnos de tus carreras.'}"/>
             </ui:include>
 
-            <div class="grid">
-                <div class="col-12 lg:col-8">
+            <!-- Una sola columna: la lista es lo único de esta página. -->
+            <div class="columna-lectura">
+                <div>
                     <h:form id="formNotificaciones">
                         <p:card>
                             <h:panelGroup id="listaNotificaciones" layout="block">
-                                <c:set var="pendientes" value="#{viewScope.todasLeidas ? 0 : avisosDemo.stream().filter(a -> a.sinLeer).count()}"/>
+                                <c:set var="pendientes" value="#{notificacionesControl.pendientes}"/>
                                 <div class="flex justify-content-between align-items-center flex-wrap gap-3 mb-3">
-                                    <p:selectOneButton value="#{viewScope.filtroNotificaciones}" unselectable="false">
-                                        <f:selectItem itemValue="#{null}" itemLabel="Todas (#{avisosDemo.size()})"/>
+                                    <p:selectOneButton value="#{notificacionesControl.filtro}" unselectable="false">
+                                        <f:selectItem itemValue="#{null}" itemLabel="Todas (#{notificacionesControl.avisos.size()})"/>
                                         <f:selectItem itemValue="sinLeer" itemLabel="Sin leer (#{pendientes})"/>
                                         <p:ajax update="listaNotificaciones"/>
                                     </p:selectOneButton>
                                     <p:commandButton value="Marcar todo como leído" icon="pi pi-check"
                                                      styleClass="ui-button-flat" disabled="#{pendientes eq 0}"
-                                                     update="listaNotificaciones">
-                                        <f:setPropertyActionListener target="#{viewScope.todasLeidas}" value="#{true}"/>
-                                    </p:commandButton>
+                                                     action="#{notificacionesControl.marcarTodas}" process="@this"
+                                                     update="listaNotificaciones"/>
                                 </div>
 
-                                <c:set var="lista" value="#{viewScope.filtroNotificaciones eq 'sinLeer'
-                                        ? avisosDemo.stream().filter(a -> a.sinLeer and not viewScope.todasLeidas).toList()
-                                        : avisosDemo}"/>
+                                <c:set var="lista" value="#{notificacionesControl.visibles}"/>
                                 <ui:repeat value="#{lista}" var="aviso">
                                     <ui:include src="/plantillas/xhtml/comp-fila-notificacion.xhtml"/>
                                 </ui:repeat>
@@ -76,7 +60,7 @@
                                     <div class="text-center py-5">
                                         <span class="icono-circulo tono-verde mb-2"><i class="pi pi-check" aria-hidden="true"></i></span>
                                         <p class="font-semibold mb-1">Estás al día</p>
-                                        <p class="text-color-secondary m-0">No tienes notificaciones sin leer.</p>
+                                        <p class="text-color-secondary m-0">#{empty notificacionesControl.avisos ? 'Todavía no tienes notificaciones.' : 'No tienes notificaciones sin leer.'}</p>
                                     </div>
                                 </ui:fragment>
                             </h:panelGroup>
@@ -84,31 +68,6 @@
                     </h:form>
                 </div>
 
-                <div class="col-12 lg:col-4">
-                    <p:card styleClass="mb-4">
-                        <span class="eyebrow"><i class="pi pi-envelope mr-1" aria-hidden="true"></i> Cómo te avisamos</span>
-                        <h3 class="mt-2">Cada cambio, dos veces.</h3>
-                        <p class="text-color-secondary">
-                            Cuando tu solicitud cambia de estado te enviamos un correo a
-                            <strong>#{usuariosDemo.student.correo}</strong> y lo guardamos aquí.
-                        </p>
-                        <ul class="lista-requisitos">
-                            <li><i class="pi pi-check" aria-hidden="true"></i> Recepción de tu solicitud</li>
-                            <li><i class="pi pi-check" aria-hidden="true"></i> Inicio de la revisión</li>
-                            <li><i class="pi pi-check" aria-hidden="true"></i> Petición de información</li>
-                            <li><i class="pi pi-check" aria-hidden="true"></i> Resolución final</li>
-                        </ul>
-                    </p:card>
-                    <ui:include src="/plantillas/xhtml/comp-aviso.xhtml">
-                        <ui:param name="tipo" value="info"/>
-                        <ui:param name="icono" value="megaphone"/>
-                        <ui:param name="tituloAviso" value="¿Buscas un aviso de la carrera?"/>
-                        <ui:param name="texto" value="Los avisos generales de coordinación están en su propia sección."/>
-                        <ui:param name="conAccion" value="false"/>
-                    </ui:include>
-                    <p:linkButton outcome="/vista/avisos" includeViewParams="true" value="Ver avisos de la carrera"
-                                  icon="pi pi-arrow-right" iconPos="right" styleClass="ui-button-flat mt-2"/>
-                </div>
             </div>
         </ui:fragment>
     </ui:define>

@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  UNIDAD DE PERSISTENCIA de CoordinadITO (módulo EJB).
+
+  No lleva usuario, contraseña ni URL: solo el nombre JNDI del recurso jdbc/coordinadito.
+  Ese recurso lo crea en cada máquina herramientas/configurar-supabase.ps1, que lo apunta al
+  Session Pooler de Supabase. Así el repositorio no guarda secretos y las dos PCs usan la misma base.
+
+  El esquema NO lo genera JPA: lo crean los scripts de bd/ (01, 02, 03) en el SQL Editor de Supabase.
+-->
+<persistence version="3.0"
+             xmlns="https://jakarta.ee/xml/ns/persistence"
+             xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+             xsi:schemaLocation="https://jakarta.ee/xml/ns/persistence https://jakarta.ee/xml/ns/persistence/persistence_3_0.xsd">
+
+    <persistence-unit name="CoordinadITOPU" transaction-type="JTA">
+        <jta-data-source>jdbc/coordinadito</jta-data-source>
+        <!-- Toma todas las clases @Entity del módulo, sin tener que listarlas. -->
+        <exclude-unlisted-classes>false</exclude-unlisted-classes>
+        <!-- Sin caché compartida (L2): las dos PCs escriben en la misma base, y una caché por servidor
+             mostraría datos viejos de lo que cambió la otra PC (o un script en el SQL Editor). -->
+        <shared-cache-mode>NONE</shared-cache-mode>
+        <properties>
+            <!-- Nunca crear ni borrar tablas desde Java: la estructura manda en bd/*.sql. -->
+            <property name="jakarta.persistence.schema-generation.database.action" value="none"/>
+            <property name="eclipselink.target-database" value="PostgreSQL"/>
+            <!-- Cambiar a FINE para ver en server.log cada SQL que manda EclipseLink. -->
+            <property name="eclipselink.logging.level" value="INFO"/>
+            <property name="eclipselink.logging.parameters" value="false"/>
+        </properties>
+    </persistence-unit>
+</persistence>

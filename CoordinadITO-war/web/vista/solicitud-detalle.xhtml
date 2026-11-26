@@ -1,18 +1,23 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
   VISTA: detalle de una solicitud. Equivale a app/dashboard/requests/[requestId]/page.tsx.
-  Parámetros de la URL: ?folio=1042 | 1031 | 1043  y  ?rol=...
-  La solicitud se busca por folio en #{solicitudesDemo} (datos-demo.xhtml), así que la
-  pantalla se escribe una sola vez para todas: datos capturados con ui:repeat, historial con
-  p:chronoline y el panel de atención con comp-atender-solicitud.
-  Quién puede ver qué (igual que visibleRequests() del front):
-      student     -> 1042 y 1031 (son suyas)
-      coordinator -> 1042, 1031 y 1043 (carrera ISC)
-      head        -> todas, solo consulta (sin panel de atención)
-      cualquier otro caso (folio inexistente, administrador) -> "Solicitud no disponible"
+  Parámetro de la URL: ?folio=42 (número del folio ITO-0042).
+  Bean: detalleSolicitudControl (@ViewScoped) → SolicitudService.detalle(folio, usuario).
+  El EJB decide quién puede verla:
+      student     -> solo las suyas
+      coordinator -> las de sus carreras (y puede atenderlas mientras no estén cerradas)
+      head        -> todas, solo consulta
+      otro caso   -> "Solicitud no disponible"
+  Paneles de acción (cada uno es un componente con su propio h:form):
+      comp-atender-solicitud      cambiar estado con constancia            HU 2.4, 2.7
+      comp-solicitar-informacion  pedir información al alumno (→ ESPERA)    HU 2.5
+      comp-elevar-prioridad       subir la prioridad con motivo             HU 3.3
+      comp-responder-solicitud    el alumno responde (→ En revisión)        HU 2.6
+  Después de cada acción se vuelve a leer la solicitud y se redibuja #detalle.
 -->
 <ui:composition template="/plantillas/xhtml/plantilla-panel.xhtml"
                 xmlns="http://www.w3.org/1999/xhtml"
+                xmlns:h="jakarta.faces.html"
                 xmlns:f="jakarta.faces.core"
                 xmlns:ui="jakarta.faces.facelets"
                 xmlns:c="jakarta.tags.core"
@@ -20,71 +25,74 @@
 
     <ui:define name="metadatos">
         <f:metadata>
-            <f:viewParam name="rol" value="#{viewScope.rol}"/>
-            <f:viewParam name="folio" value="#{viewScope.folio}"/>
+            <f:viewParam name="folio" value="#{detalleSolicitudControl.folio}"/>
+            <f:viewAction action="#{detalleSolicitudControl.cargar}"/>
         </f:metadata>
     </ui:define>
 
-    <ui:param name="seccion" value="#{viewScope.rol eq 'coordinator' ? 'bandeja' : 'solicitudes'}"/>
+    <ui:param name="seccion" value="#{sesionControl.rol eq 'coordinator' ? 'bandeja' : 'solicitudes'}"/>
     <ui:param name="rotulo" value="Detalle de solicitud"/>
 
     <ui:define name="titulo">Detalle de solicitud</ui:define>
 
     <ui:define name="contenido">
-        <c:set var="rol" value="#{viewScope.rol eq 'coordinator' or viewScope.rol eq 'head' or viewScope.rol eq 'administrator' ? viewScope.rol : 'student'}"/>
-        <c:set var="sol" value="#{solicitudesDemo.stream().filter(s -> s.folio eq viewScope.folio).findFirst().orElse(null)}"/>
-        <c:set var="visible" value="#{not empty sol and ((rol eq 'student' and sol.control eq usuariosDemo.student.control)
-                                                        or (rol eq 'coordinator' and sol.carrera eq usuariosDemo.coordinator.carrera)
-                                                        or rol eq 'head')}"/>
-        <c:set var="cerrada" value="#{sol.codigoEstado eq 'completed' or sol.codigoEstado eq 'rejected'}"/>
+        <c:set var="rol" value="#{sesionControl.rol}"/>
+        <c:set var="ctl" value="#{detalleSolicitudControl}"/>
+        <c:set var="sol" value="#{detalleSolicitudControl.sol}"/>
 
         <!-- ===== Sin acceso o inexistente ===== -->
-        <ui:fragment rendered="#{not visible}">
+        <ui:fragment rendered="#{not ctl.visible}">
             <ui:include src="/plantillas/xhtml/comp-estado-vacio.xhtml">
                 <ui:param name="icono" value="shield"/>
                 <ui:param name="tituloVacio" value="Solicitud no disponible"/>
-                <ui:param name="descripcion" value="No encontramos esta solicitud entre las que corresponden a tu cuenta o a tu carrera."/>
+                <ui:param name="descripcion" value="No encontramos esta solicitud entre las que corresponden a tu cuenta o a tus carreras."/>
                 <ui:param name="destino" value="/vista/inicio"/>
                 <ui:param name="accion" value="Volver al inicio"/>
             </ui:include>
         </ui:fragment>
 
-        <ui:fragment rendered="#{visible}">
-            <p:linkButton outcome="#{rol eq 'coordinator' ? '/vista/bandeja' : '/vista/solicitudes'}" includeViewParams="true"
-                          value="Volver a solicitudes" icon="pi pi-arrow-left" styleClass="ui-button-flat mb-3 -ml-3"/>
+        <h:panelGroup id="detalle" layout="block" rendered="#{ctl.visible}">
+            <p:linkButton outcome="#{rol eq 'coordinator' ? '/vista/bandeja' : (rol eq 'student' ? '/vista/inicio' : '/vista/solicitudes')}"
+                          value="#{rol eq 'student' ? 'Volver al inicio' : 'Volver a solicitudes'}" icon="pi pi-arrow-left" styleClass="ui-button-flat mb-3 -ml-3"/>
 
             <ui:decorate template="/plantillas/xhtml/comp-encabezado.xhtml">
-                <ui:param name="eyebrow" value="ITO-#{sol.folio}"/>
                 <ui:param name="tituloPagina" value="#{sol.tramite}"/>
-                <ui:param name="descripcion" value="Registrada el #{sol.registroCompleto}"/>
+                <ui:param name="descripcion" value="Registrada el #{sol.registroCompleto}#{empty sol.asignado ? '' : ' · La atiende '.concat(sol.asignado)}"/>
                 <ui:param name="conAccion" value="true"/>
                 <ui:define name="accion">
+                    <ui:fragment rendered="#{rol ne 'student'}">
+                        <ui:include src="/plantillas/xhtml/comp-insignia-prioridad.xhtml">
+                            <ui:param name="prioridad" value="#{sol.prioridad}"/>
+                        </ui:include>
+                    </ui:fragment>
                     <ui:include src="/plantillas/xhtml/comp-insignia-estado.xhtml">
                         <ui:param name="codigoEstado" value="#{sol.codigoEstado}"/>
                     </ui:include>
-                    <!-- Solo el estudiante (sus dos solicitudes tienen novedades sin leer). Aún no hace nada. -->
-                    <ui:fragment rendered="#{rol eq 'student'}">
-                        <p:commandButton type="button" value="Marcar actualizaciones como leídas" icon="pi pi-check"
-                                         styleClass="ui-button-flat"/>
-                    </ui:fragment>
                 </ui:define>
             </ui:decorate>
 
             <div class="grid">
-                <div class="col-12 lg:col-8">
-                    <!-- Resolución: solo existe en una solicitud ya finalizada (1031). -->
-                    <ui:fragment rendered="#{not empty sol.resolucion}">
-                        <p:card styleClass="mb-4 border-green-200">
+                <div class="col-12 xl:col-8">
+                    <!-- Resolución: solo en solicitudes finalizadas o rechazadas. -->
+                    <ui:fragment rendered="#{sol.codigoEstado eq 'completed' or sol.codigoEstado eq 'rejected'}">
+                        <p:card styleClass="mb-4 #{sol.codigoEstado eq 'completed' ? 'border-green-200' : 'border-red-200'}">
                             <div class="flex gap-3 align-items-start">
-                                <span class="icono-circulo tono-verde"><i class="pi pi-check" aria-hidden="true"></i></span>
+                                <span class="icono-circulo #{sol.codigoEstado eq 'completed' ? 'tono-verde' : 'tono-marino'}">
+                                    <i class="pi #{sol.codigoEstado eq 'completed' ? 'pi-check' : 'pi-times'}" aria-hidden="true"></i>
+                                </span>
                                 <div>
                                     <p class="eyebrow">RESOLUCIÓN DE LA SOLICITUD</p>
-                                    <h2 class="text-xl my-2">Tu solicitud fue finalizada</h2>
-                                    <p class="mt-0">#{sol.resolucion}</p>
+                                    <h2 class="text-xl my-2">#{sol.codigoEstado eq 'completed' ? 'La solicitud fue finalizada' : 'La solicitud fue rechazada'}</h2>
+                                    <p class="mt-0" style="white-space: pre-line;">#{empty sol.resolucion ? 'Se atendió lo que se pidió en la solicitud.' : sol.resolucion}</p>
                                     <small class="text-color-secondary">#{sol.fechaResolucion}</small>
                                 </div>
                             </div>
                         </p:card>
+                    </ui:fragment>
+
+                    <!-- El alumno ve primero lo que se le pidió (HU 2.6). -->
+                    <ui:fragment rendered="#{ctl.puedeResponder}">
+                        <ui:include src="/plantillas/xhtml/comp-responder-solicitud.xhtml"/>
                     </ui:fragment>
 
                     <p:card styleClass="mb-4">
@@ -109,50 +117,105 @@
                                 <ui:param name="completo" value="true"/>
                             </ui:include>
                         </div>
-                        <p:divider/>
-                        <div class="grid">
-                            <ui:repeat value="#{sol.datos}" var="dato">
-                                <ui:include src="/plantillas/xhtml/comp-dato-revision.xhtml">
-                                    <ui:param name="etiqueta" value="#{dato.etiqueta}"/>
-                                    <ui:param name="valor" value="#{dato.valor}"/>
-                                    <ui:param name="completo" value="#{dato.etiqueta.startsWith('Motivo')}"/>
-                                </ui:include>
-                            </ui:repeat>
-                        </div>
+                        <ui:fragment rendered="#{not empty sol.datos}">
+                            <p:divider/>
+                            <div class="grid">
+                                <ui:repeat value="#{sol.datos}" var="dato">
+                                    <ui:include src="/plantillas/xhtml/comp-dato-revision.xhtml">
+                                        <ui:param name="etiqueta" value="#{dato.etiqueta}"/>
+                                        <ui:param name="valor" value="#{dato.valor}"/>
+                                        <ui:param name="completo" value="#{dato.completo}"/>
+                                    </ui:include>
+                                </ui:repeat>
+                            </div>
+                        </ui:fragment>
+                        <ui:fragment rendered="#{not empty sol.adjuntosIniciales}">
+                            <p:divider/>
+                            <span class="dato-etiqueta mb-2">Documentos adjuntos</span>
+                            <ui:include src="/plantillas/xhtml/comp-adjuntos.xhtml">
+                                <ui:param name="adjuntos" value="#{sol.adjuntosIniciales}"/>
+                            </ui:include>
+                        </ui:fragment>
                     </p:card>
 
-                    <!-- Panel de atención: solo coordinación y solo si la solicitud no está cerrada. -->
-                    <ui:fragment rendered="#{rol eq 'coordinator' and not cerrada}">
-                        <ui:include src="/plantillas/xhtml/comp-atender-solicitud.xhtml">
-                            <ui:param name="codigoEstado" value="#{sol.codigoEstado}"/>
-                        </ui:include>
+                    <!-- Conversación: peticiones de información y respuestas (HU 2.5, 2.6). -->
+                    <ui:fragment rendered="#{not empty sol.mensajes}">
+                        <p:card styleClass="mb-4">
+                            <f:facet name="title">
+                                <div class="flex justify-content-between align-items-center">
+                                    Mensajes
+                                    <i class="pi pi-comments text-color-secondary" aria-hidden="true"></i>
+                                </div>
+                            </f:facet>
+                            <ui:repeat value="#{sol.mensajes}" var="m">
+                                <div class="mensaje-solicitud #{m.peticion ? 'surface-ground' : ''} border-round p-3 mb-2">
+                                    <div class="flex justify-content-between flex-wrap gap-2 mb-1">
+                                        <strong><i class="pi #{m.peticion ? 'pi-question-circle' : 'pi-reply'} mr-1" aria-hidden="true"></i>#{m.titulo}</strong>
+                                        <small class="text-color-secondary">#{m.fecha}</small>
+                                    </div>
+                                    <p class="m-0" style="white-space: pre-line;">#{m.contenido}</p>
+                                    <small class="text-color-secondary">#{m.autor}</small>
+                                    <ui:fragment rendered="#{not empty sol.adjuntosDe(m.id)}">
+                                        <div class="mt-2">
+                                            <ui:include src="/plantillas/xhtml/comp-adjuntos.xhtml">
+                                                <ui:param name="adjuntos" value="#{sol.adjuntosDe(m.id)}"/>
+                                            </ui:include>
+                                        </div>
+                                    </ui:fragment>
+                                </div>
+                            </ui:repeat>
+                        </p:card>
+                    </ui:fragment>
+
+                    <!-- Paneles de coordinación: solo mientras la solicitud está abierta. -->
+                    <!-- Esperando al alumno, visto por quien atiende: no se puede pedir otra cosa hasta que responda. -->
+                    <ui:fragment rendered="#{rol ne 'student' and sol.enEspera}">
+                        <p:staticMessage severity="warn" icon="pi pi-hourglass" styleClass="w-full mb-4"
+                                         summary="Esperando al alumno." detail="Cuando responda, la solicitud volverá a «En revisión». Mientras tanto solo puedes reanudarla o rechazarla."/>
+                    </ui:fragment>
+                    <ui:fragment rendered="#{ctl.puedeAtender}">
+                        <ui:include src="/plantillas/xhtml/comp-atender-solicitud.xhtml"/>
                     </ui:fragment>
 
                     <!-- Solicitud cerrada: solo lectura. -->
-                    <ui:fragment rendered="#{cerrada}">
+                    <ui:fragment rendered="#{sol.cerrada}">
                         <p:staticMessage severity="info" icon="pi pi-shield" styleClass="w-full"
                                          detail="Esta solicitud está cerrada. Su resolución e historial se conservan sin cambios. Para otro asunto se requiere una solicitud nueva."/>
                     </ui:fragment>
                 </div>
 
-                <div class="col-12 lg:col-4">
-                    <p:card>
+                <div class="col-12 xl:col-4">
+                    <ui:fragment rendered="#{ctl.puedeElevar}">
+                        <ui:include src="/plantillas/xhtml/comp-elevar-prioridad.xhtml"/>
+                    </ui:fragment>
+
+                    <ui:fragment rendered="#{citaControl.visible}">
+                        <ui:include src="/plantillas/xhtml/comp-cita-presencial.xhtml"/>
+                    </ui:fragment>
+
+                    <ui:fragment rendered="#{sol.colectiva}">
+                        <p:linkButton outcome="/vista/grupo-detalle" value="Ver alumnos interesados" icon="pi pi-users"
+                                      styleClass="ui-button-outlined w-full mb-4">
+                            <f:param name="id" value="#{sol.folio}"/>
+                        </p:linkButton>
+                    </ui:fragment>
+
+                    <p:card styleClass="mb-4">
                         <f:facet name="title">
                             <div class="flex justify-content-between align-items-center">
                                 Seguimiento
                                 <i class="pi pi-clock text-color-secondary" aria-hidden="true"></i>
                             </div>
                         </f:facet>
-                        <!-- De más reciente a más antiguo. -->
+                        <!-- Bitácora, de lo más reciente a lo más antiguo. Quien atiende ve también las
+                             elevaciones de prioridad (HU 3.3); el alumno, solo los cambios de estado. -->
                         <ui:include src="/plantillas/xhtml/comp-evento-historial.xhtml">
-                            <ui:param name="eventos" value="#{sol.historial}"/>
+                            <ui:param name="eventos" value="#{rol eq 'student' ? sol.historialAlumno : sol.historial}"/>
                         </ui:include>
-                        <small class="flex align-items-center gap-2 text-color-secondary">
-                            <i class="pi pi-shield" aria-hidden="true"></i> El historial es de solo lectura.
-                        </small>
                     </p:card>
+
                 </div>
             </div>
-        </ui:fragment>
+        </h:panelGroup>
     </ui:define>
 </ui:composition>

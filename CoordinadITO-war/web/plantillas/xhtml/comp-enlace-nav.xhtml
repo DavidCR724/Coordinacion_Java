@@ -11,14 +11,14 @@
       visible  -> (opcional) false para ocultarla (p. ej. según el rol); por omisión se muestra
   Nota: dentro del menú no se puede usar ui:fragment (el menú solo dibuja hijos que sean
   opciones de menú), por eso el "mostrar u ocultar" va en el atributo rendered.
-  includeViewParams="true" conserva ?rol=... al navegar (cada vista lo declara con f:viewParam).
+  conserva ?rol=... al navegar (cada vista lo declara con f:viewParam).
 -->
 <ui:composition xmlns="http://www.w3.org/1999/xhtml"
                 xmlns:ui="jakarta.faces.facelets"
                 xmlns:p="primefaces">
     <p:menuitem value="#{etiqueta}"
                 outcome="#{destino}"
-                includeViewParams="true"
+               
                 icon="pi pi-#{icono}"
                 badge="#{not empty contador and contador gt 0 ? contador.toString() : null}"
                 containerStyleClass="#{activo ? 'menu-activo' : ''}"

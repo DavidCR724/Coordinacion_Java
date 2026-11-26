@@ -16,3 +16,6 @@ desktop.ini
 
 # ===== Registros =====
 *.log
+
+# Archivos apartados para borrar a mano (copias de prueba, paquetes viejos)
+_to_delete/

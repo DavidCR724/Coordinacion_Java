@@ -1,0 +1,123 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  VISTA: diagnóstico de la conexión a la base de datos (solo desarrollo).
+  Abre /CoordinadITO-war/vista/diagnostico.xhtml después de desplegar el EAR.
+  Bean: diagnosticoControl (WAR) → DiagnosticoService (EJB) → jdbc/coordinadito (local o Supabase).
+  En modo desarrollo también revisa cada modelo (@Entity) contra la base: tabla, columnas,
+  valores de enums y lectura con JPA (DiagnosticoService.revisarModelos).
+  No aparece en ningún menú. Quitarla o protegerla antes de pasar a producción.
+-->
+<ui:composition template="/plantillas/xhtml/plantilla-simple.xhtml"
+                xmlns="http://www.w3.org/1999/xhtml"
+                xmlns:ui="jakarta.faces.facelets"
+                xmlns:c="jakarta.tags.core"
+                xmlns:p="primefaces">
+
+    <ui:param name="ancho" value="amplio"/>
+    <ui:define name="titulo">Diagnóstico de conexión</ui:define>
+
+    <ui:define name="contenido">
+        <c:set var="e" value="#{diagnosticoControl.estado}"/>
+
+        <p:card>
+            <div class="flex align-items-center gap-3 mb-3">
+                <span class="icono-circulo #{e.conectado ? 'tono-verde' : 'tono-naranja'}" style="width: 3.5rem; height: 3.5rem; font-size: 1.4rem;">
+                    <i class="pi #{e.conectado ? 'pi-check' : 'pi-times'}" aria-hidden="true"></i>
+                </span>
+                <div>
+                    <h1 class="text-2xl font-bold mt-1 mb-0">
+                        #{e.conectado ? 'Conectado a la base de datos' : 'Sin conexión'}
+                    </h1>
+                    <small class="text-color-secondary">jdbc/coordinadito</small>
+                </div>
+                <p:tag value="#{e.milisegundos} ms" severity="#{e.conectado ? 'success' : 'danger'}" styleClass="ml-auto"/>
+            </div>
+
+            <ui:fragment rendered="#{e.conectado}">
+                <div class="grid">
+                    <div class="col-12 md:col-6"><p class="text-color-secondary text-sm m-0">Base</p><p class="font-semibold mt-1">#{e.baseDatos}</p></div>
+                    <div class="col-12 md:col-6"><p class="text-color-secondary text-sm m-0">Usuario</p><p class="font-semibold mt-1">#{e.usuario}</p></div>
+                    <div class="col-12 md:col-6"><p class="text-color-secondary text-sm m-0">Servidor</p><p class="font-semibold mt-1">#{e.version}</p></div>
+                    <div class="col-12 md:col-6"><p class="text-color-secondary text-sm m-0">Hora del servidor</p><p class="font-semibold mt-1">#{e.horaServidor}</p></div>
+                </div>
+
+                <!-- Migraciones automáticas (MigracionesService, al desplegar). -->
+                <c:set var="mig" value="#{diagnosticoControl.migraciones}"/>
+                <h2 class="text-lg font-bold mt-3 mb-2">Migraciones al desplegar</h2>
+                <ui:fragment rendered="#{not empty mig.problema}">
+                    <p class="estado-migracion-problema surface-100 p-3 border-round text-sm m-0">#{mig.problema}</p>
+                </ui:fragment>
+                <div class="flex flex-wrap gap-2 mt-2">
+                    <ui:repeat value="#{mig.aplicadas}" var="m">
+                        <p:tag value="#{m} · aplicada ahora" severity="info" styleClass="migracion-aplicada"/>
+                    </ui:repeat>
+                    <ui:repeat value="#{mig.alDia}" var="m">
+                        <p:tag value="#{m}" severity="success" styleClass="migracion-al-dia"/>
+                    </ui:repeat>
+                </div>
+
+                <h2 class="text-lg font-bold mt-3 mb-2">Tablas en el esquema public (#{e.totalTablas})</h2>
+                <ui:fragment rendered="#{e.totalTablas eq 0}">
+                    <p class="text-color-secondary">
+                        La conexión funciona pero no hay tablas. Ejecuta herramientas/configurar-local.ps1
+                        (base local) o, en Supabase, los scripts de bd/ del 01 al 07 en orden.
+                    </p>
+                </ui:fragment>
+                <div class="flex flex-wrap gap-2">
+                    <ui:repeat value="#{e.tablas}" var="t">
+                        <p:chip label="#{t}"/>
+                    </ui:repeat>
+                </div>
+            </ui:fragment>
+
+            <ui:fragment rendered="#{not e.conectado}">
+                <p class="text-color-secondary mt-0">El servidor respondió con este error:</p>
+                <pre style="white-space: pre-wrap; word-break: break-word;" class="surface-100 p-3 border-round text-sm">#{e.error}</pre>
+                <p class="text-color-secondary text-sm">
+                    Revisa: que el pool exista (asadmin ping-connection-pool CoordinadITOPool), que el alias
+                    de la contraseña sea correcto y que PostgreSQL esté encendido (o que el proyecto de Supabase no esté pausado).
+                </p>
+            </ui:fragment>
+        </p:card>
+
+        <!-- Modelos (JPA) contra la base: solo en modo desarrollo. -->
+        <ui:fragment rendered="#{e.conectado and diagnosticoControl.desarrollo}">
+            <c:set var="d" value="#{diagnosticoControl}"/>
+            <p:card styleClass="mt-4">
+                <div class="flex align-items-center gap-3 mb-3 flex-wrap">
+                    <span class="icono-circulo #{d.conProblemas eq 0 ? 'tono-verde' : 'tono-naranja'}" style="width: 3rem; height: 3rem;">
+                        <i class="pi #{d.conProblemas eq 0 ? 'pi-check' : 'pi-exclamation-triangle'}" aria-hidden="true"></i>
+                    </span>
+                    <div>
+                        <h2 class="text-xl font-bold m-0">
+                            #{d.conProblemas eq 0 ? 'Los modelos cuadran con la base' : d.conProblemas.toString().concat(' modelos con problemas')}
+                        </h2>
+                        <small class="text-color-secondary">
+                            #{d.modelos.size()} modelos revisados: tabla, columnas, valores de enums y lectura con JPA · #{d.filasTotales} filas en total
+                        </small>
+                    </div>
+                </div>
+                <p:dataTable value="#{d.modelos}" var="m" styleClass="tabla-diagnostico" rowStyleClass="#{m.correcto ? '' : 'fila-con-problema'}">
+                    <p:column headerText="Modelo">
+                        <strong>#{m.modelo}</strong>
+                        <small class="block text-color-secondary">#{m.tabla}#{empty m.relaciones ? '' : ' + '.concat(m.relaciones.toString())} · #{m.columnasRevisadas} columnas</small>
+                    </p:column>
+                    <p:column headerText="Filas" style="width: 5.5rem;">
+                        #{m.filas lt 0 ? '—' : m.filas}
+                        <ui:fragment rendered="#{m.filas gt m.leidas and m.leidas ge 0}"><small class="block text-color-secondary">leídas #{m.leidas}</small></ui:fragment>
+                    </p:column>
+                    <p:column headerText="Estado">
+                        <ui:fragment rendered="#{m.correcto}"><p:tag value="Correcto" severity="success" rounded="true"/></ui:fragment>
+                        <ui:repeat value="#{m.faltantes}" var="f"><div class="text-sm">#{f}</div></ui:repeat>
+                        <ui:repeat value="#{m.valoresInvalidos}" var="v"><div class="text-sm">Valor desconocido: #{v}</div></ui:repeat>
+                        <ui:fragment rendered="#{not empty m.error}"><div class="text-sm" style="word-break: break-word;">No se pudo leer: #{m.error}</div></ui:fragment>
+                    </p:column>
+                </p:dataTable>
+                <ui:fragment rendered="#{not empty d.tablasSinModelo}">
+                    <p class="text-sm text-color-secondary mt-3 mb-2">Tablas sin modelo JPA (se leen con SQL directo o son de apoyo):</p>
+                    <div class="flex flex-wrap gap-2"><ui:repeat value="#{d.tablasSinModelo}" var="t"><p:chip label="#{t}"/></ui:repeat></div>
+                </ui:fragment>
+            </p:card>
+        </ui:fragment>
+    </ui:define>
+</ui:composition>

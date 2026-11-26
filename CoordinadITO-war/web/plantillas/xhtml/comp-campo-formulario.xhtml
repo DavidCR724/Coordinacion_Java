@@ -1,34 +1,53 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
   COMPONENTE: un campo del formulario de solicitud (parte de components/requests/request-form.tsx).
-  p:inputText o p:inputTextarea (con contador de caracteres), obligatorio, con su p:message.
-  Se usa dentro de <ui:repeat var="campo"> sobre los campos del trámite (#{tramite.campos}),
+  Se usa dentro de <ui:repeat var="campo"> sobre #{tramite.campos} (CampoVista, tabla CAMPO_FORMULARIO),
   en el p:wizard de tramite-detalle.xhtml.
-  Campos de "campo" (como la tabla CAMPO_FORMULARIO):
-      nombre      -> clave del dato; el valor se guarda en viewScope[nombre] (courseName, reason...)
+  Campos de "campo":
+      nombre      -> id del campo; el valor se guarda en nuevaSolicitudControl.respuestas[nombre]
       etiqueta    -> texto de la etiqueta
-      ejemplo     -> placeholder
+      ejemplo     -> placeholder (columna AYUDA)
+      tipo        -> TEXTO | TEXTO_LARGO | NUMERO | FECHA | SELECCION (ENUM TIPO_CAMPO)
+      obligatorio -> required
       maximo      -> longitud máxima
-      multilinea  -> true = p:inputTextarea, false = p:inputText
-  Los id son fijos ("texto", "linea", "contador"): ui:repeat les agrega el número de fila, así no chocan.
-  Sin beans todavía: el valor vive en el viewScope de la página para que el paso de revisión
-  lo muestre. Con el bean será #{solicitudBean.respuestas[campo.nombre]}.
+      opciones    -> lista para SELECCION
+  Se pinta solo el componente del tipo del campo. Los id son fijos; ui:repeat les agrega el número
+  de fila, así no chocan. La validación de aquí es de cortesía: SolicitudService la repite.
 -->
 <ui:composition xmlns="http://www.w3.org/1999/xhtml"
                 xmlns:h="jakarta.faces.html"
+                xmlns:f="jakarta.faces.core"
                 xmlns:ui="jakarta.faces.facelets"
                 xmlns:p="primefaces">
     <div class="field col-12 #{campo.multilinea ? '' : 'md:col-6'}">
-        <p:outputLabel for="#{campo.multilinea ? 'texto' : 'linea'}" value="#{campo.etiqueta}" styleClass="block font-medium mb-2"/>
-        <p:inputTextarea id="texto" rendered="#{campo.multilinea}" value="#{viewScope[campo.nombre]}"
-                         required="true" requiredMessage="Este campo es obligatorio." label="#{campo.etiqueta}"
+        <p:outputLabel for="#{campo.tipo eq 'TEXTO_LARGO' ? 'texto' : (campo.tipo eq 'SELECCION' ? 'opcion' : 'linea')}"
+                       value="#{campo.etiqueta}#{campo.obligatorio ? ' *' : ''}" indicateRequired="false"
+                       styleClass="block font-medium mb-2"/>
+
+        <p:inputTextarea id="texto" rendered="#{campo.tipo eq 'TEXTO_LARGO'}"
+                         value="#{nuevaSolicitudControl.respuestas[campo.nombre]}"
+                         required="#{campo.obligatorio}" requiredMessage="Este campo es obligatorio." label="#{campo.etiqueta}"
                          maxlength="#{campo.maximo}" placeholder="#{campo.ejemplo}" rows="5" autoResize="false"
                          counter="contador" counterTemplate="{0} caracteres restantes" styleClass="w-full"/>
-        <h:outputText id="contador" rendered="#{campo.multilinea}" styleClass="block text-color-secondary text-sm mt-1"/>
-        <p:inputText id="linea" rendered="#{not campo.multilinea}" value="#{viewScope[campo.nombre]}"
-                     required="true" requiredMessage="Este campo es obligatorio." label="#{campo.etiqueta}"
+        <h:outputText id="contador" rendered="#{campo.tipo eq 'TEXTO_LARGO'}" styleClass="block text-color-secondary text-sm mt-1"/>
+
+        <p:selectOneMenu id="opcion" rendered="#{campo.tipo eq 'SELECCION'}"
+                         value="#{nuevaSolicitudControl.respuestas[campo.nombre]}"
+                         required="#{campo.obligatorio}" requiredMessage="Elige una opción." label="#{campo.etiqueta}"
+                         styleClass="w-full">
+            <f:selectItem itemLabel="Elige una opción" itemValue="#{null}" noSelectionOption="true"/>
+            <f:selectItems value="#{campo.opciones}" var="o" itemValue="#{o}" itemLabel="#{o}"/>
+        </p:selectOneMenu>
+
+        <!-- TEXTO, NUMERO y FECHA: input nativo del tipo que corresponde (la fecha llega como aaaa-mm-dd). -->
+        <p:inputText id="linea" rendered="#{campo.tipo eq 'TEXTO' or campo.tipo eq 'NUMERO' or campo.tipo eq 'FECHA'}"
+                     type="#{campo.tipo eq 'NUMERO' ? 'number' : (campo.tipo eq 'FECHA' ? 'date' : 'text')}"
+                     value="#{nuevaSolicitudControl.respuestas[campo.nombre]}"
+                     required="#{campo.obligatorio}" requiredMessage="Este campo es obligatorio." label="#{campo.etiqueta}"
                      maxlength="#{campo.maximo}" placeholder="#{campo.ejemplo}" styleClass="w-full"/>
-        <p:message for="texto" display="text" rendered="#{campo.multilinea}"/>
-        <p:message for="linea" display="text" rendered="#{not campo.multilinea}"/>
+
+        <p:message for="texto" display="text" rendered="#{campo.tipo eq 'TEXTO_LARGO'}"/>
+        <p:message for="opcion" display="text" rendered="#{campo.tipo eq 'SELECCION'}"/>
+        <p:message for="linea" display="text" rendered="#{campo.tipo ne 'TEXTO_LARGO' and campo.tipo ne 'SELECCION'}"/>
     </div>
 </ui:composition>

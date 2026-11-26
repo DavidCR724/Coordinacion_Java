@@ -1,0 +1,111 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  VISTA: carga del padrón institucional (coordinación: sus carreras; jefatura: todas). HU 8.1.
+  - p:fileUpload (CSV, 10 MB) → padronControl.subir → PadronService.cargar.
+    Columnas: num_control, correo, nombres, apellido_paterno, apellido_materno, carrera, semestre
+    (separadas por coma o punto y coma; se puede guardar desde Excel como «CSV UTF-8»).
+  - Si faltan columnas, se rechaza el archivo completo y no cambia nada. Las filas con errores se
+    listan y las demás se cargan. Los alumnos que ya no vienen en el padrón dejan de estar vigentes.
+  - Historial de cargas y número de alumnos vigentes.
+-->
+<ui:composition template="/plantillas/xhtml/plantilla-panel.xhtml"
+                xmlns="http://www.w3.org/1999/xhtml"
+                xmlns:h="jakarta.faces.html"
+                xmlns:f="jakarta.faces.core"
+                xmlns:ui="jakarta.faces.facelets"
+                xmlns:c="jakarta.tags.core"
+                xmlns:p="primefaces">
+
+    <ui:param name="seccion" value="padron"/>
+    <ui:param name="rotulo" value="Padrón institucional"/>
+
+    <ui:define name="titulo">Padrón institucional</ui:define>
+
+    <ui:define name="contenido">
+        <c:set var="rol" value="#{sesionControl.rol}"/>
+
+        <ui:fragment rendered="#{(rol ne 'head' and rol ne 'coordinator')}">
+            <ui:include src="/plantillas/xhtml/comp-estado-vacio.xhtml">
+                <ui:param name="icono" value="shield"/>
+                <ui:param name="tituloVacio" value="Sin acceso a esta sección"/>
+                <ui:param name="descripcion" value="El padrón lo cargan coordinación (de su carrera) y jefatura."/>
+                <ui:param name="destino" value="/vista/inicio"/>
+                <ui:param name="accion" value="Volver al inicio"/>
+            </ui:include>
+        </ui:fragment>
+
+        <ui:fragment rendered="#{(rol eq 'head' or rol eq 'coordinator')}">
+            <ui:decorate template="/plantillas/xhtml/comp-encabezado.xhtml">
+                <ui:param name="tituloPagina" value="Padrón institucional"/>
+                <ui:param name="descripcion" value="#{padronControl.vigentes} alumnos vigentes#{rol eq 'coordinator' ? ' en tus carreras' : ''}."/>
+                <ui:param name="conAccion" value="true"/>
+                <ui:define name="accion">
+                    <h:form id="formPlantilla">
+                        <p:commandButton value="Descargar plantilla" icon="pi pi-download" ajax="false" styleClass="ui-button-outlined">
+                            <p:fileDownload value="#{padronControl.plantilla}"/>
+                        </p:commandButton>
+                    </h:form>
+                </ui:define>
+            </ui:decorate>
+
+            <h:panelGroup id="panelPadron" layout="block">
+                <div class="grid">
+                    <div class="col-12 xl:col-8">
+                        <p:card styleClass="mb-4">
+                            <f:facet name="title">Cargar archivo</f:facet>
+                            <f:facet name="subtitle">CSV con las columnas de la plantilla. Las cuentas existentes toman la carrera y el semestre del padrón; quien no venga en el archivo deja de estar vigente#{rol eq 'coordinator' ? ' (solo en tus carreras)' : ''}, sin perder su historial.</f:facet>
+                            <h:form id="formPadron" enctype="multipart/form-data">
+                                <p:fileUpload id="archivo" mode="advanced" auto="true" multiple="false"
+                                              listener="#{padronControl.subir}" update=":panelPadron"
+                                              label="Elegir archivo CSV" chooseIcon="pi pi-upload">
+                                    <p:validateFile allowTypes="/(\.|\/)(csv|txt)$/" sizeLimit="10485760"/>
+                                </p:fileUpload>
+                            </h:form>
+                        </p:card>
+
+                        <ui:fragment rendered="#{not empty padronControl.resultado}">
+                            <c:set var="r" value="#{padronControl.resultado}"/>
+                            <p:card styleClass="mb-4">
+                                <f:facet name="title">Resultado de «#{r.carga.nombreArchivo}»</f:facet>
+                                <div class="grid text-center">
+                                    <div class="col-6 md:col-3"><span class="metrica-valor">#{r.carga.nuevos}</span><small class="block text-color-secondary">nuevos</small></div>
+                                    <div class="col-6 md:col-3"><span class="metrica-valor">#{r.carga.actualizados}</span><small class="block text-color-secondary">actualizados</small></div>
+                                    <div class="col-6 md:col-3"><span class="metrica-valor">#{r.carga.sinCambios}</span><small class="block text-color-secondary">sin cambios</small></div>
+                                    <div class="col-6 md:col-3"><span class="metrica-valor">#{r.retirados}</span><small class="block text-color-secondary">ya no vigentes</small></div>
+                                </div>
+                                <ui:fragment rendered="#{not empty r.errores}">
+                                    <p:divider/>
+                                    <ui:include src="/plantillas/xhtml/comp-aviso.xhtml">
+                                        <ui:param name="tipo" value="advertencia"/>
+                                        <ui:param name="tituloAviso" value="#{r.carga.rechazados} filas no se cargaron"/>
+                                        <ui:param name="texto" value="Corrígelas en el archivo y vuelve a cargarlo; las filas correctas ya quedaron guardadas."/>
+                                    </ui:include>
+                                    <ul id="erroresPadron" class="mt-3 text-sm">
+                                        <ui:repeat value="#{r.errores}" var="e"><li>#{e}</li></ui:repeat>
+                                    </ul>
+                                </ui:fragment>
+                            </p:card>
+                        </ui:fragment>
+                    </div>
+
+                </div>
+
+                <h:form>
+                    <p:dataTable id="tablaCargas" value="#{padronControl.cargas}" var="c" reflow="true"
+                                 emptyMessage="Aún no se ha cargado ningún padrón.">
+                        <f:facet name="header">Cargas anteriores</f:facet>
+                        <p:column headerText="Archivo">
+                            <strong class="block">#{c.nombreArchivo}</strong>
+                            <small class="text-color-secondary">#{c.responsable.nombreCompleto}</small>
+                        </p:column>
+                        <p:column headerText="Fecha" style="width: 13rem;">#{formato.fechaHora(c.fecha)}</p:column>
+                        <p:column headerText="Filas" styleClass="text-right" style="width: 6rem;">#{c.total}</p:column>
+                        <p:column headerText="Nuevos" styleClass="text-right" style="width: 6rem;">#{c.nuevos}</p:column>
+                        <p:column headerText="Actualizados" styleClass="text-right" style="width: 8rem;">#{c.actualizados}</p:column>
+                        <p:column headerText="Con errores" styleClass="text-right" style="width: 8rem;">#{c.rechazados}</p:column>
+                    </p:dataTable>
+                </h:form>
+            </h:panelGroup>
+        </ui:fragment>
+    </ui:define>
+</ui:composition>

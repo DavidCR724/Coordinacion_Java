@@ -2,7 +2,7 @@
 <!--
   COMPONENTE: franja con los datos de quien solicita (nombre, control y carrera) y enlace al perfil.
   Se repite en los dos pasos del formulario de tramite-detalle.xhtml.
-  Parámetro (variable de la vista): alumno -> #{usuariosDemo.student}
+  Parámetro (variable de la vista): alumno -> #{sesionControl.usuario}
 -->
 <ui:composition xmlns="http://www.w3.org/1999/xhtml"
                 xmlns:f="jakarta.faces.core"
@@ -15,7 +15,6 @@
             <small class="block text-color-secondary">#{alumno.control} · #{alumno.carrera}</small>
         </div>
         <p:linkButton outcome="/vista/perfil" value="Ver perfil" styleClass="ui-button-flat">
-            <f:param name="rol" value="#{viewScope.rol}" disable="#{empty viewScope.rol}"/>
         </p:linkButton>
     </div>
 </ui:composition>

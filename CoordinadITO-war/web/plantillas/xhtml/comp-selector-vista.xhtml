@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  COMPONENTE: selector «Activas / Finalizadas» (dos botones, uno marcado). Reemplaza al filtro por
+  estado: «Activas» es lo que sigue en trámite; «Finalizadas» es el historial (finalizadas y rechazadas).
+  Va dentro de un h:form. (La bandeja usa el mismo par de opciones, pero consulta la base al cambiar.) Parámetros (ui:param):
+      valor       -> expresión con la vista elegida ("activas" / "finalizadas"), p. ej. #{listado.vista}
+      activas     -> (opcional) cuántas hay activas, para mostrarlo en el botón
+      finalizadas -> (opcional) cuántas hay finalizadas
+      actualizar  -> ids que se redibujan al cambiar (p:ajax update)
+      alTerminar  -> (opcional) JavaScript al terminar (la tabla vuelve a aplicar su búsqueda)
+-->
+<ui:composition xmlns="http://www.w3.org/1999/xhtml"
+                xmlns:f="jakarta.faces.core"
+                xmlns:ui="jakarta.faces.facelets"
+                xmlns:p="primefaces">
+    <p:selectOneButton value="#{valor}" styleClass="selector-vista" unselectable="false" ariaLabel="Qué solicitudes ver">
+        <f:selectItem itemValue="activas" itemLabel="Activas#{empty activas ? '' : ' ('.concat(activas).concat(')')}"/>
+        <f:selectItem itemValue="finalizadas" itemLabel="Finalizadas#{empty finalizadas ? '' : ' ('.concat(finalizadas).concat(')')}"/>
+        <p:ajax process="@this" update="#{actualizar}" oncomplete="#{alTerminar}"/>
+    </p:selectOneButton>
+</ui:composition>

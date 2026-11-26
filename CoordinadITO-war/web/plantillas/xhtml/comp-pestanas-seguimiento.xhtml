@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  COMPONENTE: pestañas de «Seguimiento» de jefatura (HU 7.1, 7.2, 7.3). Las tres pantallas
+  (volumen, tiempos, rezagos) son un solo lugar en el menú; estas pestañas cambian entre ellas.
+  Parámetro (ui:param):
+      actual -> volumen | tiempos | rezagos
+-->
+<ui:composition xmlns="http://www.w3.org/1999/xhtml"
+                xmlns:h="jakarta.faces.html"
+                xmlns:ui="jakarta.faces.facelets"
+                xmlns:pt="jakarta.faces.passthrough">
+    <nav class="pestanas mb-4" aria-label="Seguimiento">
+        <h:link outcome="/vista/seguimiento-volumen" styleClass="#{actual eq 'volumen' ? 'activa' : ''}"
+                pt:aria-current="#{actual eq 'volumen' ? 'page' : null}">
+            <i class="pi pi-chart-bar" aria-hidden="true"></i> Volumen
+        </h:link>
+        <h:link outcome="/vista/seguimiento-tiempos" styleClass="#{actual eq 'tiempos' ? 'activa' : ''}"
+                pt:aria-current="#{actual eq 'tiempos' ? 'page' : null}">
+            <i class="pi pi-clock" aria-hidden="true"></i> Tiempos
+        </h:link>
+        <h:link outcome="/vista/seguimiento-rezagos" styleClass="#{actual eq 'rezagos' ? 'activa' : ''}"
+                pt:aria-current="#{actual eq 'rezagos' ? 'page' : null}">
+            <i class="pi pi-exclamation-circle" aria-hidden="true"></i> Rezagos
+        </h:link>
+    </nav>
+</ui:composition>

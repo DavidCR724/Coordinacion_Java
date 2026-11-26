@@ -1,52 +1,63 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
   COMPONENTE: tabla de solicitudes (equivale a components/requests/request-table.tsx).
-  Es un p:dataTable de PrimeFaces: ordenar por columna, buscar y filtrar por estado ya
-  funcionan (por AJAX, sobre los datos de ejemplo).
+  Es un p:dataTable de PrimeFaces: ordenar por columna y buscar funcionan por AJAX.
   Parámetros (ui:param):
-      solicitudes   -> colección a mostrar (p. ej. una parte de #{solicitudesDemo})
+      solicitudes   -> colección de SolicitudFila (solicitudesControl.lista, bandejaControl.lista...)
       conEstudiante -> true muestra la columna "Estudiante" (vista de coordinación)
-      conFiltros    -> true muestra la búsqueda y el filtro por estado
+      conPrioridad  -> (opcional) true muestra la columna "Prioridad" (coordinación y jefatura)
+      tarjetasEnMovil -> (opcional) true: en el teléfono se ven tarjetas (comp-lista-solicitudes)
+                       en lugar de la tabla apilada. Solo donde los filtros viven fuera de la tabla.
+      conFiltros    -> true muestra la búsqueda
+      listado       -> (opcional) ListaSolicitudes: en lugar de "solicitudes", dibuja listado.visibles
+                       y pone arriba el selector «Activas / Finalizadas» junto a la búsqueda
   Cada fila enlaza a /vista/solicitud-detalle?folio=...
   Sustituye a comp-fila-solicitud.xhtml: con p:dataTable las filas salen de la colección.
-  ORDENAR: p:dataTable ordena la lista "en su lugar" y luego la vuelve a leer. Las listas de
-  ejemplo se arman con EL y se recrean en cada lectura, así que se guarda una sola instancia por
-  petición con facesContext.attributes.computeIfAbsent(clave, k -> lista). Con un bean que
-  devuelva siempre la misma lista esto ya no hace falta.
-      claveTabla -> (opcional) nombre de esa instancia; por omisión tablaSolicitudes
+  ORDENAR: p:dataTable ordena la lista "en su lugar" y luego la vuelve a leer; los controles
+  devuelven siempre la misma instancia, así el orden se conserva.
 -->
 <ui:composition xmlns="http://www.w3.org/1999/xhtml"
                 xmlns:h="jakarta.faces.html"
                 xmlns:f="jakarta.faces.core"
                 xmlns:ui="jakarta.faces.facelets"
                 xmlns:p="primefaces">
-    <!-- Sin id fijo: una vista puede contener la tabla más de una vez (una por rol)
-         y solo se dibuja la que corresponde. -->
-    <h:form>
-        <p:dataTable widgetVar="tablaSolicitudes"
-                     value="#{facesContext.attributes.computeIfAbsent(empty claveTabla ? 'tablaSolicitudes' : claveTabla, k -> solicitudes)}" var="s" rowKey="#{s.folio}"
+    <!-- El formulario no lleva id fijo: una vista puede contener la tabla más de una vez (una por
+         rol) y solo se dibuja la que corresponde; "tabla" queda distinto dentro de cada formulario. -->
+    <ui:param name="filas" value="#{empty listado ? solicitudes : listado.visibles}"/>
+    <h:form styleClass="#{tarjetasEnMovil ? 'solo-escritorio' : ''}">
+        <p:dataTable id="tabla" widgetVar="tablaSolicitudes"
+                     value="#{filas}" var="s" rowKey="#{s.folio}"
                      rowHover="true" reflow="true" size="large"
-                     emptyMessage="No hay solicitudes que coincidan con la búsqueda."
+                     emptyMessage="#{empty listado ? 'No hay solicitudes que coincidan con la búsqueda.' : (listado.finalizadas ? 'Todavía no hay solicitudes finalizadas.' : 'No hay solicitudes activas.')}"
                      styleClass="tabla-solicitudes">
 
             <!-- Un facet sin contenido visible no se dibuja: así la cabecera solo aparece con filtros. -->
             <f:facet name="header">
-                <h:panelGroup layout="block" rendered="#{conFiltros}"
-                              styleClass="flex justify-content-between align-items-center gap-3 flex-wrap">
-                    <span class="ui-input-icon-left w-full md:w-25rem">
+                <h:panelGroup layout="block" rendered="#{conFiltros or not empty listado}"
+                              styleClass="flex align-items-center gap-3 flex-wrap">
+                    <h:panelGroup rendered="#{conFiltros}" styleClass="ui-input-icon-left w-full md:w-25rem">
                         <i class="pi pi-search"/>
                         <p:inputText id="globalFilter" oninput="PF('tablaSolicitudes').filter()" styleClass="w-full"
                                      placeholder="#{conEstudiante ? 'Buscar por folio, trámite o estudiante' : 'Buscar por folio o trámite'}"/>
-                    </span>
-                    <span class="text-color-secondary text-sm font-normal">También puedes filtrar por estado en su columna.</span>
+                    </h:panelGroup>
+                    <ui:fragment rendered="#{not empty listado}">
+                        <!-- Al cambiar se redibuja la tabla y se vuelve a aplicar lo escrito en la búsqueda. -->
+                        <ui:include src="/plantillas/xhtml/comp-selector-vista.xhtml">
+                            <ui:param name="valor" value="#{listado.vista}"/>
+                            <ui:param name="activas" value="#{listado.numeroActivas}"/>
+                            <ui:param name="finalizadas" value="#{listado.numeroFinalizadas}"/>
+                            <ui:param name="actualizar" value="tabla"/>
+                            <ui:param name="alTerminar" value="if (PF('tablaSolicitudes').jq.find('input[id$=globalFilter]').val()) PF('tablaSolicitudes').filter()"/>
+                        </ui:include>
+                    </ui:fragment>
                 </h:panelGroup>
             </f:facet>
 
             <p:column headerText="Folio / trámite" sortBy="#{s.folio}"
-                      filterBy="#{s.tramite} ITO-#{s.folio}" filterMatchMode="contains" filterStyle="display: none">
-                <h:link outcome="/vista/solicitud-detalle" includeViewParams="true" styleClass="enlace-solicitud">
+                      filterBy="#{s.tramite} #{s.folioTexto}" filterMatchMode="contains" filterStyle="display: none">
+                <h:link outcome="/vista/solicitud-detalle" styleClass="enlace-solicitud">
                     <f:param name="folio" value="#{s.folio}"/>
-                    #{s.tramite}<small>ITO-#{s.folio}</small>
+                    #{s.tramite}<small>#{s.folioTexto}</small>
                 </h:link>
             </p:column>
 
@@ -56,21 +67,17 @@
                 <small class="block text-color-secondary">#{s.control}</small>
             </p:column>
 
+            <p:column headerText="Prioridad" rendered="#{conPrioridad}" sortBy="#{s.ordenPrioridad}" style="width: 7.5rem;">
+                <ui:include src="/plantillas/xhtml/comp-insignia-prioridad.xhtml">
+                    <ui:param name="prioridad" value="#{s.prioridad}"/>
+                </ui:include>
+            </p:column>
+
             <p:column headerText="Registro" sortBy="#{s.registroIso}">
                 #{s.registro}
             </p:column>
 
-            <p:column headerText="Estado" sortBy="#{s.codigoEstado}"
-                      filterBy="#{s.codigoEstado}" filterMatchMode="exact" filterable="#{conFiltros}">
-                <f:facet name="filter">
-                    <p:selectOneMenu onchange="PF('tablaSolicitudes').filter()" styleClass="w-full">
-                        <f:selectItem itemLabel="Todos los estados" itemValue="#{null}" noSelectionOption="true"/>
-                        <f:selectItem itemLabel="Recibida" itemValue="received"/>
-                        <f:selectItem itemLabel="En revisión" itemValue="in-review"/>
-                        <f:selectItem itemLabel="Finalizada" itemValue="completed"/>
-                        <f:selectItem itemLabel="Rechazada" itemValue="rejected"/>
-                    </p:selectOneMenu>
-                </f:facet>
+            <p:column headerText="Estado" sortBy="#{s.codigoEstado}">
                 <ui:include src="/plantillas/xhtml/comp-insignia-estado.xhtml">
                     <ui:param name="codigoEstado" value="#{s.codigoEstado}"/>
                 </ui:include>
@@ -81,17 +88,27 @@
             </p:column>
 
             <p:column style="width: 4rem" ariaHeaderText="Acción">
-                <p:linkButton outcome="/vista/solicitud-detalle" includeViewParams="true" icon="pi pi-chevron-right"
-                              styleClass="ui-button-flat ui-button-secondary rounded-button" title="Ver solicitud ITO-#{s.folio}">
+                <p:linkButton outcome="/vista/solicitud-detalle" icon="pi pi-chevron-right"
+                              styleClass="ui-button-flat ui-button-secondary rounded-button" title="Ver solicitud #{s.folioTexto}">
                     <f:param name="folio" value="#{s.folio}"/>
                 </p:linkButton>
             </p:column>
 
             <f:facet name="footer">
                 <span class="font-normal text-color-secondary">
-                    #{solicitudes.size()} #{solicitudes.size() eq 1 ? 'solicitud' : 'solicitudes'}#{conFiltros ? ' en esta vista' : ''}
+                    #{filas.size()} #{filas.size() eq 1 ? 'solicitud' : 'solicitudes'}#{empty listado ? '' : (listado.finalizadas ? ' finalizadas' : ' activas')}
                 </span>
             </f:facet>
         </p:dataTable>
     </h:form>
+    <ui:fragment rendered="#{tarjetasEnMovil}">
+        <div class="solo-movil">
+            <ui:include src="/plantillas/xhtml/comp-lista-solicitudes.xhtml">
+                <ui:param name="solicitudes" value="#{filas}"/>
+                <ui:param name="vacio" value="No hay solicitudes con estos filtros."/>
+                <ui:param name="conEstudiante" value="#{conEstudiante}"/>
+            </ui:include>
+            <p class="text-color-secondary text-sm mt-2">#{filas.size()} #{filas.size() eq 1 ? 'solicitud' : 'solicitudes'}</p>
+        </div>
+    </ui:fragment>
 </ui:composition>

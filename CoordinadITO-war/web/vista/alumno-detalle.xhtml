@@ -1,0 +1,100 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  VISTA: expediente de un alumno. HU 6.5.  ?id=<id del usuario>
+  Datos de la cuenta, de dónde salen carrera y semestre, sus solicitudes (incluye las aperturas de
+  grupo a las que se sumó) y el formulario para corregir carrera y semestre: el dato queda
+  «validado por coordinación» y la corrección se guarda en la auditoría.
+  Bean: alumnoControl (AlumnoService.detalle / solicitudesDe / corregir).
+-->
+<ui:composition template="/plantillas/xhtml/plantilla-panel.xhtml"
+                xmlns="http://www.w3.org/1999/xhtml"
+                xmlns:h="jakarta.faces.html"
+                xmlns:f="jakarta.faces.core"
+                xmlns:ui="jakarta.faces.facelets"
+                xmlns:c="jakarta.tags.core"
+                xmlns:p="primefaces">
+
+    <ui:define name="metadatos">
+        <f:metadata>
+            <f:viewParam name="id" value="#{alumnoControl.id}"/>
+            <f:viewAction action="#{alumnoControl.cargar}"/>
+        </f:metadata>
+    </ui:define>
+
+    <ui:param name="seccion" value="alumnos"/>
+    <ui:param name="rotulo" value="Expediente del alumno"/>
+
+    <ui:define name="titulo">Expediente del alumno</ui:define>
+
+    <ui:define name="contenido">
+        <c:set var="a" value="#{alumnoControl.alumno}"/>
+
+        <ui:fragment rendered="#{not alumnoControl.visible}">
+            <ui:include src="/plantillas/xhtml/comp-estado-vacio.xhtml">
+                <ui:param name="icono" value="shield"/>
+                <ui:param name="tituloVacio" value="Expediente no disponible"/>
+                <ui:param name="descripcion" value="No encontramos a este alumno entre los de las carreras que atiendes."/>
+                <ui:param name="destino" value="/vista/alumnos"/>
+                <ui:param name="accion" value="Ver alumnos"/>
+            </ui:include>
+        </ui:fragment>
+
+        <h:panelGroup id="expediente" layout="block" rendered="#{alumnoControl.visible}">
+            <p:linkButton outcome="/vista/alumnos" value="Volver a alumnos" icon="pi pi-arrow-left" styleClass="ui-button-flat mb-3 -ml-3"/>
+
+            <ui:include src="/plantillas/xhtml/comp-encabezado.xhtml">
+                <ui:param name="tituloPagina" value="#{a.nombre}"/>
+                <ui:param name="descripcion" value="#{a.correo} · #{a.carrera}"/>
+            </ui:include>
+
+            <div class="grid">
+                <div class="col-12 xl:col-8">
+                    <p:card styleClass="mb-4">
+                        <f:facet name="title">Solicitudes</f:facet>
+                        <ui:include src="/plantillas/xhtml/comp-tabla-solicitudes.xhtml">
+                            <ui:param name="solicitudes" value="#{alumnoControl.solicitudes}"/>
+                            <ui:param name="conEstudiante" value="false"/>
+                            <ui:param name="conPrioridad" value="true"/>
+                            <ui:param name="tarjetasEnMovil" value="true"/>
+                        </ui:include>
+                    </p:card>
+                </div>
+
+                <div class="col-12 xl:col-4">
+                    <!-- Una sola tarjeta: los datos actuales ya están en el formulario; se corrigen ahí mismo (HU 6.5). -->
+                    <p:card>
+                        <f:facet name="title">
+                            <div class="flex justify-content-between align-items-center gap-2 flex-wrap">
+                                Datos escolares
+                                <p:tag value="#{a.origenEtiqueta}" rounded="true"
+                                       severity="#{a.origen eq 'AUTODECLARADO' ? 'warning' : (a.origen eq 'VALIDADO' ? 'success' : 'info')}"/>
+                            </div>
+                        </f:facet>
+                        <h:form id="formCorregir">
+                            <div class="field">
+                                <p:outputLabel for="carrera" value="Carrera" styleClass="block font-medium mb-2"/>
+                                <p:selectOneMenu id="carrera" value="#{alumnoControl.carrera}" required="true"
+                                                 requiredMessage="Elige la carrera." styleClass="w-full">
+                                    <f:selectItems value="#{catalogos.carreras}" var="car" itemValue="#{car.valor}" itemLabel="#{car.etiqueta}"/>
+                                </p:selectOneMenu>
+                                <p:message for="carrera" display="text"/>
+                            </div>
+                            <div class="field">
+                                <p:outputLabel for="semestre" value="Semestre" styleClass="block font-medium mb-2"/>
+                                <p:spinner id="semestre" value="#{alumnoControl.semestre}" min="1" max="14" required="true"
+                                           requiredMessage="Indica el semestre." styleClass="w-full" inputStyleClass="w-full"/>
+                                <p:message for="semestre" display="text"/>
+                            </div>
+                            <p:commandButton id="corregir" value="Guardar y validar" icon="pi pi-verified" styleClass="w-full"
+                                             action="#{alumnoControl.corregir}" update=":expediente"/>
+                            <small class="block text-color-secondary mt-2">
+                                Usa los del registro oficial: quedan como validados y la corrección se registra con tu cuenta.
+                                Cuenta desde #{a.fecha} · último acceso #{a.ultimoAcceso}.
+                            </small>
+                        </h:form>
+                    </p:card>
+                </div>
+            </div>
+        </h:panelGroup>
+    </ui:define>
+</ui:composition>

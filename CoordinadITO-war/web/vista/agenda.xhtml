@@ -1,0 +1,159 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  VISTA: agenda de atención presencial (solo coordinación). HU 9.1 y 9.3.
+  - Publicar horario: un día, de qué hora a qué hora, cuánto dura cada bloque y dónde.
+    El horario se parte en bloques; los que ya existían a la misma hora se omiten.
+  - Próximos 14 días: cada bloque libre u ocupado (alumno y folio); cancelar un bloque avisa al alumno.
+  - Citas del día: registrar si el alumno asistió o no (si asistió, la solicitud ya no pide cita).
+  Bean: agendaControl → AgendaService. La cita se pide desde el detalle de la solicitud.
+-->
+<ui:composition template="/plantillas/xhtml/plantilla-panel.xhtml"
+                xmlns="http://www.w3.org/1999/xhtml"
+                xmlns:h="jakarta.faces.html"
+                xmlns:f="jakarta.faces.core"
+                xmlns:ui="jakarta.faces.facelets"
+                xmlns:c="jakarta.tags.core"
+                xmlns:p="primefaces">
+
+    <ui:param name="seccion" value="agenda"/>
+    <ui:param name="rotulo" value="Agenda"/>
+
+    <ui:define name="titulo">Agenda de atención</ui:define>
+
+    <ui:define name="contenido">
+        <c:set var="rol" value="#{sesionControl.rol}"/>
+
+        <ui:fragment rendered="#{rol ne 'coordinator'}">
+            <ui:include src="/plantillas/xhtml/comp-estado-vacio.xhtml">
+                <ui:param name="icono" value="calendar"/>
+                <ui:param name="tituloVacio" value="Agenda de coordinación"/>
+                <ui:param name="descripcion" value="Los horarios de atención presencial los publica la coordinación de cada carrera."/>
+                <ui:param name="destino" value="/vista/inicio"/>
+                <ui:param name="accion" value="Volver al inicio"/>
+            </ui:include>
+        </ui:fragment>
+
+        <ui:fragment rendered="#{rol eq 'coordinator'}">
+            <ui:include src="/plantillas/xhtml/comp-encabezado.xhtml">
+                <ui:param name="tituloPagina" value="Agenda"/>
+            </ui:include>
+
+            <h:panelGroup id="agenda" layout="block">
+                <div class="grid">
+                    <div class="col-12 xl:col-5">
+                        <p:card styleClass="mb-4">
+                            <f:facet name="title">Citas del día</f:facet>
+                            <h:form id="formCitas">
+                                <p:datePicker id="diaCitas" value="#{agendaControl.diaCitas}" pattern="dd/MM/yyyy" locale="es" showIcon="true"
+                                              styleClass="w-full mb-3" inputStyleClass="w-full">
+                                    <p:ajax event="dateSelect" listener="#{agendaControl.olvidar}" update="listaCitas"/>
+                                </p:datePicker>
+                                <h:panelGroup id="listaCitas" layout="block">
+                                    <ui:fragment rendered="#{empty agendaControl.citas}">
+                                        <p class="text-color-secondary">No hay citas ese día.</p>
+                                    </ui:fragment>
+                                    <ui:repeat value="#{agendaControl.citas}" var="c">
+                                        <div class="flex justify-content-between align-items-center gap-2 py-2 border-bottom-1 surface-border">
+                                            <div>
+                                                <strong class="block">#{c.hora} · #{c.alumno}</strong>
+                                                <h:link outcome="/vista/solicitud-detalle" value="#{c.folioTexto}">
+                                                    <f:param name="folio" value="#{c.folio}"/>
+                                                </h:link>
+                                            </div>
+                                            <ui:fragment rendered="#{c.programada}">
+                                                <div class="flex gap-1">
+                                                    <p:commandButton icon="pi pi-check" title="Asistió" styleClass="rounded-button ui-button-success ui-button-sm"
+                                                                     action="#{agendaControl.asistencia(c.idCita, true)}" process="@this" update=":agenda"/>
+                                                    <p:commandButton icon="pi pi-times" title="No asistió" styleClass="rounded-button ui-button-danger ui-button-outlined ui-button-sm"
+                                                                     action="#{agendaControl.asistencia(c.idCita, false)}" process="@this" update=":agenda"/>
+                                                </div>
+                                            </ui:fragment>
+                                            <ui:fragment rendered="#{not c.programada}">
+                                                <p:tag value="#{c.etiquetaEstado}" rounded="true"
+                                                       severity="#{c.estado eq 'ASISTIO' ? 'success' : 'warning'}"/>
+                                            </ui:fragment>
+                                        </div>
+                                    </ui:repeat>
+                                </h:panelGroup>
+                            </h:form>
+                        </p:card>
+                        <!-- Publicar es de vez en cuando (al inicio de la semana): va plegado. -->
+                        <p:panel header="Publicar horario" toggleable="true" collapsed="#{not agendaControl.publicarAbierto}"
+                                 styleClass="mb-4 panel-plegable">
+                            <p:ajax event="toggle" listener="#{agendaControl.alternarPublicar}" process="@this"/>
+                            <h:form id="formPublicar">
+                                <div class="formgrid grid">
+                                    <div class="field col-12">
+                                        <p:outputLabel for="dia" value="Día" styleClass="block font-medium mb-2"/>
+                                        <p:datePicker id="dia" value="#{agendaControl.dia}" pattern="dd/MM/yyyy" locale="es" showIcon="true"
+                                                      mindate="#{agendaControl.hoy}" styleClass="w-full" inputStyleClass="w-full"/>
+                                    </div>
+                                    <div class="field col-6">
+                                        <p:outputLabel for="desde" value="Desde" styleClass="block font-medium mb-2"/>
+                                        <p:datePicker id="desde" value="#{agendaControl.desde}" timeOnly="true" pattern="HH:mm"
+                                                      styleClass="w-full" inputStyleClass="w-full"/>
+                                    </div>
+                                    <div class="field col-6">
+                                        <p:outputLabel for="hasta" value="Hasta" styleClass="block font-medium mb-2"/>
+                                        <p:datePicker id="hasta" value="#{agendaControl.hasta}" timeOnly="true" pattern="HH:mm"
+                                                      styleClass="w-full" inputStyleClass="w-full"/>
+                                    </div>
+                                    <div class="field col-12 md:col-5">
+                                        <p:outputLabel for="minutos" value="Minutos por cita" styleClass="block font-medium mb-2"/>
+                                        <p:spinner id="minutos" value="#{agendaControl.minutos}" min="10" max="120" stepFactor="5"
+                                                   styleClass="w-full" inputStyleClass="w-full"/>
+                                    </div>
+                                    <div class="field col-12 md:col-7">
+                                        <p:outputLabel for="lugar" value="Lugar" styleClass="block font-medium mb-2"/>
+                                        <p:inputText id="lugar" value="#{agendaControl.lugar}" maxlength="150" styleClass="w-full"
+                                                     placeholder="Ej. Cubículo 3, edificio de coordinación"/>
+                                    </div>
+                                </div>
+                                <p:commandButton id="publicarHorario" value="Publicar horario" icon="pi pi-calendar-plus" styleClass="w-full"
+                                                 action="#{agendaControl.publicar}" process="@form" update=":agenda"/>
+                            </h:form>
+                        </p:panel>
+
+                    </div>
+
+                    <div class="col-12 xl:col-7">
+                        <h:form id="formBloques">
+                            <p:dataTable id="tablaBloques" value="#{agendaControl.bloques}" var="b" rowKey="#{b.idBloque}"
+                                         emptyMessage="No has publicado horarios para los próximos 14 días."
+                                         sortBy="#{b.diaIso}" sortMode="single">
+                                <f:facet name="header">
+                                    Próximos 14 días · #{agendaControl.ocupados} de #{agendaControl.bloques.size()} ocupados
+                                </f:facet>
+                                <p:headerRow field="diaIso" expandable="false">
+                                    <p:column colspan="4"><strong>#{b.dia}</strong></p:column>
+                                </p:headerRow>
+                                <p:column headerText="Hora" style="width: 9rem;">#{b.hora}</p:column>
+                                <p:column headerText="Lugar">#{b.lugar}</p:column>
+                                <p:column headerText="Cita">
+                                    <ui:fragment rendered="#{b.libre}"><p:tag value="Libre" rounded="true" styleClass="tag-gris"/></ui:fragment>
+                                    <ui:fragment rendered="#{not b.libre}">
+                                        <strong class="block">#{b.alumno}</strong>
+                                        <h:link outcome="/vista/solicitud-detalle" value="#{b.folioTexto}">
+                                            <f:param name="folio" value="#{b.folio}"/>
+                                        </h:link>
+                                    </ui:fragment>
+                                </p:column>
+                                <p:column style="width: 4rem;" ariaHeaderText="Acciones">
+                                    <p:commandButton icon="pi pi-trash" title="Cancelar bloque" styleClass="ui-button-flat ui-button-danger rounded-button"
+                                                     action="#{agendaControl.cancelarBloque(b.idBloque)}" process="@this" update=":agenda">
+                                        <p:confirm header="Cancelar bloque" icon="pi pi-exclamation-triangle"
+                                                   message="#{b.libre ? 'El horario dejará de ofrecerse.' : 'Se cancelará la cita y se avisará al alumno.'} ¿Continuar?"/>
+                                    </p:commandButton>
+                                </p:column>
+                            </p:dataTable>
+                            <p:confirmDialog global="true" responsive="true" width="380">
+                                <p:commandButton value="Sí, cancelar" type="button" styleClass="ui-confirmdialog-yes ui-button-danger" icon="pi pi-check"/>
+                                <p:commandButton value="No" type="button" styleClass="ui-confirmdialog-no ui-button-flat"/>
+                            </p:confirmDialog>
+                        </h:form>
+                    </div>
+                </div>
+            </h:panelGroup>
+        </ui:fragment>
+    </ui:define>
+</ui:composition>

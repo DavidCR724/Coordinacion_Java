@@ -1,12 +1,12 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
   COMPONENTE: tarjeta de una solicitud de apertura de grupo (HU 4.2 y 4.3). Es un p:card.
-  Se usa dentro de <ui:repeat var="g"> sobre #{gruposDemo} (o una parte filtrada).
-  Campos de "g": id, materia, clave, semestre, claveCarrera, adhesiones, codigoEstado,
-                 actualizacion, adherido, propia.
+  Se usa dentro de <ui:repeat var="g"> sobre una lista de GrupoVista (#{gruposControl.mias}...).
+  Campos de "g": id (folio), folioTexto, materia, clave, semestre, claveCarrera, adhesiones,
+                 codigoEstado, actualizacion, adherido, propia, activa.
   Parámetro (ui:param):
       paraAlumno -> true para mostrar "Te adheriste" / "La iniciaste" (vista del estudiante)
-  El botón abre /vista/grupo-detalle?id=G-112 conservando el rol.
+  El botón abre /vista/grupo-detalle?id=<folio>.
 -->
 <ui:composition xmlns="http://www.w3.org/1999/xhtml"
                 xmlns:f="jakarta.faces.core"
@@ -20,7 +20,7 @@
             </ui:include>
         </div>
         <h3 class="text-lg mt-0 mb-1">#{g.materia}</h3>
-        <p class="text-color-secondary text-sm mt-0 mb-3">#{g.clave} · #{g.semestre}.º semestre · #{g.claveCarrera}</p>
+        <p class="text-color-secondary text-sm mt-0 mb-3">#{g.folioTexto} · #{g.clave} · #{g.semestre}.º semestre · #{g.claveCarrera}</p>
 
         <div class="flex align-items-end gap-2 mb-2">
             <span class="metrica-valor">#{g.adhesiones}</span>
@@ -36,8 +36,8 @@
             <small class="text-color-secondary align-self-center">Actualizada el #{g.actualizacion}</small>
         </div>
 
-        <p:linkButton outcome="/vista/grupo-detalle" includeViewParams="true" iconPos="right" icon="pi pi-arrow-right"
-                      value="#{paraAlumno and not g.adherido and (g.codigoEstado eq 'received' or g.codigoEstado eq 'in-review') ? 'Ver y adherirme' : 'Ver solicitud'}"
+        <p:linkButton outcome="/vista/grupo-detalle" iconPos="right" icon="pi pi-arrow-right"
+                      value="#{paraAlumno and not g.adherido and g.activa ? 'Ver y adherirme' : 'Ver solicitud'}"
                       styleClass="w-full #{paraAlumno and not g.adherido ? '' : 'ui-button-outlined'}">
             <f:param name="id" value="#{g.id}"/>
         </p:linkButton>

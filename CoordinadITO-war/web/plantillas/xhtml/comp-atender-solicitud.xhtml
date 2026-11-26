@@ -1,12 +1,16 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
-  COMPONENTE: panel "Atender solicitud" (solo coordinación, solicitudes no cerradas).
-  Equivale a ReviewAction en app/dashboard/requests/[requestId]/page.tsx.
-  Parámetros (ui:param):
-      codigoEstado -> estado actual: received | in-review
-  Desde "received" se puede pasar a En revisión o Rechazada;
-  desde "in-review", a Finalizada o Rechazada.
-  Aún no guarda nada: el botón está deshabilitado hasta que exista el servicio.
+  COMPONENTE: panel "Atender solicitud" (solo coordinación, solicitudes abiertas). HU 2.4, 2.5 y 2.7.
+  Un solo formulario para todo lo que hace quien atiende: avanzar, finalizar, rechazar o pedir
+  información al alumno (antes eran dos tarjetas distintas).
+  Bean: detalleSolicitudControl
+      acciones          -> estados permitidos desde el actual + "waiting" (pedir información) si no espera ya
+      siguienteEstado   -> la elegida; viene marcada la primera (avanzar), que es la más común
+      constancia        -> comentario. Opcional al revisar o finalizar (si se hizo lo que pidió el
+                           alumno, el estado lo dice todo); obligatorio al rechazar y al pedir información
+      textoObligatorio  -> cambia la etiqueta y el texto de ayuda
+      registrarCambio() -> SolicitudService.cambiarEstado(...) o solicitarInformacion(...)
+  Operación más común (finalizar lo que ya está en revisión): 1 clic en «Registrar».
 -->
 <ui:composition xmlns="http://www.w3.org/1999/xhtml"
                 xmlns:h="jakarta.faces.html"
@@ -20,31 +24,28 @@
                 <i class="pi pi-pencil text-color-secondary" aria-hidden="true"></i>
             </div>
         </f:facet>
-        <f:facet name="subtitle">Deja constancia del motivo de cada cambio.</f:facet>
 
-        <h:form>
+        <h:form id="formAtender">
             <div class="field">
-                <p:outputLabel for="siguienteEstado" value="Siguiente estado" styleClass="block font-medium mb-2"/>
-                <p:selectOneMenu id="siguienteEstado" value="#{viewScope.siguienteEstado}" styleClass="w-full md:w-20rem">
-                    <!-- Solo las transiciones permitidas desde el estado actual (la primera queda elegida). -->
-                    <f:selectItems var="opcion" itemValue="#{opcion.valor}" itemLabel="#{opcion.texto}"
-                                   value="#{codigoEstado eq 'received'
-                                            ? [{'valor': 'in-review', 'texto': 'En revisión'}, {'valor': 'rejected', 'texto': 'Rechazada'}]
-                                            : [{'valor': 'completed', 'texto': 'Finalizada'}, {'valor': 'rejected', 'texto': 'Rechazada'}]}"/>
-                </p:selectOneMenu>
+                <p:outputLabel for="siguienteEstado" value="¿Qué quieres hacer?" styleClass="block font-medium mb-2"/>
+                <p:selectOneButton id="siguienteEstado" value="#{detalleSolicitudControl.siguienteEstado}"
+                                   styleClass="acciones-atender">
+                    <f:selectItems value="#{detalleSolicitudControl.acciones}" var="codigo" itemValue="#{codigo}"
+                                   itemLabel="#{codigo eq 'in-review' ? 'Pasar a revisión' : (codigo eq 'completed' ? 'Finalizar' : (codigo eq 'rejected' ? 'Rechazar' : 'Pedir información'))}"/>
+                    <p:ajax update="motivoEtiqueta motivo botonAtender" process="@this"/>
+                </p:selectOneButton>
             </div>
             <div class="field">
-                <p:outputLabel for="motivo" styleClass="block font-medium mb-2"
-                               value="#{codigoEstado eq 'received' ? 'Comentario de seguimiento' : 'Motivo de la resolución'}"/>
-                <p:inputTextarea id="motivo" value="#{viewScope.motivo}" required="true" rows="4" maxlength="2000"
-                                 counter="motivoContador" counterTemplate="{0} caracteres restantes" styleClass="w-full"
-                                 placeholder="Explica el motivo. El estudiante podrá consultar este comentario."/>
-                <h:outputText id="motivoContador" styleClass="block text-color-secondary text-sm mt-1"/>
+                <p:outputLabel id="motivoEtiqueta" for="motivo" styleClass="block font-medium mb-2"
+                               value="#{detalleSolicitudControl.siguienteEstado eq 'waiting' ? '¿Qué necesitas que envíe o aclare?' : (detalleSolicitudControl.siguienteEstado eq 'rejected' ? 'Motivo del rechazo' : 'Comentario para el alumno (opcional)')}"/>
+                <p:inputTextarea id="motivo" value="#{detalleSolicitudControl.constancia}" rows="3" maxlength="2000"
+                                 styleClass="w-full"
+                                 placeholder="#{detalleSolicitudControl.textoObligatorio ? 'El alumno leerá este texto.' : 'Puedes dejarlo vacío si se hizo lo que pidió.'}"/>
             </div>
-            <p:staticMessage severity="info" summary="Vista de diseño."
-                             detail="Registrar el cambio se conectará al servicio en un sprint posterior."
-                             styleClass="w-full mb-3"/>
-            <p:commandButton value="Registrar cambio" icon="pi pi-save" disabled="true"/>
+            <p:commandButton id="botonAtender" icon="pi #{detalleSolicitudControl.siguienteEstado eq 'waiting' ? 'pi-send' : 'pi-check'}"
+                             value="#{detalleSolicitudControl.siguienteEstado eq 'waiting' ? 'Enviar petición' : 'Registrar'}"
+                             styleClass="#{detalleSolicitudControl.siguienteEstado eq 'rejected' ? 'ui-button-danger' : ''}"
+                             action="#{detalleSolicitudControl.registrarCambio}" process="@form" update=":detalle"/>
         </h:form>
     </p:card>
 </ui:composition>

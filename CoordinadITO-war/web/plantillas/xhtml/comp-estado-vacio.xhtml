@@ -19,7 +19,7 @@
         <h3 class="text-xl mt-2 mb-2">#{tituloVacio}</h3>
         <p class="text-color-secondary mt-0 mb-4 mx-auto" style="max-width: 32rem;">#{descripcion}</p>
         <ui:fragment rendered="#{not empty destino and not empty accion}">
-            <p:linkButton outcome="#{destino}" includeViewParams="true" value="#{accion}"
+            <p:linkButton outcome="#{destino}" value="#{accion}"
                           icon="pi pi-arrow-right" iconPos="right" styleClass="ui-button-outlined"/>
         </ui:fragment>
     </p:card>

@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  COMPONENTE: lista de documentos adjuntos con botón de descarga (HU 1.5).
+  Parámetro (ui:param):
+      adjuntos -> lista de AdjuntoVista (sol.adjuntosIniciales o sol.adjuntosDe(idMensaje))
+  La descarga pasa por detalleSolicitudControl.descargar(id) → SolicitudService.descargarAdjunto,
+  que vuelve a revisar que quien descarga pueda ver la solicitud. p:fileDownload necesita una
+  petición normal (ajax="false").
+-->
+<ui:composition xmlns="http://www.w3.org/1999/xhtml"
+                xmlns:h="jakarta.faces.html"
+                xmlns:ui="jakarta.faces.facelets"
+                xmlns:p="primefaces">
+    <h:form>
+        <ui:repeat value="#{adjuntos}" var="a">
+            <div class="flex align-items-center gap-2 py-1">
+                <i class="pi pi-#{a.icono} text-color-secondary" aria-hidden="true"></i>
+                <span class="flex-1">
+                    #{a.nombre}
+                    <small class="block text-color-secondary">#{a.tamano} · #{a.fecha}</small>
+                </span>
+                <p:commandButton icon="pi pi-download" ajax="false" styleClass="ui-button-flat rounded-button"
+                                 title="Descargar #{a.nombre}" ariaLabel="Descargar #{a.nombre}">
+                    <p:fileDownload value="#{detalleSolicitudControl.descargar(a.id)}"/>
+                </p:commandButton>
+            </div>
+        </ui:repeat>
+    </h:form>
+</ui:composition>

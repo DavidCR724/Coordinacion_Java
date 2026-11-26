@@ -1,0 +1,107 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  VISTA: panel de seguimiento, rezagos (solo jefatura). HU 7.3.
+  Solicitudes ABIERTAS que ya rebasaron los días esperados de su trámite, de la más atrasada a la
+  menos, con filtro por carrera. Las que llevan más del doble se marcan en rojo.
+  Bean: seguimientoControl.rezagos (SeguimientoService.rezagos).
+-->
+<ui:composition template="/plantillas/xhtml/plantilla-panel.xhtml"
+                xmlns="http://www.w3.org/1999/xhtml"
+                xmlns:h="jakarta.faces.html"
+                xmlns:f="jakarta.faces.core"
+                xmlns:ui="jakarta.faces.facelets"
+                xmlns:c="jakarta.tags.core"
+                xmlns:p="primefaces">
+
+    <ui:param name="seccion" value="rezagos"/>
+    <ui:param name="rotulo" value="Seguimiento"/>
+
+    <ui:define name="titulo">Solicitudes rezagadas</ui:define>
+
+    <ui:define name="contenido">
+        <c:set var="rol" value="#{sesionControl.rol}"/>
+
+        <ui:fragment rendered="#{rol ne 'head'}">
+            <ui:include src="/plantillas/xhtml/comp-estado-vacio.xhtml">
+                <ui:param name="icono" value="exclamation-triangle"/>
+                <ui:param name="tituloVacio" value="Panel de jefatura"/>
+                <ui:param name="descripcion" value="El seguimiento de los rezagos corresponde a la jefatura."/>
+                <ui:param name="destino" value="/vista/inicio"/>
+                <ui:param name="accion" value="Volver al inicio"/>
+            </ui:include>
+        </ui:fragment>
+
+        <ui:fragment rendered="#{rol eq 'head'}">
+            <ui:decorate template="/plantillas/xhtml/comp-encabezado.xhtml">
+                <ui:param name="tituloPagina" value="Seguimiento"/>
+                <ui:param name="conAccion" value="true"/>
+                <ui:define name="accion">
+                    <h:form id="formCarrera" styleClass="flex align-items-center gap-2">
+                        <p:outputLabel for="carrera" value="Carrera" styleClass="font-medium"/>
+                        <p:selectOneMenu id="carrera" value="#{seguimientoControl.carrera}" styleClass="w-16rem">
+                            <f:selectItem itemValue="" itemLabel="Todas las carreras"/>
+                            <f:selectItems value="#{catalogos.carreras}" var="car" itemValue="#{car.valor}" itemLabel="#{car.etiqueta}"/>
+                            <p:ajax listener="#{seguimientoControl.cambiarFiltro}" update=":tablero"/>
+                        </p:selectOneMenu>
+                    </h:form>
+                </ui:define>
+            </ui:decorate>
+            <ui:include src="/plantillas/xhtml/comp-pestanas-seguimiento.xhtml">
+                <ui:param name="actual" value="rezagos"/>
+            </ui:include>
+
+            <h:panelGroup id="tablero" layout="block">
+                <div class="grid mb-2">
+                    <div class="col-12 md:col-6">
+                        <ui:include src="/plantillas/xhtml/comp-tarjeta-metrica.xhtml">
+                            <ui:param name="etiqueta" value="Solicitudes rezagadas"/>
+                            <ui:param name="valor" value="#{seguimientoControl.rezagos.size()}"/>
+                            <ui:param name="nota" value="Abiertas fuera del tiempo esperado"/>
+                            <ui:param name="icono" value="clock"/>
+                            <ui:param name="tono" value="tono-naranja"/>
+                        </ui:include>
+                    </div>
+                    <div class="col-12 md:col-6">
+                        <ui:include src="/plantillas/xhtml/comp-tarjeta-metrica.xhtml">
+                            <ui:param name="etiqueta" value="Más del doble"/>
+                            <ui:param name="valor" value="#{seguimientoControl.rezagosGraves}"/>
+                            <ui:param name="nota" value="Llevan el doble o más de lo esperado"/>
+                            <ui:param name="icono" value="exclamation-triangle"/>
+                            <ui:param name="tono" value="tono-marino"/>
+                        </ui:include>
+                    </div>
+                </div>
+
+                <h:form>
+                    <p:dataTable id="tablaRezagos" value="#{seguimientoControl.rezagos}" var="r" reflow="true"
+                                 rowStyleClass="#{r.grave ? 'fila-grave' : ''}"
+                                 emptyMessage="¡Sin rezagos! Todas las solicitudes abiertas están dentro de su tiempo.">
+                        <p:column headerText="Solicitud">
+                            <h:link outcome="/vista/solicitud-detalle" styleClass="enlace-solicitud">
+                                <f:param name="folio" value="#{r.folio}"/>
+                                #{r.folioTexto} · #{r.tramite}
+                                <small>#{r.estudiante} · #{r.carrera}</small>
+                            </h:link>
+                        </p:column>
+                        <p:column headerText="Estado" style="width: 11rem;">
+                            <ui:include src="/plantillas/xhtml/comp-insignia-estado.xhtml">
+                                <ui:param name="codigoEstado" value="#{r.codigoEstado}"/>
+                            </ui:include>
+                        </p:column>
+                        <p:column headerText="Prioridad" style="width: 8rem;">
+                            <ui:include src="/plantillas/xhtml/comp-insignia-prioridad.xhtml">
+                                <ui:param name="prioridad" value="#{r.prioridad}"/>
+                            </ui:include>
+                        </p:column>
+                        <p:column headerText="Registrada" style="width: 9rem;">#{r.registro}</p:column>
+                        <p:column headerText="Días abierta" styleClass="text-right font-bold" style="width: 8rem;">#{r.dias}</p:column>
+                        <p:column headerText="Esperado" styleClass="text-right" style="width: 7rem;">#{r.esperados}</p:column>
+                        <p:column headerText="Exceso" styleClass="text-right" style="width: 7rem;">
+                            <p:tag value="+#{r.exceso} d" rounded="true" severity="#{r.grave ? 'danger' : 'warning'}"/>
+                        </p:column>
+                    </p:dataTable>
+                </h:form>
+            </h:panelGroup>
+        </ui:fragment>
+    </ui:define>
+</ui:composition>

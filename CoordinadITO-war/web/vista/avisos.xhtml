@@ -1,12 +1,11 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
   VISTA: avisos oficiales de la carrera. HU 5.3.
-      student     -> avisos vigentes de su carrera (ISC) y, plegados, los que ya concluyeron
-                     ("permanece consultable en el historial").
-      coordinator -> todos los avisos que ha publicado, en un p:dataTable con fila expandible
-                     (p:rowToggler) para leer el texto, y el botón "Publicar aviso".
-      head / administrator -> estado vacío.
-  Datos: #{comunicadosDemo} (datos-demo.xhtml), equivalentes a AVISO + AVISO_CARRERA.
+      student            -> avisos vigentes de su carrera y, plegados, los que ya concluyeron
+                            («permanece consultable en el historial»).
+      coordinator / head -> lo publicado para sus carreras (jefatura: todas) en un p:dataTable con
+                            fila expandible, «Publicar aviso» y «Retirar» (autor o jefatura).
+  Bean: avisosControl (AvisoService.vigentes / historial / retirar).
 -->
 <ui:composition template="/plantillas/xhtml/plantilla-panel.xhtml"
                 xmlns="http://www.w3.org/1999/xhtml"
@@ -16,83 +15,60 @@
                 xmlns:c="jakarta.tags.core"
                 xmlns:p="primefaces">
 
-    <ui:define name="metadatos">
-        <f:metadata>
-            <f:viewParam name="rol" value="#{viewScope.rol}"/>
-        </f:metadata>
-    </ui:define>
-
     <ui:param name="seccion" value="avisos"/>
     <ui:param name="rotulo" value="Avisos de la carrera"/>
 
     <ui:define name="titulo">Avisos de la carrera</ui:define>
 
     <ui:define name="contenido">
-        <c:set var="rol" value="#{viewScope.rol eq 'coordinator' or viewScope.rol eq 'head' or viewScope.rol eq 'administrator' ? viewScope.rol : 'student'}"/>
-
-        <ui:fragment rendered="#{rol eq 'head' or rol eq 'administrator'}">
-            <ui:include src="/plantillas/xhtml/comp-estado-vacio.xhtml">
-                <ui:param name="icono" value="megaphone"/>
-                <ui:param name="tituloVacio" value="Avisos de coordinación"/>
-                <ui:param name="descripcion" value="Los avisos oficiales los publica la coordinación de cada carrera para sus estudiantes."/>
-                <ui:param name="destino" value="/vista/inicio"/>
-                <ui:param name="accion" value="Volver al inicio"/>
-            </ui:include>
-        </ui:fragment>
+        <c:set var="rol" value="#{sesionControl.rol}"/>
 
         <!-- ============ ESTUDIANTE ============ -->
         <ui:fragment rendered="#{rol eq 'student'}">
             <ui:include src="/plantillas/xhtml/comp-encabezado.xhtml">
-                <ui:param name="eyebrow" value="CANAL OFICIAL"/>
                 <ui:param name="tituloPagina" value="Avisos de la carrera"/>
-                <ui:param name="descripcion" value="Lo que publica la coordinación de #{usuariosDemo.student.carrera}."/>
+                <ui:param name="descripcion" value="Lo que publica la coordinación de #{sesionControl.usuario.carrera}."/>
             </ui:include>
 
             <div class="grid">
-                <div class="col-12 lg:col-8">
-                    <ui:include src="/plantillas/xhtml/comp-avisos-vigentes.xhtml">
-                        <ui:param name="avisos" value="#{comunicadosDemo.stream().filter(a -> a.vigente and a.carreras.contains('ISC')).toList()}"/>
+                <div class="col-12 xl:col-8">
+                    <ui:include src="/plantillas/xhtml/comp-avisos-desplegable.xhtml">
+                        <ui:param name="siempreAbierto" value="true"/>
                     </ui:include>
 
                     <p:fieldset legend="Avisos anteriores" toggleable="true" collapsed="true" styleClass="mt-2">
-                        <ui:repeat value="#{comunicadosDemo.stream().filter(a -> not a.vigente and a.carreras.contains('ISC')).toList()}" var="aviso">
+                        <ui:fragment rendered="#{empty avisosControl.anteriores}">
+                            <p class="text-color-secondary m-0">No hay avisos anteriores.</p>
+                        </ui:fragment>
+                        <ui:repeat value="#{avisosControl.anteriores}" var="aviso">
                             <ui:include src="/plantillas/xhtml/comp-tarjeta-aviso.xhtml"/>
                         </ui:repeat>
                     </p:fieldset>
-                </div>
-                <div class="col-12 lg:col-4">
-                    <ui:include src="/plantillas/xhtml/comp-aviso.xhtml">
-                        <ui:param name="tipo" value="info"/>
-                        <ui:param name="icono" value="verified"/>
-                        <ui:param name="tituloAviso" value="Solo aquí es oficial"/>
-                        <ui:param name="texto" value="La coordinación publica sus avisos en este portal. Si ves información distinta en grupos o páginas no institucionales, toma como válida la de aquí."/>
-                    </ui:include>
                 </div>
             </div>
         </ui:fragment>
 
         <!-- ============ COORDINACIÓN ============ -->
-        <ui:fragment rendered="#{rol eq 'coordinator'}">
+        <ui:fragment rendered="#{rol eq 'coordinator' or rol eq 'head'}">
             <ui:decorate template="/plantillas/xhtml/comp-encabezado.xhtml">
-                <ui:param name="eyebrow" value="COMUNICACIÓN"/>
                 <ui:param name="tituloPagina" value="Avisos publicados"/>
                 <ui:param name="descripcion" value="Los estudiantes de las carreras elegidas los ven al entrar mientras estén vigentes."/>
                 <ui:param name="conAccion" value="true"/>
                 <ui:define name="accion">
-                    <p:linkButton outcome="/vista/aviso-nuevo" includeViewParams="true" value="Publicar aviso"
+                    <p:linkButton outcome="/vista/aviso-nuevo" value="Publicar aviso"
                                   icon="pi pi-plus" size="large"/>
                 </ui:define>
             </ui:decorate>
 
-            <h:form>
-                <p:dataTable value="#{comunicadosDemo}" var="a" rowKey="#{a.id}" reflow="true"
-                             styleClass="mb-3">
+            <h:form id="formAvisos">
+                <p:dataTable id="tablaAvisos" value="#{avisosControl.historial}" var="a" rowKey="#{a.id}" reflow="true"
+                             styleClass="mb-3" emptyMessage="Aún no hay avisos publicados.">
                     <p:column style="width: 3rem;" ariaHeaderText="Ver texto">
                         <p:rowToggler/>
                     </p:column>
                     <p:column headerText="Aviso">
                         <strong class="block">#{a.titulo}</strong>
-                        <small class="text-color-secondary">#{a.id} · publicado el #{a.publicado}</small>
+                        <small class="text-color-secondary">#{a.autor} · publicado el #{a.publicado}</small>
                     </p:column>
                     <p:column headerText="Carreras" style="width: 9rem;">
                         <div class="flex gap-1 flex-wrap">
@@ -103,17 +79,29 @@
                         #{a.inicio} – #{a.fin}
                     </p:column>
                     <p:column headerText="Estado" style="width: 8rem;">
-                        <p:tag value="#{a.vigente ? 'Vigente' : 'Concluido'}" rounded="true"
-                               severity="#{a.vigente ? 'success' : null}" styleClass="#{a.vigente ? '' : 'tag-gris'}"/>
+                        <p:tag value="#{a.estado}" rounded="true"
+                               severity="#{a.vigente ? 'success' : (a.programado ? 'info' : null)}" styleClass="#{a.vigente or a.programado ? '' : 'tag-gris'}"/>
+                    </p:column>
+                    <p:column style="width: 4rem;" ariaHeaderText="Acciones">
+                        <p:commandButton icon="pi pi-eye-slash" title="Retirar aviso" rendered="#{avisosControl.puedeRetirar(a)}"
+                                         styleClass="ui-button-flat ui-button-danger rounded-button"
+                                         action="#{avisosControl.retirar(a.id)}" update="tablaAvisos">
+                            <p:confirm header="Retirar aviso" icon="pi pi-exclamation-triangle"
+                                       message="Dejará de mostrarse a los estudiantes desde mañana. ¿Continuar?"/>
+                        </p:commandButton>
                     </p:column>
                     <p:rowExpansion>
                         <p class="m-0 py-2" style="white-space: pre-wrap;">#{a.contenido}</p>
                     </p:rowExpansion>
                     <f:facet name="footer">
-                        #{comunicadosDemo.stream().filter(x -> x.vigente).count()} vigentes de #{comunicadosDemo.size()} publicados.
+                        #{avisosControl.numeroVigentes} vigentes de #{avisosControl.historial.size()} publicados.
                         Un aviso concluido ya no se muestra a los estudiantes, pero sigue en su historial.
                     </f:facet>
                 </p:dataTable>
+                <p:confirmDialog global="true" responsive="true" width="380">
+                    <p:commandButton value="Sí, retirar" type="button" styleClass="ui-confirmdialog-yes ui-button-danger" icon="pi pi-check"/>
+                    <p:commandButton value="Cancelar" type="button" styleClass="ui-confirmdialog-no ui-button-flat"/>
+                </p:confirmDialog>
             </h:form>
         </ui:fragment>
     </ui:define>

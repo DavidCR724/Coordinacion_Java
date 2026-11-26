@@ -1,15 +1,11 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
   VISTA: catálogo de trámites. Equivale a app/dashboard/procedures/page.tsx.
-  Solo para estudiantes; coordinación y administración ven un aviso.
-  El catálogo sale de #{tramitesDemo} (datos-demo.xhtml). Disponibilidad al 5 nov 2026:
-      BM  Baja de materia          17 ago – 13 nov 2026  -> Disponible
-      CH  Cambio de horario        17 ago –  6 nov 2026  -> Disponible
-      IM  Inscripción de materia   25 ene –  5 feb 2027  -> Próximamente
-      BT  Baja temporal            17 ago – 25 sep 2026  -> Periodo cerrado
-  La búsqueda (p:inputText) y el filtro (p:selectOneButton) ya funcionan: cada cambio hace una
-  petición AJAX (p:ajax) que vuelve a dibujar solo la rejilla de tarjetas. Los criterios se
-  guardan en viewScope.busqueda y viewScope.filtro.
+  Solo para estudiantes; coordinación y jefatura ven un aviso.
+  Bean: catalogoControl (@ViewScoped) → TramiteService.catalogo(): trámites activos con su
+  disponibilidad calculada al día de hoy (DISPONIBLE, AUN_NO_ABRE, PERIODO_CONCLUIDO).
+  La búsqueda (p:inputText) y el filtro (p:selectOneButton) hacen una petición AJAX que vuelve
+  a dibujar solo la rejilla; filtran la lista ya cargada (catalogoControl.visibles).
 -->
 <ui:composition template="/plantillas/xhtml/plantilla-panel.xhtml"
                 xmlns="http://www.w3.org/1999/xhtml"
@@ -21,7 +17,6 @@
 
     <ui:define name="metadatos">
         <f:metadata>
-            <f:viewParam name="rol" value="#{viewScope.rol}"/>
         </f:metadata>
     </ui:define>
 
@@ -31,13 +26,8 @@
     <ui:define name="titulo">Trámites</ui:define>
 
     <ui:define name="contenido">
-        <c:set var="rol" value="#{viewScope.rol eq 'coordinator' or viewScope.rol eq 'head' or viewScope.rol eq 'administrator' ? viewScope.rol : 'student'}"/>
-        <!-- Trámites que cumplen la búsqueda y el filtro (sin distinguir mayúsculas). -->
-        <c:set var="visibles" value="#{tramitesDemo.stream().filter(t ->
-                (viewScope.filtro ne 'disponibles' or t.disponible)
-                and (empty viewScope.busqueda
-                     or t.nombre.toLowerCase().contains(viewScope.busqueda.toLowerCase())
-                     or t.descripcion.toLowerCase().contains(viewScope.busqueda.toLowerCase()))).toList()}"/>
+        <c:set var="rol" value="#{sesionControl.rol}"/>
+        <c:set var="visibles" value="#{catalogoControl.visibles}"/>
 
         <!-- Quien no es estudiante no puede solicitar trámites. -->
         <ui:fragment rendered="#{rol ne 'student'}">
@@ -52,7 +42,6 @@
 
         <ui:fragment rendered="#{rol eq 'student'}">
             <ui:include src="/plantillas/xhtml/comp-encabezado.xhtml">
-                <ui:param name="eyebrow" value="COORDINACIÓN A TU ALCANCE"/>
                 <ui:param name="tituloPagina" value="¿Qué trámite necesitas?"/>
                 <ui:param name="descripcion" value="Conoce los requisitos, revisa las fechas y comienza tu solicitud."/>
             </ui:include>
@@ -60,12 +49,12 @@
             <h:form id="formCatalogo" styleClass="flex flex-column md:flex-row justify-content-between gap-3 mb-3">
                 <span class="ui-input-icon-left w-full md:w-30rem">
                     <i class="pi pi-search"/>
-                    <p:inputText id="busqueda" value="#{viewScope.busqueda}" placeholder="Buscar un trámite..."
+                    <p:inputText id="busqueda" value="#{catalogoControl.busqueda}" placeholder="Buscar un trámite..."
                                  styleClass="w-full" ariaLabel="Buscar trámites">
                         <p:ajax event="input" delay="300" update=":catalogo"/>
                     </p:inputText>
                 </span>
-                <p:selectOneButton id="filtro" value="#{viewScope.filtro}" unselectable="false" ariaLabel="Disponibilidad">
+                <p:selectOneButton id="filtro" value="#{catalogoControl.filtro}" unselectable="false" ariaLabel="Disponibilidad">
                     <!-- Valor nulo = "todos": así queda elegido al abrir la página, cuando aún no hay filtro. -->
                     <f:selectItem itemValue="#{null}" itemLabel="Todos los trámites"/>
                     <f:selectItem itemValue="disponibles" itemLabel="Disponibles"/>
@@ -93,8 +82,6 @@
                 </ui:fragment>
             </h:panelGroup>
 
-            <p:staticMessage severity="info" styleClass="w-full mt-4"
-                             detail="Los formatos, requisitos y fechas de esta vista son ejemplos para revisión. Confirma las condiciones oficiales con tu coordinación antes de realizar un trámite real."/>
         </ui:fragment>
     </ui:define>
 </ui:composition>

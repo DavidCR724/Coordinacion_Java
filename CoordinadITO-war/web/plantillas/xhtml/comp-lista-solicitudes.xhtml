@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  COMPONENTE: solicitudes como lista de tarjetas tocables (pensada primero para el teléfono).
+  La usa el estudiante en su inicio y en "Mis solicitudes": a diferencia de la tabla, no hay
+  columnas que se apilen; cada renglón dice qué trámite es, en qué estado va y cuándo cambió.
+  Toda la tarjeta es el enlace al detalle (un toque).
+  Parámetros (ui:param):
+      solicitudes    -> colección de SolicitudFila
+      vacio          -> texto cuando no hay ninguna
+      conEstudiante  -> (opcional) true en coordinación: muestra el alumno y la prioridad
+  También la usa comp-tabla-solicitudes en el teléfono (parámetro tarjetasEnMovil), para que la
+  coordinación no tenga que recorrer una tabla apilada.
+-->
+<ui:composition xmlns="http://www.w3.org/1999/xhtml"
+                xmlns:h="jakarta.faces.html"
+                xmlns:f="jakarta.faces.core"
+                xmlns:ui="jakarta.faces.facelets">
+    <ui:fragment rendered="#{empty solicitudes}">
+        <p class="text-color-secondary">#{vacio}</p>
+    </ui:fragment>
+    <ul class="lista-solicitudes">
+        <ui:repeat value="#{solicitudes}" var="s">
+            <li>
+                <h:link outcome="/vista/solicitud-detalle" styleClass="tarjeta-solicitud">
+                    <f:param name="folio" value="#{s.folio}"/>
+                    <span class="flex-1 min-w-0">
+                        <span class="block titulo">#{s.tramite}</span>
+                        <ui:fragment rendered="#{conEstudiante}">
+                            <span class="block">#{s.estudiante} <small class="text-color-secondary">· #{s.control}</small></span>
+                        </ui:fragment>
+                        <small class="text-color-secondary">#{s.folioTexto} · Actualizada #{s.actualizacion}</small>
+                    </span>
+                    <ui:fragment rendered="#{conEstudiante}">
+                        <ui:include src="/plantillas/xhtml/comp-insignia-prioridad.xhtml">
+                            <ui:param name="prioridad" value="#{s.prioridad}"/>
+                        </ui:include>
+                    </ui:fragment>
+                    <ui:include src="/plantillas/xhtml/comp-insignia-estado.xhtml">
+                        <ui:param name="codigoEstado" value="#{s.codigoEstado}"/>
+                    </ui:include>
+                    <i class="pi pi-chevron-right text-color-secondary" aria-hidden="true"></i>
+                </h:link>
+            </li>
+        </ui:repeat>
+    </ul>
+</ui:composition>

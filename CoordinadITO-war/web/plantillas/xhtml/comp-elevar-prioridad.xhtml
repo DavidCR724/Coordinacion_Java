@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  COMPONENTE: panel "Subir prioridad" (solo coordinación, solicitudes abiertas). HU 3.3.
+  Solo ofrece prioridades mayores a la actual (la prioridad nunca baja) y pide un motivo.
+  Bean: detalleSolicitudControl.nuevaPrioridad / motivoPrioridad / elevarPrioridad()
+        → SolicitudService.elevarPrioridad: guarda el cambio en CAMBIO_PRIORIDAD.
+-->
+<ui:composition xmlns="http://www.w3.org/1999/xhtml"
+                xmlns:h="jakarta.faces.html"
+                xmlns:f="jakarta.faces.core"
+                xmlns:ui="jakarta.faces.facelets"
+                xmlns:p="primefaces">
+    <!-- Plegado: subir prioridad es excepcional, no debe competir con «Atender». -->
+    <p:panel header="Subir prioridad" toggleable="true" collapsed="true" styleClass="mb-4 panel-plegable">
+        <h:form id="formPrioridad">
+            <div class="field">
+                <p:outputLabel for="nueva" value="Nueva prioridad" styleClass="block font-medium mb-2"/>
+                <p:selectOneMenu id="nueva" value="#{detalleSolicitudControl.nuevaPrioridad}" styleClass="w-full"
+                                 required="true" requiredMessage="Elige la nueva prioridad.">
+                    <f:selectItem itemLabel="Elige una prioridad" itemValue="#{null}" noSelectionOption="true"/>
+                    <f:selectItems value="#{detalleSolicitudControl.prioridadesMayores}" var="p" itemValue="#{p}"
+                                   itemLabel="#{p eq 'CRITICA' ? 'Crítica' : (p eq 'ALTA' ? 'Alta' : 'Media')}"/>
+                </p:selectOneMenu>
+                <p:message for="nueva" display="text"/>
+            </div>
+            <div class="field">
+                <p:outputLabel for="motivoPrioridad" value="Motivo" styleClass="block font-medium mb-2"/>
+                <p:inputTextarea id="motivoPrioridad" value="#{detalleSolicitudControl.motivoPrioridad}" required="true"
+                                 requiredMessage="Escribe el motivo." rows="3" maxlength="2000" styleClass="w-full"
+                                 placeholder="Ej. El alumno está en riesgo de baja definitiva."/>
+                <p:message for="motivoPrioridad" display="text"/>
+            </div>
+            <p:commandButton value="Subir prioridad" icon="pi pi-angle-double-up" styleClass="ui-button-warning w-full"
+                             action="#{detalleSolicitudControl.elevarPrioridad}" process="@form" update="@form"/>
+            <!-- update="@form": si falta algo, el panel sigue abierto y muestra el error; si sale bien,
+                 el control redibuja todo el detalle (DetalleSolicitudControl.elevarPrioridad). -->
+        </h:form>
+    </p:panel>
+</ui:composition>

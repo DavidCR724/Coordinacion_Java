@@ -100,14 +100,6 @@ body .menu-lateral.ui-menu .ui-menu-list .ui-menuitem .ui-badge {
 /* p:linkButton es un <a> dentro del botón: sin subrayado y con el color del botón */
 body .ui-linkbutton a { text-decoration: none; color: inherit; }
 
-.sidebar-help {
-    margin: 1.5rem 0 1rem; padding: 1rem;
-    border-radius: 12px; background: rgba(255, 255, 255, .06);
-}
-.sidebar-help h3 { color: #fff; font-size: 1rem; margin: .75rem 0 .25rem; }
-.sidebar-help p { margin: 0 0 .75rem; font-size: .85rem; color: #b8c2d3; }
-.sidebar-help a { color: var(--ito-orange-light); font-weight: 600; text-decoration: none; }
-.sidebar-help .pi-graduation-cap { color: var(--ito-orange); }
 .sidebar-salir { display: flex; align-items: center; gap: .6rem; padding: .75rem; border-radius: 8px; color: #dfe5ee; text-decoration: none; }
 .sidebar-salir:hover { background: rgba(255, 255, 255, .08); color: #fff; }
 .sidebar-footer { margin: 1rem .75rem 0; font-size: .75rem; color: #8e9bb0; }
@@ -116,19 +108,29 @@ body .ui-linkbutton a { text-decoration: none; color: inherit; }
 .ui-sidebar.app-sidebar-movil { background: var(--ito-navy); color: #dfe5ee; width: 280px; }
 .ui-sidebar.app-sidebar-movil .ui-sidebar-close { color: #fff; }
 
-/* Barra superior (p:toolbar) */
-.ui-toolbar.app-topbar {
+/* Barra superior: ☰ · página · campana · avatar */
+.app-topbar {
     position: sticky; top: 0; z-index: 900;
-    border: 0; border-bottom: 1px solid #e2dfd8; border-radius: 0;
-    background: rgba(255, 255, 255, .92); backdrop-filter: blur(6px);
-    padding: .6rem 1.5rem;
+    display: flex; align-items: center; justify-content: space-between; gap: .75rem;
+    min-height: 3.5rem; padding: .4rem 1.5rem;
+    border-bottom: 1px solid #e2dfd8;
+    background: rgba(255, 255, 255, .94); backdrop-filter: blur(6px);
 }
-.ui-breadcrumb.app-migas { border: 0; background: transparent; padding: 0 0 0 .5rem; }
-.ui-breadcrumb.app-migas li:last-child .ui-menuitem-text { font-weight: 600; color: var(--ito-navy); }
-.app-campana { position: relative; display: inline-flex; align-items: center; justify-content: center; width: 2.5rem; height: 2.5rem; border-radius: 50%; color: var(--ito-navy); }
-.app-campana:hover { background: var(--ito-blue-soft); }
-.app-campana .app-campana-globo { position: absolute; top: .1rem; right: .1rem; }
-.app-usuario { display: flex; align-items: center; gap: .6rem; text-decoration: none; color: var(--ito-navy); }
+.app-titulo-pagina { font-weight: 600; font-size: 1.05rem; color: var(--ito-navy);
+                     overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.app-icono-boton { position: relative; display: inline-flex; align-items: center; justify-content: center;
+                   width: 2.75rem; height: 2.75rem; border: 0; border-radius: 50%; background: transparent;
+                   color: var(--ito-navy); font-size: 1.25rem; cursor: pointer; text-decoration: none; flex: none; }
+.app-icono-boton:hover, .app-icono-boton:focus-visible { background: var(--ito-blue-soft); }
+.app-icono-boton .pi { font-size: 1.25rem; }
+/* Globo con el número de pendientes (campana y avisos). */
+.app-globo { position: absolute; top: .3rem; right: .25rem; min-width: 1.15rem; height: 1.15rem; padding: 0 .3rem;
+             border-radius: 999px; background: var(--ito-orange); color: #fff; font-size: .7rem; font-weight: 700;
+             line-height: 1.15rem; text-align: center; box-shadow: 0 0 0 2px #fff; }
+.app-usuario { display: inline-flex; padding: .2rem; border: 0; border-radius: 50%; background: transparent; cursor: pointer; }
+.app-usuario:hover, .app-usuario:focus-visible { box-shadow: 0 0 0 3px var(--ito-blue-soft); }
+.app-menu-cuenta.ui-menu { min-width: 15rem; }
+.app-menu-cuenta .ui-submenu-header { white-space: normal; font-weight: 600; }
 .ui-avatar.app-avatar { background: var(--ito-navy); color: #fff; font-weight: 600; }
 
 /* Franja "Vista de prueba" */
@@ -244,7 +246,7 @@ body .ui-chip.chip-chico .ui-chip-text { margin: .2rem 0; line-height: 1.2; }
 /* Avisos oficiales */
 .tarjeta-aviso.aviso-concluido { opacity: .75; }
 .texto-3-lineas { display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
-@media (min-width: 992px) { .vista-previa { position: sticky; top: 5.5rem; } }
+@media (min-width: 1200px) { .vista-previa { position: sticky; top: 5.5rem; } }
 
 /* Gráficas (p:chart) */
 .grafica { position: relative; width: 100%; }
@@ -257,3 +259,191 @@ body .ui-chip.chip-chico .ui-chip-text { margin: .2rem 0; line-height: 1.2; }
 /* p:datePicker con botón de calendario a lo ancho: campo y botón en la misma línea */
 body .ui-calendar.w-full.ui-trigger-calendar { display: flex; }
 body .ui-calendar.w-full.ui-trigger-calendar > input { flex: 1 1 auto; width: auto; min-width: 0; }
+
+/* ===== Iteraciones 3 y 4 ===== */
+/* Rezagos (HU 7.3): más del doble del tiempo esperado. */
+.ui-datatable tbody tr.fila-grave > td { background: rgba(178, 59, 59, 0.06); }
+/* Horarios libres de la cita presencial (HU 9.2). */
+.lista-horarios .ui-datalist-content { border: none; background: transparent; padding: 0; }
+.lista-horarios .ui-datalist-item + .ui-datalist-item { border-top: 1px solid var(--surface-border, #e5e7eb); }
+/* Editor de campos del catálogo (HU 8.3). */
+.campo-edicion { border: 1px solid var(--surface-border, #e5e7eb); }
+
+/* ===== Pantallas medianas (laptops de 1024 a 1366 px) =====
+   La barra lateral ocupa 260 px, así que el área de contenido es ~260 px más angosta que la
+   ventana. Por eso las vistas usan "xl:" (no "lg:") para pasar a dos columnas, y aquí se
+   aprieta un poco el marco en esos tamaños. */
+@media (max-width: 1279.98px) {
+    .app-sidebar { flex-basis: 232px; width: 232px; padding: 1rem .75rem; }
+    .app-contenido { padding: 1.5rem 1.25rem 2.5rem; }
+    .app-topbar { padding: .4rem 1.25rem; }
+}
+
+/* Listas desplegables: PrimeFaces les pone en línea un min-width igual a la opción más larga
+   (autoWidth); aquí nunca rebasan su columna y el texto largo se corta con «…». */
+body .ui-selectonemenu { max-width: 100%; min-width: 0 !important; }
+body .ui-selectonemenu .ui-selectonemenu-label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+body .ui-selectcheckboxmenu { max-width: 100%; }
+/* Filtros dentro del encabezado de una tabla: del ancho de la columna. */
+body .ui-datatable thead th .ui-column-filter.ui-selectonemenu,
+body .ui-datatable thead th .ui-selectonemenu { width: 100% !important; min-width: 6rem; margin-top: .35rem; }
+/* Un botón de texto (p. ej. «Limpiar») no se parte ni se sale de su columna. */
+body .ui-button .ui-button-text { white-space: nowrap; }
+
+/* Tablas: el tema usa table-layout: fixed; si los anchos fijos de varias columnas suman más que
+   el espacio disponible, la columna libre se queda en 0 y los encabezados se enciman. Con auto,
+   cada columna respeta su contenido mínimo y, solo si de verdad no cabe, la tabla se desplaza
+   dentro de su marco (nunca la página completa). */
+body .ui-datatable table { table-layout: auto; }
+body .ui-datatable .ui-datatable-tablewrapper { overflow-x: auto; }
+body .ui-datatable .ui-chip { white-space: nowrap; }
+
+/* Celdas con nombre y correo (roles, alumnos): el correo se parte antes de desbordar. */
+.celda-cuenta > div { min-width: 0; }
+.celda-cuenta .ui-avatar { flex: none; }
+.celda-cuenta small { overflow-wrap: anywhere; }
+
+/* Teléfono: marco más compacto. */
+@media (max-width: 575.98px) {
+    .app-topbar { padding: .25rem .5rem; }
+    .app-contenido { padding: 1rem .9rem 2rem; }
+}
+
+
+/* =====================================================================
+   Refactor de interfaces: menos carga, primero el teléfono
+   ===================================================================== */
+.encabezado-pagina { margin-bottom: 1.75rem; }
+.encabezado-pagina h1 { font-size: 2rem; line-height: 1.2; }
+@media (max-width: 575px) {
+    .encabezado-pagina { margin-bottom: 1.25rem; }
+    .encabezado-pagina h1 { font-size: 1.6rem; }
+    .encabezado-pagina .eyebrow { display: none; }
+    .encabezado-pagina .ui-button { width: 100%; justify-content: center; }
+}
+
+/* Inicio del estudiante: una columna legible también en escritorio */
+.inicio-estudiante { max-width: 52rem; margin: 0 auto; }
+.inicio-estudiante .saludo { display: flex; align-items: center; justify-content: space-between; gap: .75rem; flex-wrap: wrap; margin-bottom: 1rem; }
+.inicio-estudiante .saludo h1 { margin: 0; font-size: 1.75rem; }
+.inicio-estudiante .boton-principal.ui-button { padding: .7rem 1.1rem; }
+@media (max-width: 575px) {
+    .inicio-estudiante .saludo h1 { font-size: 1.5rem; }
+    .inicio-estudiante .boton-principal.ui-button { width: 100%; justify-content: center; }
+}
+
+/* Buzón de avisos */
+.buzon-avisos { background: #fff; border: 1px solid #e6e2da; border-radius: 12px; overflow: hidden; }
+.buzon-avisos.con-pendientes { border-color: var(--ito-orange-light); }
+.buzon-cabecera { display: flex; align-items: center; gap: .85rem; padding: .85rem 1rem; color: inherit; text-decoration: none; }
+a.buzon-cabecera:hover { background: var(--ito-blue-soft); }
+.buzon-cabecera.ui-state-disabled { opacity: 1; cursor: default; }
+.buzon-sobre { position: relative; display: inline-flex; align-items: center; justify-content: center;
+               width: 2.6rem; height: 2.6rem; border-radius: 50%; background: var(--ito-blue-soft); color: var(--ito-navy); flex: none; }
+.con-pendientes .buzon-sobre { background: var(--ito-orange-soft); color: #b85c00; }
+.buzon-sobre .pi { font-size: 1.15rem; }
+.buzon-sobre .app-globo { top: -.2rem; right: -.25rem; }
+.buzon-lista { list-style: none; margin: 0; padding: 0; border-top: 1px solid #eee9e0; }
+.buzon-aviso + .buzon-aviso { border-top: 1px solid #f1ede6; }
+.buzon-aviso-titulo { display: flex; align-items: center; gap: .75rem; padding: .8rem 1rem; color: inherit; text-decoration: none; min-height: 3rem; }
+.buzon-aviso-titulo:hover { background: #faf8f4; }
+.buzon-aviso-titulo .titulo { font-weight: 600; }
+.buzon-aviso-titulo small { color: var(--ito-muted); }
+.buzon-aviso-titulo > .pi { color: var(--ito-muted); font-size: .8rem; }
+.punto-nuevo { width: .55rem; height: .55rem; border-radius: 50%; background: var(--ito-orange); flex: none; }
+.etiqueta-nuevo { font-size: .72rem; font-weight: 700; color: #b85c00; background: var(--ito-orange-soft); padding: .1rem .45rem; border-radius: 999px; }
+/* Leídos: se quedan, pero en gris */
+.buzon-aviso.leido .punto-nuevo { background: transparent; }
+.buzon-aviso.leido .titulo { font-weight: 500; color: var(--ito-muted); }
+.buzon-aviso.leido:not(.abierto) .buzon-aviso-titulo small { color: #9aa3af; }
+.buzon-aviso-cuerpo { padding: 0 1rem 1rem 2.3rem; }
+.buzon-aviso-cuerpo p { margin: 0 0 .5rem; }
+.buzon-enlace { display: block; padding: .75rem 1rem; border-top: 1px solid #eee9e0; font-weight: 600; text-decoration: none; color: var(--ito-blue); }
+
+/* Resumen de tres números (tocables) */
+.resumen-mini { display: grid; grid-template-columns: repeat(3, 1fr); gap: .6rem; margin-bottom: 1.5rem; }
+.resumen-mini a { display: flex; flex-direction: column; gap: .2rem; padding: .8rem .9rem; border-radius: 12px; background: #fff;
+                  border: 1px solid #e6e2da; color: inherit; text-decoration: none; }
+.resumen-mini a:hover { border-color: var(--ito-blue); }
+.resumen-mini strong { font-size: 1.6rem; line-height: 1; }
+.resumen-mini span { font-size: .82rem; color: var(--ito-muted); line-height: 1.25; }
+.resumen-mini a.destacado { background: var(--ito-orange-soft); border-color: var(--ito-orange-light); }
+.resumen-mini a.destacado strong { color: #b85c00; }
+
+/* Bloques del inicio */
+.bloque-inicio { margin-bottom: 1.75rem; scroll-margin-top: 5rem; }
+.bloque-cabecera { display: flex; align-items: center; justify-content: space-between; gap: .5rem; margin-bottom: .6rem; }
+.bloque-cabecera h2 { margin: 0; font-size: 1.15rem; }
+.enlace-ver { font-weight: 600; color: var(--ito-blue); text-decoration: none; white-space: nowrap; }
+.enlace-ver:hover { text-decoration: underline; }
+
+/* Solicitudes como tarjetas */
+.lista-solicitudes { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: .5rem; }
+.tarjeta-solicitud { display: flex; align-items: center; gap: .75rem; padding: .85rem 1rem; background: #fff; border: 1px solid #e6e2da;
+                     border-radius: 12px; color: inherit; text-decoration: none; min-height: 3.5rem; }
+.tarjeta-solicitud:hover { border-color: var(--ito-blue); }
+.tarjeta-solicitud .titulo { font-weight: 600; }
+@media (max-width: 575px) {
+    .tarjeta-solicitud { flex-wrap: wrap; }
+    .tarjeta-solicitud > .flex-1 { flex: 1 1 100% !important; }   /* las etiquetas bajan a su propia línea */
+    .tarjeta-solicitud > .pi-chevron-right { display: none; }
+}
+
+/* Selector Activas / Finalizadas */
+.selector-vista.ui-selectonebutton { display: inline-flex; }
+@media (max-width: 575px) { .selector-vista.ui-selectonebutton { display: flex; width: 100%; } .selector-vista .ui-button { flex: 1; } }
+
+/* Panel «Atender»: botones de acción que se acomodan en el teléfono */
+.acciones-atender.ui-selectonebutton { display: flex; flex-wrap: wrap; }
+@media (max-width: 575px) { .acciones-atender .ui-button { flex: 1 1 45%; } }
+.panel-plegable.ui-panel .ui-panel-titlebar { background: #fff; }
+.buzon-avisos a, .buzon-avisos a:hover, .buzon-avisos a:focus { color: var(--ito-navy); text-decoration: none; }
+.buzon-avisos .buzon-enlace { color: var(--ito-blue); }
+
+/* Segunda ronda (estudiante): columna de lectura y «Mis solicitudes» como sección */
+.columna-lectura { max-width: 52rem; margin: 0 auto; }
+.titulo-seccion-principal { margin: 0; font-size: 2rem; line-height: 1.2; }
+@media (max-width: 575px) { .titulo-seccion-principal { font-size: 1.6rem; } }
+#mis-solicitudes { scroll-margin-top: 5rem; }
+.resumen-mini a.ui-commandlink { color: inherit; }
+
+/* Diagnóstico: modelos con problemas */
+.tabla-diagnostico .fila-con-problema td { background: #fff4e5; }
+.tabla-diagnostico td { white-space: normal; overflow-wrap: anywhere; vertical-align: top; }
+.tabla-diagnostico td:first-child { min-width: 13rem; overflow-wrap: normal; }
+
+/* Tercera ronda (coordinación y jefatura) */
+.resumen-mini > div { display: flex; flex-direction: column; gap: .2rem; padding: .8rem .9rem; border-radius: 12px; background: #fff; border: 1px solid #e6e2da; }
+.resumen-mini > div.destacado { background: var(--ito-orange-soft); border-color: var(--ito-orange-light); }
+.resumen-mini > div.destacado strong { color: #b85c00; }
+.resumen-mini.resumen-cuatro { grid-template-columns: repeat(4, 1fr); }
+@media (max-width: 767px) { .resumen-mini.resumen-cuatro { grid-template-columns: repeat(2, 1fr); } }
+.barra-filtros { display: flex; flex-wrap: wrap; gap: .6rem; align-items: center; }
+.barra-filtros-buscar { flex: 1 1 18rem; min-width: 0; }
+.mas-filtros { margin-top: .75rem; padding: 1rem 1rem .25rem; background: #fff; border: 1px solid #e6e2da; border-radius: 12px; }
+@media (max-width: 575px) { .barra-filtros > .ui-button, .barra-filtros > .selector-vista { flex: 1 1 100%; } }
+.icono-circulo.tono-rojo { background: #fde8e8; color: #b42318; }
+/* Pestañas de navegación (Seguimiento de jefatura) */
+.pestanas { display: flex; gap: .25rem; border-bottom: 1px solid #e6e2da; overflow-x: auto; }
+.pestanas a { display: inline-flex; align-items: center; gap: .45rem; padding: .7rem 1rem; color: var(--ito-muted); text-decoration: none; font-weight: 600; border-bottom: 3px solid transparent; margin-bottom: -1px; white-space: nowrap; }
+.pestanas a:hover { color: var(--ito-navy); }
+.pestanas a.activa { color: var(--ito-navy); border-bottom-color: var(--ito-orange); }
+/* Tablas apiladas en el teléfono (reflow): el nombre de la columna va arriba de su valor, no encima */
+@media (max-width: 640px) {
+    .ui-datatable-reflow .ui-datatable-data > tr > td { text-align: left; }
+    .ui-datatable-reflow .ui-datatable-data > tr > td .ui-column-title {
+        display: block; position: static; width: auto; min-width: 0; margin: 0 0 .2rem; float: none;
+        font-size: .72rem; text-transform: uppercase; letter-spacing: .03em; color: var(--ito-muted);
+    }
+}
+/* Mismo contenido, forma distinta: tabla en escritorio, tarjetas en el teléfono */
+.solo-movil { display: none; }
+@media (max-width: 640px) {
+    .solo-escritorio { display: none; }
+    .solo-movil { display: block; }
+    .tarjeta-solicitud .ui-tag { flex: none; }
+}
+
+/* Acceso con código por correo: el código se lee mejor grande y espaciado. */
+.codigo-acceso { font-size: 1.5rem; letter-spacing: .4em; text-align: center; font-variant-numeric: tabular-nums; }
+.codigo-acceso::placeholder { letter-spacing: .4em; opacity: .35; }

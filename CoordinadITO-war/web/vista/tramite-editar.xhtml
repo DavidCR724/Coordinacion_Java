@@ -1,0 +1,184 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  VISTA: alta o edición de un trámite y su formulario (solo jefatura). HU 8.3.  ?id=<id> (sin id: nuevo)
+  Datos generales (clave, nombre, descripción, requisitos, prioridad, días esperados, documento
+  obligatorio, apertura de grupo, periodo, activo) y los campos del formulario, que se agregan,
+  quitan y reordenan aquí y se guardan todos juntos. Bean: tramiteEdicionControl → TramiteService.guardar.
+  Quitar un campo que ya tenía respuestas solo lo desactiva: las solicitudes anteriores lo conservan.
+-->
+<ui:composition template="/plantillas/xhtml/plantilla-panel.xhtml"
+                xmlns="http://www.w3.org/1999/xhtml"
+                xmlns:h="jakarta.faces.html"
+                xmlns:f="jakarta.faces.core"
+                xmlns:ui="jakarta.faces.facelets"
+                xmlns:c="jakarta.tags.core"
+                xmlns:p="primefaces">
+
+    <ui:define name="metadatos">
+        <f:metadata>
+            <f:viewParam name="id" value="#{tramiteEdicionControl.id}"/>
+            <f:viewAction action="#{tramiteEdicionControl.cargar}"/>
+        </f:metadata>
+    </ui:define>
+
+    <ui:param name="seccion" value="catalogo"/>
+    <ui:param name="rotulo" value="Editar trámite"/>
+
+    <ui:define name="titulo">Editar trámite</ui:define>
+
+    <ui:define name="contenido">
+        <c:set var="d" value="#{tramiteEdicionControl.datos}"/>
+
+        <ui:fragment rendered="#{sesionControl.rol ne 'head' or not tramiteEdicionControl.visible}">
+            <ui:include src="/plantillas/xhtml/comp-estado-vacio.xhtml">
+                <ui:param name="icono" value="shield"/>
+                <ui:param name="tituloVacio" value="Trámite no disponible"/>
+                <ui:param name="descripcion" value="El catálogo de trámites es común a todas las carreras: lo configura jefatura."/>
+                <ui:param name="destino" value="/vista/inicio"/>
+                <ui:param name="accion" value="Volver al inicio"/>
+            </ui:include>
+        </ui:fragment>
+
+        <ui:fragment rendered="#{sesionControl.rol eq 'head' and tramiteEdicionControl.visible}">
+            <p:linkButton outcome="/vista/catalogo-tramites" value="Volver al catálogo" icon="pi pi-arrow-left"
+                          styleClass="ui-button-flat mb-3 -ml-3"/>
+            <ui:include src="/plantillas/xhtml/comp-encabezado.xhtml">
+                <ui:param name="tituloPagina" value="#{d.nuevo ? 'Nuevo trámite' : d.nombre}"/>
+                <ui:param name="descripcion" value="Lo que el alumno ve en el catálogo y el formulario que llena."/>
+            </ui:include>
+
+            <h:form id="formTramite">
+                <p:messages showSummary="false" showDetail="true" closable="true"/>
+                <div class="grid">
+                    <div class="col-12 xl:col-7">
+                        <p:card styleClass="mb-4">
+                            <f:facet name="title">Datos del trámite</f:facet>
+                            <div class="formgrid grid">
+                                <div class="field col-12 md:col-3">
+                                    <p:outputLabel for="clave" value="Clave" styleClass="block font-medium mb-2"/>
+                                    <p:inputText id="clave" value="#{d.clave}"
+                                                 maxlength="10" styleClass="w-full" placeholder="BM"/>
+                                </div>
+                                <div class="field col-12 md:col-9">
+                                    <p:outputLabel for="nombre" value="Nombre" styleClass="block font-medium mb-2"/>
+                                    <p:inputText id="nombre" value="#{d.nombre}"
+                                                 maxlength="150" styleClass="w-full"/>
+                                </div>
+                                <div class="field col-12">
+                                    <p:outputLabel for="descripcion" value="Descripción" styleClass="block font-medium mb-2"/>
+                                    <p:inputTextarea id="descripcion" value="#{d.descripcion}" rows="2" maxlength="500" styleClass="w-full"/>
+                                </div>
+                                <div class="field col-12">
+                                    <p:outputLabel for="requisitos" value="Requisitos (uno por línea)" styleClass="block font-medium mb-2"/>
+                                    <p:inputTextarea id="requisitos" value="#{d.requisitos}" rows="4" maxlength="2000" styleClass="w-full"/>
+                                </div>
+                                <div class="field col-12 md:col-6">
+                                    <p:outputLabel for="prioridad" value="Prioridad base" styleClass="block font-medium mb-2"/>
+                                    <p:selectOneMenu id="prioridad" value="#{d.prioridad}" styleClass="w-full">
+                                        <f:selectItems value="#{catalogos.prioridades}" var="p" itemValue="#{p.valor}" itemLabel="#{p.etiqueta}"/>
+                                    </p:selectOneMenu>
+                                </div>
+                                <div class="field col-12 md:col-6">
+                                    <p:outputLabel for="dias" value="Días esperados de atención" styleClass="block font-medium mb-2"/>
+                                    <p:spinner id="dias" value="#{d.diasEsperados}" min="1" max="180"
+                                               styleClass="w-full" inputStyleClass="w-full"/>
+                                </div>
+                                <div class="field col-12 md:col-6">
+                                    <p:outputLabel for="inicio" value="Periodo: desde" styleClass="block font-medium mb-2"/>
+                                    <p:datePicker id="inicio" value="#{d.inicio}" pattern="dd/MM/yyyy" locale="es" showIcon="true"
+                                                  styleClass="w-full" inputStyleClass="w-full"/>
+                                </div>
+                                <div class="field col-12 md:col-6">
+                                    <p:outputLabel for="fin" value="Periodo: hasta" styleClass="block font-medium mb-2"/>
+                                    <p:datePicker id="fin" value="#{d.fin}" pattern="dd/MM/yyyy" locale="es" showIcon="true"
+                                                  styleClass="w-full" inputStyleClass="w-full"/>
+                                </div>
+                                <div class="col-12 flex flex-column gap-3">
+                                    <p:toggleSwitch id="documento" value="#{d.documentoRequerido}"/>
+                                    <p:outputLabel for="documento" value="Exige adjuntar un documento" styleClass="-mt-2"/>
+                                    <p:toggleSwitch id="colectivo" value="#{d.colectivo}"/>
+                                    <p:outputLabel for="colectivo" value="Es apertura de grupo (los alumnos se adhieren)" styleClass="-mt-2"/>
+                                    <p:toggleSwitch id="activo" value="#{d.activo}"/>
+                                    <p:outputLabel for="activo" value="Habilitado en el catálogo" styleClass="-mt-2"/>
+                                </div>
+                            </div>
+                        </p:card>
+                    </div>
+
+                    <div class="col-12 xl:col-5">
+                        <p:card styleClass="mb-4">
+                            <f:facet name="title">
+                                <div class="flex justify-content-between align-items-center">
+                                    Formulario
+                                    <p:commandButton id="agregarCampo" value="Agregar campo" icon="pi pi-plus" styleClass="ui-button-outlined ui-button-sm"
+                                                     action="#{tramiteEdicionControl.agregarCampo}" process="@form" update="@form"/>
+                                </div>
+                            </f:facet>
+                            <f:facet name="subtitle">Lo que el alumno llena además de su petición.</f:facet>
+                            <ui:fragment rendered="#{empty d.campos}">
+                                <p class="text-color-secondary">Sin campos: el alumno solo escribe su petición.</p>
+                            </ui:fragment>
+                            <ui:repeat value="#{d.campos}" var="campo" varStatus="st">
+                                <div class="campo-edicion surface-50 border-round p-3 mb-3">
+                                    <div class="flex justify-content-between align-items-center mb-2">
+                                        <strong>Campo #{st.index + 1}</strong>
+                                        <div class="flex gap-1">
+                                            <p:commandButton icon="pi pi-arrow-up" title="Subir" styleClass="ui-button-flat rounded-button ui-button-sm"
+                                                             action="#{tramiteEdicionControl.mover(st.index, -1)}" process="@form" update="@form"
+                                                             disabled="#{st.first}"/>
+                                            <p:commandButton icon="pi pi-arrow-down" title="Bajar" styleClass="ui-button-flat rounded-button ui-button-sm"
+                                                             action="#{tramiteEdicionControl.mover(st.index, 1)}" process="@form" update="@form"
+                                                             disabled="#{st.last}"/>
+                                            <p:commandButton icon="pi pi-trash" title="Quitar" styleClass="ui-button-flat ui-button-danger rounded-button ui-button-sm"
+                                                             action="#{tramiteEdicionControl.quitarCampo(st.index)}" process="@form" update="@form"/>
+                                        </div>
+                                    </div>
+                                    <div class="formgrid grid">
+                                        <div class="field col-12 md:col-7">
+                                            <p:outputLabel for="etiqueta" value="Etiqueta" styleClass="block mb-1"/>
+                                            <p:inputText id="etiqueta" value="#{campo.etiqueta}" maxlength="100" styleClass="w-full"/>
+                                        </div>
+                                        <div class="field col-12 md:col-5">
+                                            <p:outputLabel for="tipo" value="Tipo" styleClass="block mb-1"/>
+                                            <p:selectOneMenu id="tipo" value="#{campo.tipo}" styleClass="w-full">
+                                                <f:selectItems value="#{tramiteEdicionControl.tipos}" var="tp" itemValue="#{tp.valor}" itemLabel="#{tp.etiqueta}"/>
+                                                <p:ajax process="@form" update="@form"/>
+                                            </p:selectOneMenu>
+                                        </div>
+                                        <ui:fragment rendered="#{campo.tipo eq 'SELECCION'}">
+                                            <div class="field col-12">
+                                                <p:outputLabel for="opciones" value="Opciones (una por línea)" styleClass="block mb-1"/>
+                                                <p:inputTextarea id="opciones" value="#{campo.opciones}" rows="3" styleClass="w-full"/>
+                                            </div>
+                                        </ui:fragment>
+                                        <ui:fragment rendered="#{campo.tipo eq 'TEXTO' or campo.tipo eq 'TEXTO_LARGO'}">
+                                            <div class="field col-12 md:col-6">
+                                                <p:outputLabel for="longitud" value="Máximo de caracteres" styleClass="block mb-1"/>
+                                                <p:inputNumber id="longitud" value="#{campo.longitudMax}" decimalPlaces="0" minValue="1" maxValue="2000"
+                                                               styleClass="w-full" inputStyleClass="w-full"/>
+                                            </div>
+                                        </ui:fragment>
+                                        <div class="field col-12">
+                                            <p:outputLabel for="ayuda" value="Ayuda (opcional)" styleClass="block mb-1"/>
+                                            <p:inputText id="ayuda" value="#{campo.ayuda}" maxlength="250" styleClass="w-full"/>
+                                        </div>
+                                        <div class="col-12 flex align-items-center gap-2">
+                                            <p:toggleSwitch id="obligatorio" value="#{campo.obligatorio}"/>
+                                            <p:outputLabel for="obligatorio" value="Obligatorio"/>
+                                        </div>
+                                    </div>
+                                </div>
+                            </ui:repeat>
+                        </p:card>
+                    </div>
+                </div>
+
+                <div class="flex justify-content-end gap-2">
+                    <p:linkButton outcome="/vista/catalogo-tramites" value="Cancelar" styleClass="ui-button-flat"/>
+                    <p:commandButton id="guardarTramite" value="Guardar trámite" icon="pi pi-save" size="large"
+                                     action="#{tramiteEdicionControl.guardar}" process="@form" update="@form"/>
+                </div>
+            </h:form>
+        </ui:fragment>
+    </ui:define>
+</ui:composition>

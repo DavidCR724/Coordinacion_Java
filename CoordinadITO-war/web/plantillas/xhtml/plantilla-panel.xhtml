@@ -7,27 +7,21 @@
   Es una plantilla que a su vez usa otra (plantilla-base): "plantillas anidadas".
 
   Huecos que rellena cada vista:
-      metadatos  -> <f:metadata> con los f:viewParam de la vista (al menos "rol", ver abajo)
+      metadatos  -> (opcional) <f:metadata> con los f:viewParam / f:viewAction de la vista
       titulo     -> texto de <title>
       contenido  -> el contenido propio de la pantalla (dentro de <main>)
   Parámetros (ui:param) que envía cada vista:
-      seccion   -> inicio | perfil | tramites | solicitudes | bandeja | periodos | grupos |
-                   notificaciones | avisos | prioridades | roles | volumen
+      seccion   -> inicio | perfil | tramites | solicitudes | bandeja | agenda | alumnos | grupos |
+                   notificaciones | avisos | volumen | tiempos | rezagos | catalogo | periodos |
+                   prioridades | roles | padron | auditoria
                    (marca la opción activa del menú; vacío en pantallas de detalle)
       rotulo    -> texto final de las migas de pan (Mi espacio > rotulo)
 
-  ROL DE LA DEMOSTRACIÓN: aún no hay inicio de sesión real, así que el rol llega en la URL
-  (?rol=student | coordinator | head | administrator). Cada vista lo declara así:
-      <ui:define name="metadatos">
-          <f:metadata>
-              <f:viewParam name="rol" value="#{viewScope.rol}"/>
-          </f:metadata>
-      </ui:define>
-  f:viewParam lo guarda en viewScope.rol: así sigue disponible en las peticiones AJAX de
-  PrimeFaces (filtros, pasos del formulario), que no repiten la URL. Si falta o es otro valor,
-  se usa "student". Los enlaces usan includeViewParams="true" para conservar el rol al navegar.
-  OJO: Mojarra solo lee f:metadata escrito en la VISTA, no en esta plantilla; por eso va en
-  cada vista y no aquí.
+  USUARIO Y ROL: salen de la sesión (#{sesionControl}), no de la URL.
+      rol      -> student | coordinator | head (sesionControl.rol)
+      usuario  -> datos de la cuenta (sesionControl.usuario: nombres, iniciales, etiquetaRol...)
+      sinLeer  -> notificaciones sin leer de la cuenta (sesionControl.sinLeer)
+  Sin sesión, AccesoFiltro manda al login antes de llegar aquí.
 
   Componentes PrimeFaces usados: p:tieredMenu (comp-menu-lateral), p:sidebar (menú en móvil),
   p:toolbar, p:breadCrumb, p:badge, p:avatar, p:chip, p:selectOneMenu.
@@ -43,13 +37,15 @@
     <ui:define name="titulo"><ui:insert name="titulo">Trámites ITO</ui:insert> · Trámites ITO</ui:define>
 
     <ui:define name="cuerpo">
-        <!-- Datos ficticios (usuarios, trámites, solicitudes, avisos) disponibles para todas las vistas. -->
-        <ui:include src="/plantillas/xhtml/datos-demo.xhtml"/>
+        <!-- Usuario de la sesión. -->
+        <c:set var="rol" value="#{sesionControl.rol}"/>
+        <c:set var="usuario" value="#{sesionControl.usuario}"/>
+        <c:set var="sinLeer" value="#{sesionControl.sinLeer}"/>
 
-        <!-- Variables de la demostración (se calculan a partir del rol). -->
-        <c:set var="rol" value="#{viewScope.rol eq 'coordinator' or viewScope.rol eq 'head' or viewScope.rol eq 'administrator' ? viewScope.rol : 'student'}"/>
-        <c:set var="usuario" value="#{usuariosDemo[rol]}"/>
-        <c:set var="sinLeer" value="#{rol eq 'student' ? 2 : (rol eq 'coordinator' ? 3 : 0)}"/>
+        <!-- Mensajes globales (resultado de guardar, errores de reglas de negocio). -->
+        <p:growl id="growl" showDetail="true" globalOnly="true" life="7000">
+            <p:autoUpdate/>
+        </p:growl>
 
         <div id="shell" class="app-shell">
             <a href="#main-content" class="skip-link">Saltar al contenido</a>
@@ -59,25 +55,17 @@
                 <ui:include src="/plantillas/xhtml/comp-marca.xhtml"/>
                 <div class="sidebar-workspace">
                     <span class="workspace-dot"></span>
-                    Portal de #{rol eq 'student' ? 'estudiantes' : (rol eq 'coordinator' ? 'coordinación' : (rol eq 'head' ? 'jefatura' : 'administración'))}
+                    Portal de #{rol eq 'student' ? 'estudiantes' : (rol eq 'coordinator' ? 'coordinación' : 'jefatura')}
                 </div>
                 <ui:include src="/plantillas/xhtml/comp-menu-lateral.xhtml"/>
 
                 <div class="mt-auto">
-                    <div class="sidebar-help">
-                        <i class="pi pi-graduation-cap text-2xl" aria-hidden="true"></i>
-                        <h3>Acompañamos tu camino.</h3>
-                        <p>Consulta los requisitos antes de comenzar una solicitud.</p>
-                        <h:link outcome="#{rol eq 'student' ? '/vista/tramites' : (rol eq 'coordinator' ? '/vista/bandeja' : (rol eq 'head' ? '/vista/seguimiento-volumen' : '/vista/periodos'))}"
-                                includeViewParams="true">
-                            Ir a #{rol eq 'student' ? 'trámites' : (rol eq 'coordinator' ? 'la bandeja' : (rol eq 'head' ? 'seguimiento' : 'periodos'))}
-                            <i class="pi pi-arrow-right ml-1 text-sm" aria-hidden="true"></i>
-                        </h:link>
-                    </div>
-                    <!-- "Salir" regresa al login (todavía no hay sesión que cerrar). -->
-                    <h:link outcome="/vista/login" styleClass="sidebar-salir">
-                        <i class="pi pi-sign-out" aria-hidden="true"></i> Salir de mi espacio
-                    </h:link>
+                    <!-- "Salir" cierra la sesión y regresa al login. -->
+                    <h:form>
+                        <h:commandLink action="#{sesionControl.salir}" styleClass="sidebar-salir">
+                            <i class="pi pi-sign-out" aria-hidden="true"></i> Cerrar sesión
+                        </h:commandLink>
+                    </h:form>
                     <p class="sidebar-footer">
                         Instituto Tecnológico de Oaxaca<br/>
                         <span>Tecnológico Nacional de México</span>
@@ -89,61 +77,57 @@
             <p:sidebar widgetVar="menuMovil" styleClass="app-sidebar-movil" ariaLabel="Navegación principal">
                 <ui:include src="/plantillas/xhtml/comp-marca.xhtml"/>
                 <ui:include src="/plantillas/xhtml/comp-menu-lateral.xhtml"/>
-                <h:link outcome="/vista/login" styleClass="sidebar-salir mt-3">
-                    <i class="pi pi-sign-out" aria-hidden="true"></i> Salir de mi espacio
-                </h:link>
+                <h:form>
+                    <h:commandLink action="#{sesionControl.salir}" styleClass="sidebar-salir mt-3">
+                        <i class="pi pi-sign-out" aria-hidden="true"></i> Cerrar sesión
+                    </h:commandLink>
+                </h:form>
             </p:sidebar>
 
             <!-- ============ CUERPO ============ -->
             <div class="app-body">
-                <p:toolbar styleClass="app-topbar">
-                    <p:toolbarGroup>
-                        <p:commandButton type="button" icon="pi pi-bars" styleClass="ui-button-flat ui-button-secondary rounded-button lg:hidden"
-                                         onclick="PF('menuMovil').show()" ariaLabel="Abrir menú"/>
-                        <p:commandButton type="button" icon="pi pi-th-large" styleClass="ui-button-flat ui-button-secondary rounded-button hidden lg:inline-flex"
-                                         onclick="CoordinadITO.alternarBarraLateral(this)" ariaLabel="Contraer o expandir la barra lateral"/>
-                        <p:breadCrumb homeDisplay="text" styleClass="app-migas">
-                            <p:menuitem value="Mi espacio" outcome="/vista/inicio" includeViewParams="true"/>
-                            <p:menuitem value="#{empty rotulo ? 'Detalle de solicitud' : rotulo}"/>
-                        </p:breadCrumb>
-                    </p:toolbarGroup>
-                    <p:toolbarGroup align="right" styleClass="gap-2">
-                        <p:chip label="Ago – Dic 2026" icon="pi pi-calendar" styleClass="hidden md:inline-flex"/>
-                        <h:link outcome="#{rol eq 'student' ? '/vista/notificaciones' : '/vista/inicio'}" includeViewParams="true" styleClass="app-campana"
+                <!-- Barra superior: ☰ · nombre de la página · campana · avatar (con su menú). -->
+                <header class="app-topbar">
+                    <div class="flex align-items-center gap-2 min-w-0">
+                        <button type="button" class="app-icono-boton" aria-label="Abrir o cerrar el menú" aria-controls="main-sidebar"
+                                onclick="CoordinadITO.menu(this)">
+                            <i class="pi pi-bars" aria-hidden="true"></i>
+                        </button>
+                        <span class="app-titulo-pagina">#{empty rotulo ? 'Detalle de solicitud' : rotulo}</span>
+                    </div>
+                    <div class="flex align-items-center gap-1">
+                        <h:link outcome="/vista/notificaciones" styleClass="app-icono-boton app-campana"
                                 title="Notificaciones, #{sinLeer} sin leer">
-                            <i class="pi pi-bell text-xl" aria-hidden="true"></i>
+                            <i class="pi pi-bell" aria-hidden="true"></i>
                             <ui:fragment rendered="#{sinLeer gt 0}">
-                                <p:badge value="#{sinLeer}" severity="warning" size="small" styleClass="app-campana-globo"/>
+                                <span class="app-globo" aria-hidden="true">#{sinLeer gt 9 ? '9+' : sinLeer}</span>
                             </ui:fragment>
                         </h:link>
-                        <h:link outcome="/vista/perfil" includeViewParams="true" styleClass="app-usuario">
+                        <button type="button" id="botonCuenta" class="app-usuario" aria-label="Mi cuenta" aria-haspopup="true">
                             <p:avatar label="#{usuario.iniciales}" shape="circle" styleClass="app-avatar"/>
-                            <span class="hidden sm:flex flex-column line-height-2">
-                                <strong>#{usuario.nombres}</strong>
-                                <small class="text-color-secondary">#{usuario.etiquetaRol}</small>
-                            </span>
-                        </h:link>
-                    </p:toolbarGroup>
-                </p:toolbar>
-
-                <!-- Franja de la demostración + selector "Ver como" (navega con ?rol=... a la pantalla de inicio). -->
-                <div class="app-franja-prueba">
-                    <div class="flex align-items-center gap-2 flex-wrap">
-                        <span class="workspace-dot"></span>
-                        <strong>Vista de prueba</strong>
-                        <span class="hidden md:inline">Datos ficticios. Esta versión solo muestra el diseño: todavía no guarda cambios.</span>
+                        </button>
+                        <h:form id="formCuenta">
+                            <p:menu overlay="true" trigger="@(#botonCuenta)" my="right top" at="right bottom" styleClass="app-menu-cuenta">
+                                <p:submenu label="#{usuario.nombreCompleto} · #{usuario.etiquetaRol}">
+                                    <p:menuitem value="Mi perfil" icon="pi pi-user" outcome="/vista/perfil"/>
+                                    <p:menuitem value="Salir" icon="pi pi-sign-out" action="#{sesionControl.salir}" ajax="false"/>
+                                </p:submenu>
+                            </p:menu>
+                        </h:form>
                     </div>
-                    <h:form id="formRol" styleClass="flex align-items-center gap-2" prependId="false">
-                        <p:outputLabel for="verComo" value="Ver como"/>
-                        <p:selectOneMenu id="verComo" value="#{rol}" widgetVar="verComo"
-                                         onchange="CoordinadITO.verComo('#{request.contextPath}', PF('verComo').getSelectedValue())">
-                            <f:selectItem itemValue="student" itemLabel="Estudiante"/>
-                            <f:selectItem itemValue="coordinator" itemLabel="Coordinación"/>
-                            <f:selectItem itemValue="head" itemLabel="Jefatura"/>
-                            <f:selectItem itemValue="administrator" itemLabel="Administración"/>
-                        </p:selectOneMenu>
-                    </h:form>
-                </div>
+                </header>
+
+                <!-- Franja de aviso: solo en desarrollo, donde se puede entrar con el correo sin contraseña. -->
+                <ui:fragment rendered="#{sesionControl.modoDesarrollo}">
+                    <div class="app-franja-prueba">
+                        <div class="flex align-items-center gap-2 flex-wrap">
+                            <span class="workspace-dot"></span>
+                            <strong>Modo desarrollo</strong>
+                            <span class="hidden md:inline">Se entra con solo el correo.</span>
+                        </div>
+                        <span class="text-sm hidden xl:inline">#{usuario.correo}</span>
+                    </div>
+                </ui:fragment>
 
                 <main id="main-content" class="app-contenido" tabindex="-1">
                     <ui:insert name="contenido">Contenido de la pantalla</ui:insert>

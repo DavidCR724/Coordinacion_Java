@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  COMPONENTE: panel "Responder a coordinación" (solo el alumno dueño, solicitud en ESPERA). HU 2.6.
+  Muestra lo que pidió coordinación (sol.peticionPendiente) y deja contestar con texto y,
+  si hace falta, documentos.
+  Bean: detalleSolicitudControl.respuesta / subirRespuesta / responder()
+        → SolicitudService.responder: guarda el mensaje y los adjuntos y regresa la solicitud a En revisión.
+-->
+<ui:composition xmlns="http://www.w3.org/1999/xhtml"
+                xmlns:h="jakarta.faces.html"
+                xmlns:f="jakarta.faces.core"
+                xmlns:ui="jakarta.faces.facelets"
+                xmlns:p="primefaces">
+    <p:card styleClass="mb-4 border-orange-200">
+        <div class="flex gap-3 align-items-start mb-3">
+            <span class="icono-circulo tono-naranja"><i class="pi pi-question-circle" aria-hidden="true"></i></span>
+            <div>
+                <p class="eyebrow">COORDINACIÓN NECESITA INFORMACIÓN</p>
+                <p class="mt-2 mb-0" style="white-space: pre-line;">#{detalleSolicitudControl.sol.peticionPendiente}</p>
+            </div>
+        </div>
+        <h:form id="formResponder" enctype="multipart/form-data">
+            <div class="field">
+                <p:outputLabel for="respuesta" value="Tu respuesta" styleClass="block font-medium mb-2"/>
+                <p:inputTextarea id="respuesta" value="#{detalleSolicitudControl.respuesta}" required="true"
+                                 requiredMessage="Escribe tu respuesta." rows="4" maxlength="2000"
+                                 counter="respuestaContador" counterTemplate="{0} caracteres restantes" styleClass="w-full"/>
+                <h:outputText id="respuestaContador" styleClass="block text-color-secondary text-sm mt-1"/>
+                <p:message for="respuesta" display="text"/>
+            </div>
+            <div class="field">
+                <span class="block font-medium mb-2">Documentos (opcional)</span>
+                <p:fileUpload mode="advanced" auto="true" multiple="true" listener="#{detalleSolicitudControl.subirRespuesta}"
+                              accept=".pdf,.jpg,.jpeg,.png"
+                              label="Adjuntar archivos" update="archivosRespuesta" process="@this">
+                    <!-- PDF, JPG o PNG; 5 MB por archivo; máximo 5 (lo vuelve a revisar el EJB). -->
+                    <p:validateFile allowTypes="/(\.|\/)(pdf|jpe?g|png)$/" sizeLimit="5242880" fileLimit="5"/>
+                </p:fileUpload>
+                <h:panelGroup id="archivosRespuesta" layout="block" styleClass="mt-2">
+                    <ui:repeat value="#{detalleSolicitudControl.archivosRespuesta}" var="a" varStatus="st">
+                        <div class="flex align-items-center gap-2 py-1">
+                            <i class="pi pi-paperclip" aria-hidden="true"></i>
+                            <span class="flex-1">#{a.nombre} <small class="text-color-secondary">(#{detalleSolicitudControl.tamano(a)})</small></span>
+                            <p:commandButton icon="pi pi-times" styleClass="ui-button-flat ui-button-danger rounded-button"
+                                             action="#{detalleSolicitudControl.quitarArchivo(st.index)}" process="@this"
+                                             update=":formResponder:archivosRespuesta" title="Quitar #{a.nombre}"/>
+                        </div>
+                    </ui:repeat>
+                </h:panelGroup>
+            </div>
+            <p:commandButton value="Enviar respuesta" icon="pi pi-send"
+                             action="#{detalleSolicitudControl.responder}" process="@this respuesta" update=":detalle"/>
+        </h:form>
+    </p:card>
+</ui:composition>

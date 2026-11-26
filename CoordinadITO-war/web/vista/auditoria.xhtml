@@ -1,0 +1,102 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  VISTA: bitácora de auditoría (jefatura: toda; coordinación: lo que hicieron personas de sus carreras). HU 8.2.
+  Quién hizo qué, cuándo y desde dónde: accesos (y fallidos), altas y cambios de rol, correcciones
+  de alumnos, cargas de padrón, exportaciones y cambios al catálogo. Solo lectura.
+  Filtros: acción, rango de fechas y texto (correo, nombre o detalle). Tabla lazy paginada en la base
+  (auditoriaControl.registros → AuditoriaService.consultar).
+-->
+<ui:composition template="/plantillas/xhtml/plantilla-panel.xhtml"
+                xmlns="http://www.w3.org/1999/xhtml"
+                xmlns:h="jakarta.faces.html"
+                xmlns:f="jakarta.faces.core"
+                xmlns:ui="jakarta.faces.facelets"
+                xmlns:c="jakarta.tags.core"
+                xmlns:p="primefaces">
+
+    <ui:param name="seccion" value="auditoria"/>
+    <ui:param name="rotulo" value="Auditoría"/>
+
+    <ui:define name="titulo">Auditoría</ui:define>
+
+    <ui:define name="contenido">
+        <c:set var="rol" value="#{sesionControl.rol}"/>
+
+        <ui:fragment rendered="#{(rol ne 'head' and rol ne 'coordinator')}">
+            <ui:include src="/plantillas/xhtml/comp-estado-vacio.xhtml">
+                <ui:param name="icono" value="shield"/>
+                <ui:param name="tituloVacio" value="Sin acceso a esta sección"/>
+                <ui:param name="descripcion" value="La bitácora la consultan coordinación (de su carrera) y jefatura."/>
+                <ui:param name="destino" value="/vista/inicio"/>
+                <ui:param name="accion" value="Volver al inicio"/>
+            </ui:include>
+        </ui:fragment>
+
+        <ui:fragment rendered="#{(rol eq 'head' or rol eq 'coordinator')}">
+            <ui:include src="/plantillas/xhtml/comp-encabezado.xhtml">
+                <ui:param name="tituloPagina" value="Bitácora de auditoría"/>
+                <ui:param name="descripcion" value="#{rol eq 'coordinator' ? 'Lo que hicieron los alumnos y la coordinación de tus carreras, con su autor, la fecha y el origen.' : 'Cada acceso y cada cambio sensible queda registrado con su autor, la fecha y el origen.'}"/>
+            </ui:include>
+
+            <h:form id="formAuditoria">
+                <p:card styleClass="mb-3">
+                    <div class="formgrid grid align-items-end">
+                        <div class="field col-12 md:col-3">
+                            <p:outputLabel for="accion" value="Acción" styleClass="block font-medium mb-2"/>
+                            <p:selectOneMenu id="accion" value="#{auditoriaControl.accion}" styleClass="w-full">
+                                <f:selectItem itemValue="" itemLabel="Todas"/>
+                                <f:selectItems value="#{auditoriaControl.acciones}" var="a" itemValue="#{a.valor}" itemLabel="#{a.etiqueta}"/>
+                            </p:selectOneMenu>
+                        </div>
+                        <div class="field col-6 md:col-2">
+                            <p:outputLabel for="desde" value="Desde" styleClass="block font-medium mb-2"/>
+                            <p:datePicker id="desde" value="#{auditoriaControl.desde}" pattern="dd/MM/yyyy" locale="es"
+                                          styleClass="w-full" inputStyleClass="w-full"/>
+                        </div>
+                        <div class="field col-6 md:col-2">
+                            <p:outputLabel for="hasta" value="Hasta" styleClass="block font-medium mb-2"/>
+                            <p:datePicker id="hasta" value="#{auditoriaControl.hasta}" pattern="dd/MM/yyyy" locale="es"
+                                          styleClass="w-full" inputStyleClass="w-full"/>
+                        </div>
+                        <div class="field col-12 md:col-3">
+                            <p:outputLabel for="texto" value="Buscar" styleClass="block font-medium mb-2"/>
+                            <p:inputText id="texto" value="#{auditoriaControl.texto}" styleClass="w-full" maxlength="100"
+                                         placeholder="Correo, nombre o detalle"/>
+                        </div>
+                        <div class="field col-12 md:col-2">
+                            <p:commandButton id="filtrar" value="Filtrar" icon="pi pi-filter" styleClass="w-full"
+                                             process="@form" update="tablaAuditoria"
+                                             oncomplete="PF('tablaAuditoria').getPaginator().setPage(0)"/>
+                        </div>
+                    </div>
+                </p:card>
+
+                <p:dataTable id="tablaAuditoria" widgetVar="tablaAuditoria" value="#{auditoriaControl.registros}" var="r" lazy="true"
+                             paginator="true" rows="25" paginatorPosition="bottom" reflow="true"
+                             paginatorTemplate="{CurrentPageReport} {PreviousPageLink} {PageLinks} {NextPageLink}"
+                             currentPageReportTemplate="{totalRecords} registros" emptyMessage="No hay registros con esos filtros.">
+                    <p:column headerText="Fecha" style="width: 10rem;">#{r.fecha}</p:column>
+                    <p:column headerText="Quién" style="width: 28%;">
+                        <div class="celda-cuenta">
+                            <div>
+                                <strong class="block">#{r.actor}</strong>
+                                <small class="text-color-secondary">#{r.correo}</small>
+                            </div>
+                        </div>
+                    </p:column>
+                    <p:column headerText="Acción" style="width: 14rem;">
+                        <p:tag value="#{r.etiquetaAccion}" rounded="true"
+                               severity="#{r.accion eq 'ACCESO_FALLIDO' ? 'danger' : (r.accion eq 'ACCESO' ? null : 'info')}"
+                               styleClass="#{r.accion eq 'ACCESO' ? 'tag-gris' : ''}"/>
+                    </p:column>
+                    <p:column headerText="Detalle">
+                        <ui:repeat value="#{r.detalle}" var="d">
+                            <small class="block"><span class="text-color-secondary">#{d.etiqueta}:</span> #{d.valor}</small>
+                        </ui:repeat>
+                    </p:column>
+                    <p:column headerText="Origen" style="width: 9rem;"><small>#{r.ip}</small></p:column>
+                </p:dataTable>
+            </h:form>
+        </ui:fragment>
+    </ui:define>
+</ui:composition>

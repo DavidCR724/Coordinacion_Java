@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  CoordinadITO · configuración de JSF.
+  Solo registra el manejador de la «vista caducada» (ManejadorExcepciones): en lugar del error 500,
+  recarga la página o manda al inicio de sesión con un aviso.
+-->
+<faces-config xmlns="https://jakarta.ee/xml/ns/jakartaee"
+              xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+              xsi:schemaLocation="https://jakarta.ee/xml/ns/jakartaee https://jakarta.ee/xml/ns/jakartaee/web-facesconfig_4_0.xsd"
+              version="4.0">
+    <factory>
+        <exception-handler-factory>mx.edu.itoaxaca.coordinadito.control.ManejadorExcepciones$Fabrica</exception-handler-factory>
+    </factory>
+</faces-config>

@@ -2,11 +2,13 @@
 <!--
   VISTA: inicio de sesión. Equivale a app/login/page.tsx.
   Usa la plantilla base (no el panel, porque aún no hay sesión).
-  El formulario es un h:form con componentes PrimeFaces: el correo se valida en el servidor
-  (obligatorio + f:validateRegex para @itoaxaca.edu.mx) y el error sale en p:message.
-  Como todavía no hay bean de login, el valor se guarda solo en requestScope (no viaja en la URL)
-  y, si es válido, el botón navega a la pantalla de inicio. La autenticación real (OIDC) es de
-  la Iteración 3.
+  Acceso real: «Entrar con mi cuenta institucional» va a /acceso/iniciar (OpenID Connect, ver
+  control.acceso.AccesoServlet). El botón aparece cuando Payara tiene coordinadito.oidc.* configurado.
+  Acceso con código por correo: dos pasos (correo → código de 6 dígitos). Aparece cuando Payara tiene
+  la sesión de correo mail/coordinadito (herramientas/configurar-correo.ps1). Ver docs/CORREO-Y-ACCESO.md.
+  Acceso de desarrollo: solo con PROJECT_STAGE = Development se puede entrar escribiendo el correo
+  (sesionControl.entrar) o con las cuentas de bd/90-datos-prueba.sql. En producción desaparece.
+  Si el acceso institucional regresa con un problema, f:viewAction lo muestra en p:messages.
 -->
 <ui:composition template="/plantillas/xhtml/plantilla-base.xhtml"
                 xmlns="http://www.w3.org/1999/xhtml"
@@ -14,6 +16,12 @@
                 xmlns:f="jakarta.faces.core"
                 xmlns:ui="jakarta.faces.facelets"
                 xmlns:p="primefaces">
+
+    <ui:define name="metadatos">
+        <f:metadata>
+            <f:viewAction action="#{sesionControl.mostrarAviso}"/>
+        </f:metadata>
+    </ui:define>
 
     <ui:define name="titulo">Iniciar sesión · Trámites de Coordinación ITO</ui:define>
 
@@ -26,19 +34,97 @@
                 </ui:include>
 
                 <div class="login-formulario">
-                    <p class="eyebrow">TU ESPACIO ACADÉMICO</p>
                     <h1 class="text-5xl font-bold line-height-2 mt-2 mb-3">Bienvenido a tu portal.</h1>
                     <p class="text-color-secondary text-lg mt-0 mb-5">
                         Consulta tus solicitudes y mantente al tanto de cada paso. Comienza con tu correo
                         institucional.
                     </p>
 
+                    <p:messages id="avisosAcceso" globalOnly="true" showSummary="false" showDetail="true" closable="true"
+                                rendered="#{not sesionControl.modoDesarrollo}"/>
+
+                    <ui:fragment rendered="#{sesionControl.accesoInstitucional}">
+                        <a href="#{request.contextPath}/acceso/iniciar" id="entrarInstitucional"
+                           class="ui-button ui-widget ui-button-text-icon-right ui-button-lg w-full no-underline">
+                            <span class="ui-button-icon-right ui-icon pi pi-arrow-right"></span>
+                            <span class="ui-button-text">Entrar con mi cuenta institucional</span>
+                        </a>
+                        <small class="block mt-2 text-center text-color-secondary">Te pediremos tu cuenta @itoaxaca.edu.mx.</small>
+                    </ui:fragment>
+                    <!-- Acceso con código por correo: paso 1 correo, paso 2 código. -->
+                    <ui:fragment rendered="#{sesionControl.accesoPorCodigo}">
+                        <p:divider align="center" rendered="#{sesionControl.accesoInstitucional}">
+                            <span class="text-sm text-color-secondary">o con un código por correo</span>
+                        </p:divider>
+                        <h:form id="formCodigo">
+                            <p:outputPanel id="pasosCodigo" layout="block">
+                                <ui:fragment rendered="#{not sesionControl.codigoEnviado}">
+                                    <div class="field">
+                                        <p:outputLabel for="correoCodigo" value="Correo institucional" styleClass="block font-medium mb-2"/>
+                                        <span class="ui-input-icon-left w-full">
+                                            <i class="pi pi-envelope"/>
+                                            <p:inputText id="correoCodigo" type="email" value="#{sesionControl.correoCodigo}" styleClass="w-full"
+                                                         required="true" requiredMessage="Escribe tu correo institucional."
+                                                         validatorMessage="Ingresa un correo institucional @itoaxaca.edu.mx"
+                                                         maxlength="150" autocomplete="email"
+                                                         placeholder="num_control@itoaxaca.edu.mx">
+                                                <f:validateRegex pattern="\s*[^@\s]+@[iI][tT][oO][aA][xX][aA][cC][aA]\.[eE][dD][uU]\.[mM][xX]\s*"/>
+                                            </p:inputText>
+                                        </span>
+                                        <p:message for="correoCodigo" display="text"/>
+                                        <small class="block mt-1 text-color-secondary">Te enviaremos un código de 6 dígitos para entrar, sin contraseña.</small>
+                                    </div>
+                                    <p:commandButton id="pedirCodigo" value="Enviarme un código" icon="pi pi-send" iconPos="right"
+                                                     action="#{sesionControl.pedirCodigo}" process="@form" update="@form"
+                                                     styleClass="w-full" size="large"/>
+                                </ui:fragment>
+
+                                <ui:fragment rendered="#{sesionControl.codigoEnviado}">
+                                    <p:messages id="avisoCodigo" globalOnly="true" showSummary="true" showDetail="true" closable="true"/>
+                                    <div class="field">
+                                        <p:outputLabel for="codigo" value="Código de 6 dígitos" styleClass="block font-medium mb-2"/>
+                                        <p:inputText id="codigo" value="#{sesionControl.codigo}" styleClass="w-full codigo-acceso"
+                                                     required="true" requiredMessage="Escribe el código que te llegó por correo."
+                                                     validatorMessage="El código tiene 6 dígitos."
+                                                     maxlength="7" autocomplete="one-time-code" placeholder="000000">
+                                            <f:passThroughAttribute name="inputmode" value="numeric"/>
+                                            <f:validateRegex pattern="\s*\d{3}\s?\d{3}\s*"/>
+                                        </p:inputText>
+                                        <p:message for="codigo" display="text"/>
+                                        <small class="block mt-1 text-color-secondary">Enviado a <strong>#{sesionControl.correoCodigo}</strong>. Vence en 10 minutos.</small>
+                                    </div>
+                                    <p:commandButton id="entrarCodigo" value="Entrar" icon="pi pi-arrow-right" iconPos="right"
+                                                     action="#{sesionControl.entrarConCodigo}" process="@form" update="@form"
+                                                     styleClass="w-full" size="large"/>
+                                    <div class="flex justify-content-between flex-wrap gap-2 mt-3">
+                                        <p:commandLink id="otroCorreo" value="Usar otro correo" action="#{sesionControl.cambiarCorreo}"
+                                                       process="@this" update="@form" styleClass="text-sm"/>
+                                        <p:commandLink id="reenviarCodigo" value="Enviar otro código" action="#{sesionControl.pedirCodigo}"
+                                                       process="@this" update="@form" styleClass="text-sm"/>
+                                    </div>
+                                </ui:fragment>
+                                <ui:fragment rendered="#{not sesionControl.codigoEnviado}">
+                                    <p:messages globalOnly="true" showSummary="false" showDetail="true" closable="true" styleClass="mt-2"/>
+                                </ui:fragment>
+                            </p:outputPanel>
+                        </h:form>
+                    </ui:fragment>
+
+                    <ui:fragment rendered="#{not sesionControl.accesoInstitucional and not sesionControl.accesoPorCodigo and not sesionControl.modoDesarrollo}">
+                        <p:staticMessage severity="warn" summary="Acceso no disponible"
+                                         detail="El inicio de sesión institucional aún no está configurado en el servidor."/>
+                    </ui:fragment>
+
+                    <ui:fragment rendered="#{sesionControl.modoDesarrollo}">
+                    <p:divider align="center" rendered="#{sesionControl.accesoInstitucional or sesionControl.accesoPorCodigo}">
+                        <span class="text-sm text-color-secondary">Acceso de desarrollo</span>
+                    </p:divider>
                     <h:form id="formLogin">
                         <div class="field">
                             <p:outputLabel for="correo" value="Correo institucional" styleClass="block font-medium mb-2"/>
                             <span class="ui-input-icon-left w-full">
                                 <i class="pi pi-envelope"/>
-                                <p:inputText id="correo" type="email" value="#{requestScope.correo}" styleClass="w-full"
+                                <p:inputText id="correo" type="email" value="#{sesionControl.correo}" styleClass="w-full"
                                              required="true" requiredMessage="Escribe tu correo institucional."
                                              validatorMessage="Ingresa un correo institucional @itoaxaca.edu.mx"
                                              maxlength="254" autocomplete="email"
@@ -47,22 +133,30 @@
                                 </p:inputText>
                             </span>
                             <p:message for="correo" display="text"/>
+                            <p:messages globalOnly="true" showSummary="false" showDetail="true" closable="true" styleClass="mt-2"/>
                             <small class="block mt-1 text-color-secondary">Usa tu cuenta @itoaxaca.edu.mx.</small>
                         </div>
                         <p:commandButton value="Entrar a mi espacio" icon="pi pi-arrow-right" iconPos="right"
-                                         action="/vista/inicio?faces-redirect=true" update="@form"
+                                         action="#{sesionControl.entrar}" update="@form"
                                          styleClass="w-full" size="large"/>
                     </h:form>
 
-                    <p:divider align="center"><span class="text-sm text-color-secondary">Conoce el portal</span></p:divider>
-
-                    <p:linkButton outcome="/vista/inicio" value="Explorar vista de prueba" icon="pi pi-chevron-right" iconPos="right"
-                                  styleClass="ui-button-outlined w-full">
-                        <f:param name="rol" value="student"/>
-                    </p:linkButton>
-                    <p class="text-center text-sm text-color-secondary">
-                        Recorre las interfaces con datos ficticios, sin una cuenta.
-                    </p>
+                    <!-- Solo en desarrollo: cuentas de bd/90-datos-prueba.sql. -->
+                        <p:divider align="center"><span class="text-sm text-color-secondary">Cuentas de prueba (solo desarrollo)</span></p:divider>
+                        <h:form id="formPrueba" styleClass="flex flex-wrap gap-2 justify-content-center">
+                            <p:commandButton value="Estudiante" icon="pi pi-user" styleClass="ui-button-outlined ui-button-sm"
+                                             action="#{sesionControl.entrarComo('00000001@itoaxaca.edu.mx')}" process="@this"/>
+                            <p:commandButton value="Coordinación ISC" icon="pi pi-inbox" styleClass="ui-button-outlined ui-button-sm"
+                                             action="#{sesionControl.entrarComo('coordinacion.isc@itoaxaca.edu.mx')}" process="@this"/>
+                            <p:commandButton value="Jefatura" icon="pi pi-chart-bar" styleClass="ui-button-outlined ui-button-sm"
+                                             action="#{sesionControl.entrarComo('jefatura@itoaxaca.edu.mx')}" process="@this"/>
+                            <p:commandButton value="Primer acceso" icon="pi pi-user-plus" styleClass="ui-button-outlined ui-button-sm"
+                                             action="#{sesionControl.entrarComo('00000009@itoaxaca.edu.mx')}" process="@this"/>
+                        </h:form>
+                        <p class="text-center text-sm text-color-secondary">
+                            Requieren haber cargado bd/90-datos-prueba.sql en la base.
+                        </p>
+                    </ui:fragment>
                 </div>
 
                 <footer class="text-sm text-color-secondary">
@@ -72,7 +166,6 @@
             </section>
 
             <aside class="login-lateral">
-                <p class="eyebrow">MENOS FILAS. MÁS CLARIDAD.</p>
                 <h2>Tu proceso académico,<br/><span>paso a paso.</span></h2>
                 <p class="text-lg m-0" style="max-width: 32rem;">
                     Un espacio para solicitar, consultar y dar seguimiento a tus trámites de coordinación.

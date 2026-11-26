@@ -4,12 +4,13 @@
   en la barra lateral fija (escritorio) y dentro del p:sidebar que se abre en móvil.
   Parámetros (ui:param): rol, seccion, sinLeer (los calcula plantilla-panel).
   Las opciones cambian según el rol (ver "Navegación por rol" en el vault):
-      student      Inicio · Mi perfil · Trámites · Mis solicitudes · Grupos · Notificaciones · Avisos
-      coordinator  Inicio · Bandeja de atención · Grupos · Avisos · Mi perfil
-      head         Inicio · Solicitudes · Demanda de grupos · Volumen · Mi perfil
-      administrator Inicio · Periodos · Prioridades · Roles y carreras · Mi perfil
-  Solo enlaza pantallas que ya tienen maqueta (alumnos, tiempos, rezagos, padrón y auditoría
-  se agregan cuando existan).
+      student       Inicio · Trámites · Apertura de grupos (+ Cerrar sesión, en la plantilla)
+      coordinator   Bandeja (es su inicio) · Agenda · Alumnos · Apertura de grupos · Avisos ·
+                    Personal de mi carrera · Padrón · Auditoría               (solo sus carreras)
+      head          Seguimiento (es su inicio) · Solicitudes · Alumnos · Demanda de grupos ·
+                    Avisos · Catálogo de trámites · Roles y carreras · Padrón · Auditoría
+  Para todos: Notificaciones va en la campana y Mi perfil en el avatar (un solo camino a cada
+  lugar). Periodos y prioridades se editan dentro de cada trámite del catálogo.
   Es p:tieredMenu y no p:menu porque en PrimeFaces 16 solo tieredMenu dibuja el globo
   (badge) del contador; con opciones sin submenús se ve como un menú vertical normal.
 -->
@@ -18,23 +19,26 @@
                 xmlns:p="primefaces">
     <p class="menu-lateral-titulo">MI ESPACIO</p>
     <p:tieredMenu styleClass="menu-lateral">
-        <!-- El estudiante ve el contador en "Notificaciones"; los demás, en "Inicio". -->
+        <!-- El contador de no leídas va en "Notificaciones". -->
         <ui:include src="/plantillas/xhtml/comp-enlace-nav.xhtml">
             <ui:param name="destino" value="/vista/inicio"/>
             <ui:param name="etiqueta" value="Inicio"/>
             <ui:param name="icono" value="home"/>
             <ui:param name="activo" value="#{seccion eq 'inicio'}"/>
-            <ui:param name="contador" value="#{rol eq 'student' ? 0 : sinLeer}"/>
+            <ui:param name="contador" value="0"/>
+            <ui:param name="visible" value="#{rol eq 'student'}"/>
+</ui:include>
+        <ui:include src="/plantillas/xhtml/comp-enlace-nav.xhtml">
+            <ui:param name="destino" value="/vista/seguimiento-volumen"/>
+            <ui:param name="etiqueta" value="Seguimiento"/>
+            <ui:param name="icono" value="chart-bar"/>
+            <ui:param name="activo" value="#{seccion eq 'volumen' or seccion eq 'tiempos' or seccion eq 'rezagos'}"/>
+            <ui:param name="visible" value="#{rol eq 'head'}"/>
         </ui:include>
 
-        <!-- ===== Estudiante (perfil va segundo, como en el diseño original) ===== -->
-        <ui:include src="/plantillas/xhtml/comp-enlace-nav.xhtml">
-            <ui:param name="destino" value="/vista/perfil"/>
-            <ui:param name="etiqueta" value="Mi perfil"/>
-            <ui:param name="icono" value="user"/>
-            <ui:param name="activo" value="#{seccion eq 'perfil'}"/>
-            <ui:param name="visible" value="#{rol eq 'student'}"/>
-        </ui:include>
+        <!-- ===== Estudiante: solo Inicio, Trámites y Apertura de grupos. Mis solicitudes vive en el
+             inicio, las notificaciones en la campana, el perfil en el avatar y los avisos en el
+             sobre del inicio: un solo camino a cada lugar. ===== -->
         <ui:include src="/plantillas/xhtml/comp-enlace-nav.xhtml">
             <ui:param name="destino" value="/vista/tramites"/>
             <ui:param name="etiqueta" value="Trámites"/>
@@ -47,16 +51,31 @@
             <ui:param name="etiqueta" value="#{rol eq 'head' ? 'Solicitudes' : 'Mis solicitudes'}"/>
             <ui:param name="icono" value="file"/>
             <ui:param name="activo" value="#{seccion eq 'solicitudes'}"/>
-            <ui:param name="visible" value="#{rol eq 'student' or rol eq 'head'}"/>
+            <ui:param name="visible" value="#{rol eq 'head'}"/>
         </ui:include>
 
         <!-- ===== Coordinación ===== -->
         <ui:include src="/plantillas/xhtml/comp-enlace-nav.xhtml">
             <ui:param name="destino" value="/vista/bandeja"/>
-            <ui:param name="etiqueta" value="Bandeja de atención"/>
+            <ui:param name="etiqueta" value="Bandeja"/>
             <ui:param name="icono" value="inbox"/>
             <ui:param name="activo" value="#{seccion eq 'bandeja'}"/>
             <ui:param name="visible" value="#{rol eq 'coordinator'}"/>
+        </ui:include>
+
+        <ui:include src="/plantillas/xhtml/comp-enlace-nav.xhtml">
+            <ui:param name="destino" value="/vista/agenda"/>
+            <ui:param name="etiqueta" value="Agenda"/>
+            <ui:param name="icono" value="calendar"/>
+            <ui:param name="activo" value="#{seccion eq 'agenda'}"/>
+            <ui:param name="visible" value="#{rol eq 'coordinator'}"/>
+        </ui:include>
+        <ui:include src="/plantillas/xhtml/comp-enlace-nav.xhtml">
+            <ui:param name="destino" value="/vista/alumnos"/>
+            <ui:param name="etiqueta" value="Alumnos"/>
+            <ui:param name="icono" value="id-card"/>
+            <ui:param name="activo" value="#{seccion eq 'alumnos'}"/>
+            <ui:param name="visible" value="#{rol eq 'coordinator' or rol eq 'head'}"/>
         </ui:include>
 
         <!-- Grupos: estudiante, coordinación (lectura) y jefatura (demanda) -->
@@ -65,64 +84,50 @@
             <ui:param name="etiqueta" value="#{rol eq 'head' ? 'Demanda de grupos' : 'Apertura de grupos'}"/>
             <ui:param name="icono" value="users"/>
             <ui:param name="activo" value="#{seccion eq 'grupos'}"/>
-            <ui:param name="visible" value="#{rol ne 'administrator'}"/>
+            <ui:param name="visible" value="#{true}"/>
         </ui:include>
 
         <ui:include src="/plantillas/xhtml/comp-enlace-nav.xhtml">
-            <ui:param name="destino" value="/vista/notificaciones"/>
-            <ui:param name="etiqueta" value="Notificaciones"/>
-            <ui:param name="icono" value="bell"/>
-            <ui:param name="activo" value="#{seccion eq 'notificaciones'}"/>
-            <ui:param name="contador" value="#{sinLeer}"/>
-            <ui:param name="visible" value="#{rol eq 'student'}"/>
-        </ui:include>
-        <ui:include src="/plantillas/xhtml/comp-enlace-nav.xhtml">
             <ui:param name="destino" value="/vista/avisos"/>
-            <ui:param name="etiqueta" value="Avisos de la carrera"/>
+            <ui:param name="etiqueta" value="Avisos"/>
             <ui:param name="icono" value="megaphone"/>
             <ui:param name="activo" value="#{seccion eq 'avisos'}"/>
-            <ui:param name="visible" value="#{rol eq 'student' or rol eq 'coordinator'}"/>
+            <ui:param name="visible" value="#{rol ne 'student'}"/>
         </ui:include>
 
         <!-- ===== Jefatura: panel de seguimiento ===== -->
-        <ui:include src="/plantillas/xhtml/comp-enlace-nav.xhtml">
-            <ui:param name="destino" value="/vista/seguimiento-volumen"/>
-            <ui:param name="etiqueta" value="Volumen de solicitudes"/>
-            <ui:param name="icono" value="chart-bar"/>
-            <ui:param name="activo" value="#{seccion eq 'volumen'}"/>
-            <ui:param name="visible" value="#{rol eq 'head'}"/>
-        </ui:include>
 
-        <!-- ===== Administración ===== -->
+        <!-- ===== Configuración =====
+             Común a todas las carreras: solo jefatura. De la carrera: coordinación (las suyas) y jefatura. -->
         <ui:include src="/plantillas/xhtml/comp-enlace-nav.xhtml">
-            <ui:param name="destino" value="/vista/periodos"/>
-            <ui:param name="etiqueta" value="Periodos de atención"/>
-            <ui:param name="icono" value="calendar"/>
-            <ui:param name="activo" value="#{seccion eq 'periodos'}"/>
-            <ui:param name="visible" value="#{rol eq 'administrator'}"/>
-        </ui:include>
-        <ui:include src="/plantillas/xhtml/comp-enlace-nav.xhtml">
-            <ui:param name="destino" value="/vista/prioridades"/>
-            <ui:param name="etiqueta" value="Prioridades"/>
-            <ui:param name="icono" value="sort-amount-up"/>
-            <ui:param name="activo" value="#{seccion eq 'prioridades'}"/>
-            <ui:param name="visible" value="#{rol eq 'administrator'}"/>
+            <ui:param name="destino" value="/vista/catalogo-tramites"/>
+            <ui:param name="etiqueta" value="Catálogo de trámites"/>
+            <ui:param name="icono" value="folder"/>
+            <ui:param name="activo" value="#{seccion eq 'catalogo'}"/>
+            <ui:param name="visible" value="#{rol eq 'head'}"/>
         </ui:include>
         <ui:include src="/plantillas/xhtml/comp-enlace-nav.xhtml">
             <ui:param name="destino" value="/vista/roles"/>
-            <ui:param name="etiqueta" value="Roles y carreras"/>
+            <ui:param name="etiqueta" value="#{rol eq 'coordinator' ? 'Personal de mi carrera' : 'Roles y carreras'}"/>
             <ui:param name="icono" value="id-card"/>
             <ui:param name="activo" value="#{seccion eq 'roles'}"/>
-            <ui:param name="visible" value="#{rol eq 'administrator'}"/>
+            <ui:param name="visible" value="#{rol eq 'head' or rol eq 'coordinator'}"/>
+        </ui:include>
+        <ui:include src="/plantillas/xhtml/comp-enlace-nav.xhtml">
+            <ui:param name="destino" value="/vista/padron"/>
+            <ui:param name="etiqueta" value="Padrón institucional"/>
+            <ui:param name="icono" value="upload"/>
+            <ui:param name="activo" value="#{seccion eq 'padron'}"/>
+            <ui:param name="visible" value="#{rol eq 'head' or rol eq 'coordinator'}"/>
+        </ui:include>
+        <ui:include src="/plantillas/xhtml/comp-enlace-nav.xhtml">
+            <ui:param name="destino" value="/vista/auditoria"/>
+            <ui:param name="etiqueta" value="Auditoría"/>
+            <ui:param name="icono" value="history"/>
+            <ui:param name="activo" value="#{seccion eq 'auditoria'}"/>
+            <ui:param name="visible" value="#{rol eq 'head' or rol eq 'coordinator'}"/>
         </ui:include>
 
-        <!-- Coordinación, jefatura y administración: perfil al final -->
-        <ui:include src="/plantillas/xhtml/comp-enlace-nav.xhtml">
-            <ui:param name="destino" value="/vista/perfil"/>
-            <ui:param name="etiqueta" value="Mi perfil"/>
-            <ui:param name="icono" value="user"/>
-            <ui:param name="activo" value="#{seccion eq 'perfil'}"/>
-            <ui:param name="visible" value="#{rol ne 'student'}"/>
-        </ui:include>
+        <!-- Coordinación y jefatura: perfil al final -->
     </p:tieredMenu>
 </ui:composition>

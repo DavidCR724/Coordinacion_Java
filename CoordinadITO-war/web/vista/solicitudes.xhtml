@@ -1,15 +1,16 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
   VISTA: lista de solicitudes. Equivale a app/dashboard/requests/page.tsx.
-  Qué ve cada rol (igual que visibleRequests() en el front):
-      student       -> sus 2 solicitudes (1042 y 1031), sin columna de estudiante, botón "Nueva solicitud"
-      coordinator   -> las 3 de su carrera (1043, 1042, 1031), con columna de estudiante
-      head          -> todas las solicitudes de todas las carreras (solo consulta)
-      administrator -> ninguna: aviso de estado vacío
-  La tabla es un p:dataTable (comp-tabla-solicitudes): busca, filtra por estado y ordena.
+  Bean: solicitudesControl (@ViewScoped). Qué ve cada rol:
+      student       -> sus solicitudes (SolicitudService.misSolicitudes), botón "Nueva solicitud"
+      coordinator   -> todas las de sus carreras, abiertas y cerradas (SolicitudService.bandeja)
+      head          -> todas las de todas las carreras (solo consulta)
+  Estudiante: comp-mis-solicitudes (la misma sección de su inicio). Coordinación y jefatura: p:dataTable (comp-tabla-solicitudes).
+  Todos eligen entre «Activas» y «Finalizadas» (solicitudesControl.listado, ListaSolicitudes).
 -->
 <ui:composition template="/plantillas/xhtml/plantilla-panel.xhtml"
                 xmlns="http://www.w3.org/1999/xhtml"
+                xmlns:h="jakarta.faces.html"
                 xmlns:f="jakarta.faces.core"
                 xmlns:ui="jakarta.faces.facelets"
                 xmlns:c="jakarta.tags.core"
@@ -17,7 +18,8 @@
 
     <ui:define name="metadatos">
         <f:metadata>
-            <f:viewParam name="rol" value="#{viewScope.rol}"/>
+            <!-- ?ver=finalizadas abre directo el historial (atajo desde el inicio del estudiante). -->
+            <f:viewParam name="ver" value="#{solicitudesControl.listado.vista}"/>
         </f:metadata>
     </ui:define>
 
@@ -27,55 +29,39 @@
     <ui:define name="titulo">Solicitudes</ui:define>
 
     <ui:define name="contenido">
-        <c:set var="rol" value="#{viewScope.rol eq 'coordinator' or viewScope.rol eq 'head' or viewScope.rol eq 'administrator' ? viewScope.rol : 'student'}"/>
+        <c:set var="rol" value="#{sesionControl.rol}"/>
 
-        <ui:decorate template="/plantillas/xhtml/comp-encabezado.xhtml">
-            <ui:param name="eyebrow" value="CADA PASO CUENTA"/>
-            <ui:param name="tituloPagina" value="#{rol eq 'student' ? 'Mis solicitudes' : (rol eq 'head' ? 'Solicitudes de todas las carreras' : 'Solicitudes de mi carrera')}"/>
-            <ui:param name="descripcion" value="Consulta el estado, los comentarios y la resolución de cada trámite."/>
-            <ui:param name="conAccion" value="#{rol eq 'student'}"/>
-            <ui:define name="accion">
-                <p:linkButton outcome="/vista/tramites" includeViewParams="true" value="Nueva solicitud"
-                              icon="pi pi-plus" size="large"/>
-            </ui:define>
-        </ui:decorate>
-
-        <!-- Estudiante -->
+        <!-- Estudiante: la misma sección que ve en su inicio (comp-mis-solicitudes). -->
         <ui:fragment rendered="#{rol eq 'student'}">
-            <ui:include src="/plantillas/xhtml/comp-tabla-solicitudes.xhtml">
-                <ui:param name="solicitudes" value="#{solicitudesDemo.stream().filter(s -> s.control eq usuariosDemo.student.control).toList()}"/>
-                <ui:param name="conEstudiante" value="false"/>
-                <ui:param name="conFiltros" value="true"/>
-            </ui:include>
+            <div class="columna-lectura">
+                <ui:include src="/plantillas/xhtml/comp-mis-solicitudes.xhtml">
+                    <ui:param name="principal" value="true"/>
+                </ui:include>
+            </div>
         </ui:fragment>
 
-        <!-- Coordinación -->
-        <ui:fragment rendered="#{rol eq 'coordinator'}">
+        <ui:fragment rendered="#{rol ne 'student'}">
+            <ui:decorate template="/plantillas/xhtml/comp-encabezado.xhtml">
+                <ui:param name="tituloPagina" value="#{rol eq 'head' ? 'Solicitudes de todas las carreras' : 'Solicitudes de mi carrera'}"/>
+                <ui:param name="descripcion" value="Consulta el estado, los comentarios y la resolución de cada trámite."/>
+            </ui:decorate>
+        </ui:fragment>
+
+        <!-- Coordinación y jefatura (jefatura solo consulta) -->
+        <ui:fragment rendered="#{rol eq 'coordinator' or rol eq 'head'}">
             <ui:include src="/plantillas/xhtml/comp-tabla-solicitudes.xhtml">
-                <ui:param name="solicitudes" value="#{solicitudesDemo.stream().filter(s -> s.carrera eq usuariosDemo.coordinator.carrera).toList()}"/>
+                <ui:param name="listado" value="#{solicitudesControl.listado}"/>
+                <ui:param name="conPrioridad" value="true"/>
                 <ui:param name="conEstudiante" value="true"/>
                 <ui:param name="conFiltros" value="true"/>
             </ui:include>
         </ui:fragment>
 
-        <!-- Jefatura: todas, solo consulta -->
-        <ui:fragment rendered="#{rol eq 'head'}">
-            <ui:include src="/plantillas/xhtml/comp-tabla-solicitudes.xhtml">
-                <ui:param name="solicitudes" value="#{solicitudesDemo}"/>
-                <ui:param name="conEstudiante" value="true"/>
-                <ui:param name="conFiltros" value="true"/>
-            </ui:include>
+        <ui:fragment rendered="#{solicitudesControl.recortada}">
+            <p class="text-color-secondary text-sm mt-2">
+                Se muestran las #{solicitudesControl.lista.size()} más recientes de #{solicitudesControl.total}.
+            </p>
         </ui:fragment>
 
-        <!-- Administración: no tiene solicitudes propias. -->
-        <ui:fragment rendered="#{rol eq 'administrator'}">
-            <ui:include src="/plantillas/xhtml/comp-estado-vacio.xhtml">
-                <ui:param name="icono" value="inbox"/>
-                <ui:param name="tituloVacio" value="Tu siguiente paso comienza aquí"/>
-                <ui:param name="descripcion" value="Cuando registres un trámite, podrás consultar aquí su folio, estado y seguimiento."/>
-                <ui:param name="destino" value="/vista/tramites"/>
-                <ui:param name="accion" value="Explorar trámites"/>
-            </ui:include>
-        </ui:fragment>
     </ui:define>
 </ui:composition>

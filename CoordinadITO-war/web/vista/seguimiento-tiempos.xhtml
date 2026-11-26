@@ -1,0 +1,114 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  VISTA: panel de seguimiento, tiempos de atención (solo jefatura). HU 7.2.
+  Por tipo de trámite, de las solicitudes que se CERRARON en el periodo: cuántas, promedio,
+  mínimo y máximo de días entre registro y resolución, contra los días esperados del trámite
+  (TRAMITE.DIAS_ESPERADOS) y qué porcentaje se resolvió a tiempo.
+  Bean: seguimientoControl.tiempos (SeguimientoService.tiempos).
+-->
+<ui:composition template="/plantillas/xhtml/plantilla-panel.xhtml"
+                xmlns="http://www.w3.org/1999/xhtml"
+                xmlns:h="jakarta.faces.html"
+                xmlns:f="jakarta.faces.core"
+                xmlns:ui="jakarta.faces.facelets"
+                xmlns:c="jakarta.tags.core"
+                xmlns:p="primefaces">
+
+    <ui:param name="seccion" value="tiempos"/>
+    <ui:param name="rotulo" value="Seguimiento"/>
+
+    <ui:define name="titulo">Tiempos de atención</ui:define>
+
+    <ui:define name="contenido">
+        <c:set var="rol" value="#{sesionControl.rol}"/>
+
+        <ui:fragment rendered="#{rol ne 'head'}">
+            <ui:include src="/plantillas/xhtml/comp-estado-vacio.xhtml">
+                <ui:param name="icono" value="clock"/>
+                <ui:param name="tituloVacio" value="Panel de jefatura"/>
+                <ui:param name="descripcion" value="El seguimiento de los tiempos de atención corresponde a la jefatura."/>
+                <ui:param name="destino" value="/vista/inicio"/>
+                <ui:param name="accion" value="Volver al inicio"/>
+            </ui:include>
+        </ui:fragment>
+
+        <ui:fragment rendered="#{rol eq 'head'}">
+            <ui:decorate template="/plantillas/xhtml/comp-encabezado.xhtml">
+                <ui:param name="tituloPagina" value="Seguimiento"/>
+                <ui:param name="conAccion" value="true"/>
+                <ui:define name="accion">
+                    <ui:include src="/plantillas/xhtml/comp-filtro-periodo.xhtml">
+                        <ui:param name="actualizar" value=":tablero"/>
+                    </ui:include>
+                </ui:define>
+            </ui:decorate>
+            <ui:include src="/plantillas/xhtml/comp-pestanas-seguimiento.xhtml">
+                <ui:param name="actual" value="tiempos"/>
+            </ui:include>
+
+            <h:panelGroup id="tablero" layout="block">
+                <div class="grid mb-2">
+                    <div class="col-12 md:col-6">
+                        <ui:include src="/plantillas/xhtml/comp-tarjeta-metrica.xhtml">
+                            <ui:param name="etiqueta" value="Solicitudes resueltas"/>
+                            <ui:param name="valor" value="#{seguimientoControl.resueltas}"/>
+                            <ui:param name="nota" value="Finalizadas o rechazadas en #{seguimientoControl.elegido().etiqueta}"/>
+                            <ui:param name="icono" value="check"/>
+                            <ui:param name="tono" value="tono-verde"/>
+                        </ui:include>
+                    </div>
+                    <div class="col-12 md:col-6">
+                        <ui:include src="/plantillas/xhtml/comp-tarjeta-metrica.xhtml">
+                            <ui:param name="etiqueta" value="Resueltas a tiempo"/>
+                            <ui:param name="valor" value="#{seguimientoControl.porcentajeEnTiempo}%"/>
+                            <ui:param name="nota" value="Dentro de los días esperados de su trámite"/>
+                            <ui:param name="icono" value="clock"/>
+                            <ui:param name="tono" value="tono-naranja"/>
+                        </ui:include>
+                    </div>
+                </div>
+
+                <ui:fragment rendered="#{empty seguimientoControl.tiempos}">
+                    <ui:include src="/plantillas/xhtml/comp-estado-vacio.xhtml">
+                        <ui:param name="icono" value="clock"/>
+                        <ui:param name="tituloVacio" value="Sin solicitudes resueltas"/>
+                        <ui:param name="descripcion" value="En este periodo no se cerró ninguna solicitud. Elige otro periodo."/>
+                    </ui:include>
+                </ui:fragment>
+
+                <ui:fragment rendered="#{not empty seguimientoControl.tiempos}">
+                    <p:card styleClass="mb-3">
+                        <f:facet name="title">Promedio real contra lo esperado</f:facet>
+                        <ui:include src="/plantillas/xhtml/comp-grafica-barras.xhtml">
+                            <ui:param name="grafica" value="#{seguimientoControl.graficaTiempos}"/>
+                            <ui:param name="descripcion" value="Días promedio de resolución por trámite contra los días esperados"/>
+                        </ui:include>
+                    </p:card>
+
+                    <h:form>
+                        <p:dataTable id="tablaTiempos" value="#{seguimientoControl.tiempos}" var="t" reflow="true">
+                            <p:column headerText="Tipo de trámite">#{t.tramite}</p:column>
+                            <p:column headerText="Resueltas" styleClass="text-right">#{t.resueltas}</p:column>
+                            <p:column headerText="Promedio (días)" styleClass="text-right font-bold">
+                                <h:outputText value="#{t.promedioDias}"><f:convertNumber maxFractionDigits="1" minFractionDigits="1"/></h:outputText>
+                            </p:column>
+                            <p:column headerText="Mínimo" styleClass="text-right">
+                                <h:outputText value="#{t.minimoDias}"><f:convertNumber maxFractionDigits="1"/></h:outputText>
+                            </p:column>
+                            <p:column headerText="Máximo" styleClass="text-right">
+                                <h:outputText value="#{t.maximoDias}"><f:convertNumber maxFractionDigits="1"/></h:outputText>
+                            </p:column>
+                            <p:column headerText="Esperado" styleClass="text-right">#{t.diasEsperados}</p:column>
+                            <p:column headerText="A tiempo" style="width: 11rem;">
+                                <p:progressBar value="#{t.porcentajeEnTiempo}" labelTemplate="{value}%" displayOnly="true"/>
+                            </p:column>
+                        </p:dataTable>
+                    </h:form>
+                </ui:fragment>
+                <p class="text-color-secondary text-sm mt-3">
+                    Los días esperados de cada trámite los define jefatura en el catálogo.
+                </p>
+            </h:panelGroup>
+        </ui:fragment>
+    </ui:define>
+</ui:composition>

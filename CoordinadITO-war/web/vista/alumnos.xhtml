@@ -1,0 +1,88 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  VISTA: alumnos de las carreras que atiende quien consulta. HU 6.5.
+      coordinator -> alumnos de sus carreras.     head -> de todas.     los demás -> estado vacío.
+  Búsqueda por nombre, número de control o correo y filtro por carrera. La tabla es lazy:
+  cada página se pide a la base (alumnosControl.alumnos → AlumnoService.buscar).
+  La insignia «origen» dice de dónde salen carrera y semestre (padrón, autodeclarados, validados).
+-->
+<ui:composition template="/plantillas/xhtml/plantilla-panel.xhtml"
+                xmlns="http://www.w3.org/1999/xhtml"
+                xmlns:h="jakarta.faces.html"
+                xmlns:f="jakarta.faces.core"
+                xmlns:ui="jakarta.faces.facelets"
+                xmlns:c="jakarta.tags.core"
+                xmlns:p="primefaces">
+
+    <ui:param name="seccion" value="alumnos"/>
+    <ui:param name="rotulo" value="Alumnos"/>
+
+    <ui:define name="titulo">Alumnos</ui:define>
+
+    <ui:define name="contenido">
+        <c:set var="rol" value="#{sesionControl.rol}"/>
+
+        <ui:fragment rendered="#{rol ne 'coordinator' and rol ne 'head'}">
+            <ui:include src="/plantillas/xhtml/comp-estado-vacio.xhtml">
+                <ui:param name="icono" value="id-card"/>
+                <ui:param name="tituloVacio" value="Expedientes de alumnos"/>
+                <ui:param name="descripcion" value="Los consultan coordinación y jefatura."/>
+                <ui:param name="destino" value="/vista/inicio"/>
+                <ui:param name="accion" value="Volver al inicio"/>
+            </ui:include>
+        </ui:fragment>
+
+        <ui:fragment rendered="#{rol eq 'coordinator' or rol eq 'head'}">
+            <ui:include src="/plantillas/xhtml/comp-encabezado.xhtml">
+                <ui:param name="tituloPagina" value="Alumnos"/>
+                <ui:param name="descripcion" value="#{rol eq 'head' ? 'Alumnos de todas las carreras.' : 'Alumnos de '.concat(sesionControl.usuario.carrera).concat('.')}"/>
+            </ui:include>
+
+            <h:form id="formAlumnos">
+                <p:card styleClass="mb-3">
+                    <div class="formgrid grid align-items-end">
+                        <div class="field col-12 md:col-6">
+                            <p:outputLabel for="texto" value="Buscar" styleClass="block font-medium mb-2"/>
+                            <span class="ui-input-icon-left w-full">
+                                <i class="pi pi-search"/>
+                                <p:inputText id="texto" value="#{alumnosControl.texto}" styleClass="w-full" maxlength="100"
+                                             placeholder="Nombre, apellido, número de control o correo">
+                                    <p:ajax event="input" delay="400" process="@this" update="tablaAlumnos"
+                                            oncomplete="PF('tablaAlumnos').getPaginator().setPage(0)"/>
+                                </p:inputText>
+                            </span>
+                        </div>
+                        <div class="field col-12 md:col-4">
+                            <p:outputLabel for="carrera" value="Carrera" styleClass="block font-medium mb-2"/>
+                            <p:selectOneMenu id="carrera" value="#{alumnosControl.carrera}" styleClass="w-full">
+                                <f:selectItem itemValue="" itemLabel="Todas mis carreras"/>
+                                <f:selectItems value="#{catalogos.carreras}" var="car" itemValue="#{car.valor}" itemLabel="#{car.etiqueta}"/>
+                                <p:ajax process="@this" update="tablaAlumnos"/>
+                            </p:selectOneMenu>
+                        </div>
+                    </div>
+                </p:card>
+
+                <p:dataTable id="tablaAlumnos" widgetVar="tablaAlumnos" value="#{alumnosControl.alumnos}" var="a" lazy="true"
+                             paginator="true" rows="20" paginatorPosition="bottom" reflow="true"
+                             paginatorTemplate="{CurrentPageReport} {PreviousPageLink} {PageLinks} {NextPageLink}"
+                             currentPageReportTemplate="{totalRecords} alumnos" emptyMessage="No hay alumnos que coincidan.">
+                    <p:column headerText="Alumno">
+                        <h:link outcome="/vista/alumno-detalle" styleClass="enlace-solicitud">
+                            <f:param name="id" value="#{a.id}"/>
+                            #{a.nombre}
+                            <small>#{a.correo}</small>
+                        </h:link>
+                    </p:column>
+                    <p:column headerText="Número de control" style="width: 11rem;">#{a.control}</p:column>
+                    <p:column headerText="Carrera" style="width: 7rem;"><p:chip label="#{a.claveCarrera}" styleClass="chip-chico"/></p:column>
+                    <p:column headerText="Semestre" style="width: 7rem;">#{a.semestre}.º</p:column>
+                    <p:column headerText="Origen de los datos" style="width: 14rem;">
+                        <p:tag value="#{a.origenEtiqueta}" rounded="true"
+                               severity="#{a.origen eq 'AUTODECLARADO' ? 'warning' : (a.origen eq 'VALIDADO' ? 'success' : 'info')}"/>
+                    </p:column>
+                </p:dataTable>
+            </h:form>
+        </ui:fragment>
+    </ui:define>
+</ui:composition>
